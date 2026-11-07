@@ -22,7 +22,7 @@ export interface LeadItem {
   is_vdiv_member: boolean;
   source_count: number;
   sources_csv: string;
-  heidi_lead_score: number;
+  metrixa_lead_score: number;
   lead_tier: LeadTier;
   founding_year: number | null;
   exact_units_managed: number | null;

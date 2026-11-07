@@ -435,7 +435,7 @@ export default function SettingsHubPage() {
             </span>
           </h1>
           <p className="text-xs text-zinc-400 mt-1">
-            Toggle between LLM extraction models and Web Search engines, test live pings, and connect to Heidi Engine.
+            Toggle between LLM extraction models and Web Search engines, test live pings, and connect to Metrixa Engine.
           </p>
         </div>
 

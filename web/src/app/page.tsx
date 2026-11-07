@@ -265,7 +265,7 @@ export default function DashboardPage() {
             <span>Tier A Target Strategy</span>
           </div>
           <p className="text-xs text-zinc-300 leading-relaxed">
-            33 companies managing up to 53,300 units with confirmed residential WEG/Miet focus and verified Geschäftsführer. Prime for Heidi Systems Account Executives.
+            33 companies managing up to 53,300 units with confirmed residential WEG/Miet focus and verified Geschäftsführer. Prime for Metrixa Systems Account Executives.
           </p>
         </div>
 

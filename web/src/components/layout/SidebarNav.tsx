@@ -47,7 +47,7 @@ export function SidebarNav() {
           {!isCollapsed && (
             <div className="transition-opacity duration-200">
               <div className="flex items-center gap-1.5">
-                <span className="font-bold text-base tracking-tight text-zinc-100">HEIDI</span>
+                <span className="font-bold text-base tracking-tight text-zinc-100">METRIXA</span>
                 <span className="text-[10px] font-semibold px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
                   COCKPIT
                 </span>

@@ -1,5 +1,5 @@
 """
-Stage 5b Deterministic Heidi Lead Scoring & Tiering Engine (0-100 Score).
+Stage 5b Deterministic Metrixa Lead Scoring & Tiering Engine (0-100 Score).
 Implements the 5-Pillar Mathematical Qualification Formula specified in
 04_TASK2_KPI_BLUEPRINT_CRAWLER_AND_SCORING_ENGINE.md:
   1. Portfolio Scale (Max 35 pts)
@@ -194,14 +194,19 @@ class LeadScorer:
                 conn.execute(
                     """
                     UPDATE companies_golden
-                    SET heidi_lead_score = ?,
+                    SET metrixa_lead_score = ?,
+                        heidi_lead_score = ?,
                         lead_tier = ?,
                         pipeline_stage = 'SCORED',
                         updated_at = ?
                     WHERE company_id = ?
                     """,
-                    (score, tier, now_iso, cid),
+                    (score, score, tier, now_iso, cid),
                 )
 
         return tier_counts
+
+
+# Rebranded alias
+calculate_metrixa_lead_score = calculate_heidi_lead_score
 

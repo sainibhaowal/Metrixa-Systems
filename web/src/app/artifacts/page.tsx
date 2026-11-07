@@ -46,7 +46,7 @@ export default function ArtifactsVaultPage() {
           <div>
             <h2 className="text-base font-bold text-zinc-100">Master Berlin Leads Excel (.xlsx)</h2>
             <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
-              4-Tab formatted workbook containing all 1,199 Berlin Hausverwaltungen ranked by Heidi Lead Score (0–100), full decision-maker dossier, and crawled evidence logs.
+              4-Tab formatted workbook containing all 1,199 Berlin Hausverwaltungen ranked by Metrixa Lead Score (0–100), full decision-maker dossier, and crawled evidence logs.
             </p>
           </div>
 
@@ -57,7 +57,7 @@ export default function ArtifactsVaultPage() {
               className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs shadow-glowEmerald transition-all"
             >
               <Download className="w-4 h-4" />
-              <span>Download heidi_berlin_hausverwaltungen.xlsx (271 KB)</span>
+              <span>Download metrixa_berlin_hausverwaltungen.xlsx (271 KB)</span>
             </a>
           </div>
         </div>
@@ -87,7 +87,7 @@ export default function ArtifactsVaultPage() {
               className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-200 font-semibold text-xs border border-zinc-800 transition-all"
             >
               <Download className="w-4 h-4" />
-              <span>Download heidi_berlin_leads_master.csv (355 KB)</span>
+              <span>Download metrixa_berlin_leads_master.csv (355 KB)</span>
             </a>
           </div>
         </div>

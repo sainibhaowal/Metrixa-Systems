@@ -155,7 +155,7 @@ class CompanyKPIExtraction(BaseModel):
     )
     qualification_reasoning: str = Field(
         default="",
-        description="1-2 sentence factual summary of why this company is a strong/weak lead for Heidi Systems",
+        description="1-2 sentence factual summary of why this company is a strong/weak lead for Metrixa Systems",
     )
 
 

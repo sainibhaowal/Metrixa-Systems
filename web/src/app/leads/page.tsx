@@ -226,7 +226,7 @@ export default function LeadsExplorerPage() {
           <table className="w-full text-left text-xs">
             <thead className="bg-[#141418] text-[11px] font-mono uppercase text-zinc-400 border-b border-zinc-800 tracking-wider">
               <tr>
-                <th className="py-3.5 px-4 w-16">Score</th>
+                <th className="py-3.5 px-4 w-20">Metrixa Score</th>
                 <th className="py-3.5 px-4">Company Name</th>
                 <th className="py-3.5 px-4">District (PLZ)</th>
                 <th className="py-3.5 px-4">Scale / Units</th>
@@ -260,7 +260,7 @@ export default function LeadsExplorerPage() {
                     {/* Score */}
                     <td className="py-3 px-4 font-mono">
                       <span className={`inline-flex px-2 py-0.5 rounded-md font-bold text-xs border ${getTierColorClasses(lead.lead_tier)}`}>
-                        {lead.heidi_lead_score}
+                        {lead.metrixa_lead_score}
                       </span>
                     </td>
 

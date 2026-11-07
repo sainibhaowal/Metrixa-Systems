@@ -1,5 +1,5 @@
 """
-Configuration & Environment Loader for Heidi Engine.
+Configuration & Environment Loader for Metrixa Engine.
 Supports Multi-Provider LLM Routing (llama.cpp, LM Studio, NVIDIA NIM, DeepSeek, Gemini)
 and Hybrid Search Routing (Local SearXNG, Native Meta-Search, Tavily API).
 """
@@ -18,11 +18,15 @@ load_dotenv(PROJECT_ROOT / ".env", override=False)
 
 
 class Settings(BaseModel):
-    """Central runtime configuration for Heidi Engine."""
+    """Central runtime configuration for Metrixa Engine."""
 
     project_root: Path = Field(default=PROJECT_ROOT)
     database_path: Path = Field(
-        default_factory=lambda: PROJECT_ROOT / os.getenv("DATABASE_PATH", "data/heidi_leads.db")
+        default_factory=lambda: (
+            PROJECT_ROOT / "data" / "metrixa_leads.db"
+            if (PROJECT_ROOT / "data" / "metrixa_leads.db").exists()
+            else PROJECT_ROOT / os.getenv("DATABASE_PATH", "data/heidi_leads.db")
+        )
     )
     export_dir: Path = Field(
         default_factory=lambda: PROJECT_ROOT / os.getenv("EXPORT_DIR", "data/exports")

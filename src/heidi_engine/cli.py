@@ -1,5 +1,5 @@
 """
-Production Rich Terminal UI (TUI) & CLI Controller for Heidi Engine.
+Production Rich Terminal UI (TUI) & CLI Controller for Metrixa Engine.
 Provides interactive progress bars, live telemetry panels, ablation tables,
 and full end-to-end pipeline orchestration via Typer & Rich.
 """
@@ -41,8 +41,8 @@ from heidi_engine.telemetry.excel_exporter import ExcelExporter
 
 
 app = typer.Typer(
-    name="heidi",
-    help="Heidi Engine — Autonomous B2B Lead Discovery, Website/Impressum Crawler, Multi-LLM KPI Extractor & Scoring CLI",
+    name="metrixa",
+    help="Metrixa Engine — Autonomous B2B Lead Discovery, Website/Impressum Crawler, Multi-LLM KPI Extractor & Scoring CLI",
     add_completion=False,
 )
 console = Console()
@@ -50,7 +50,7 @@ console = Console()
 
 def print_banner() -> None:
     banner_text = Text()
-    banner_text.append("HEIDI ENGINE v1.0", style="bold cyan")
+    banner_text.append("METRIXA ENGINE v1.0", style="bold cyan")
     banner_text.append(
         " — Autonomous B2B Lead Discovery, Enrichment & Qualification Pipeline\n",
         style="bold white",
@@ -64,7 +64,7 @@ def print_banner() -> None:
 
 @app.command("init")
 def cmd_init() -> None:
-    """Initialize the SQLite WAL relational database (data/heidi_leads.db)."""
+    """Initialize the SQLite WAL relational database (data/metrixa_leads.db)."""
     print_banner()
     db = Database()
     console.print(
@@ -235,7 +235,7 @@ def cmd_enrich(
         15, "--search-top", help="Number of top companies to query via SearchRouter for LinkedIn/Director fallback"
     ),
 ) -> None:
-    """Stage 5 (Task 2 & Bonus): Verify DNS MX records, resolve Personal Emails/LinkedIn & compute 0-100 Heidi Lead Score."""
+    """Stage 5 (Task 2 & Bonus): Verify DNS MX records, resolve Personal Emails/LinkedIn & compute 0-100 Metrixa Lead Score."""
     print_banner()
     db = Database()
     enricher = ContactEnricher(db)
@@ -287,7 +287,7 @@ def cmd_export() -> None:
             f"• [bold white]Master CSV Deliverable:[/bold white]    [cyan]{res['csv_path']}[/cyan]\n"
             f"• [bold white]Qualified Berlin Leads:[/bold white]    [yellow]{res['total_exported_leads']}[/yellow]\n"
             f"• [bold white]Decision-Maker Contacts:[/bold white]   [yellow]{res['total_exported_contacts']}[/yellow]",
-            title="Heidi Systems Deliverable Export",
+            title="Metrixa Systems Deliverable Export",
             border_style="green",
         )
     )
@@ -347,7 +347,7 @@ def cmd_evaluate() -> None:
         f"{abl['public_direct_emails_pct']}%",
     )
     abl_table.add_row(
-        "Stage 5: Full Heidi Engine (+ DNS MX & LinkedIn Enricher)",
+        "Stage 5: Full Metrixa Engine (+ DNS MX & LinkedIn Enricher)",
         f"{abl['golden_total']} Scored",
         f"{abl['golden_web_pct']}%",
         f"{abl['kpi_populated_pct']}%",
@@ -372,7 +372,7 @@ def cmd_dashboard(
 
     # 1. Telemetry Overview Table
     t_overview = Table(
-        title="Heidi Engine — Live SQLite Database Telemetry",
+        title="Metrixa Engine — Live SQLite Database Telemetry",
         header_style="bold white on navy_blue",
     )
     t_overview.add_column("Pipeline Metric", style="cyan")
@@ -408,7 +408,7 @@ def cmd_dashboard(
             """
             SELECT
                 c.company_id, c.display_name, c.legal_form, c.district, c.postal_code,
-                c.heidi_lead_score, c.lead_tier, c.is_vdiv_member,
+                COALESCE(c.metrixa_lead_score, c.heidi_lead_score) as metrixa_lead_score, c.lead_tier, c.is_vdiv_member,
                 k.exact_units_managed, k.estimated_units_tier, k.detected_erp_proptech,
                 k.has_customer_portal,
                 (SELECT d.full_name FROM decision_makers d WHERE d.company_id = c.company_id ORDER BY d.is_primary_contact DESC LIMIT 1) as dm_name,
@@ -416,7 +416,7 @@ def cmd_dashboard(
             FROM companies_golden c
             LEFT JOIN kpi_extractions k ON k.company_id = c.company_id
             WHERE c.pipeline_stage != 'DISQUALIFIED'
-            ORDER BY c.heidi_lead_score DESC, c.is_vdiv_member DESC, c.source_count DESC
+            ORDER BY COALESCE(c.metrixa_lead_score, c.heidi_lead_score) DESC, c.is_vdiv_member DESC, c.source_count DESC
             LIMIT ?
             """,
             (top_n,),
@@ -424,7 +424,7 @@ def cmd_dashboard(
 
     if top_rows:
         leads_table = Table(
-            title=f"Top {len(top_rows)} Berlin Property Management Leads (Ranked by Heidi Lead Score)",
+            title=f"Top {len(top_rows)} Berlin Property Management Leads (Ranked by Metrixa Lead Score)",
             header_style="bold white on dark_green",
         )
         leads_table.add_column("#", justify="right", style="dim")
@@ -446,7 +446,7 @@ def cmd_dashboard(
             bezirk_str = f"{r['district'] or 'Berlin'} ({r['postal_code'] or '-'})"
             leads_table.add_row(
                 str(idx),
-                str(r["heidi_lead_score"]),
+                str(r["metrixa_lead_score"]),
                 r["display_name"][:36],
                 bezirk_str[:22],
                 units_str,
@@ -463,7 +463,7 @@ def cmd_run_all(
     crawl_limit: Optional[int] = typer.Option(None, "--crawl-limit", help="Optional limit on websites to crawl"),
     provider: Optional[str] = typer.Option(None, "--provider", "-m", help="LLM provider override"),
 ) -> None:
-    """Execute the complete 6-Stage Heidi Engine Pipeline End-to-End."""
+    """Execute the complete 6-Stage Metrixa Engine Pipeline End-to-End."""
     cmd_init()
     cmd_ingest(max_pages=max_pages)
     cmd_deduplicate()

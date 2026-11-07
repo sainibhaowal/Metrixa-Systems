@@ -65,7 +65,7 @@ export function EvidenceDrawer({ companyId, onClose }: EvidenceDrawerProps) {
                 {comp?.lead_tier || "Tier Loading"}
               </span>
               <span className="text-xs font-mono px-2.5 py-1 rounded-lg bg-zinc-850 text-zinc-300 border border-zinc-700/60">
-                Score: <strong className="text-emerald-400">{comp?.heidi_lead_score ?? "-"}</strong>/100
+                Score: <strong className="text-emerald-400">{comp?.metrixa_lead_score ?? comp?.total_score ?? "-"}</strong>/100
               </span>
             </div>
             <h2 className="text-lg font-bold text-zinc-100 tracking-tight leading-snug">

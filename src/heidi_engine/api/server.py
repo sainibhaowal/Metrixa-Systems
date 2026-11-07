@@ -1,5 +1,5 @@
 """
-FastAPI Backend Gateway for Heidi Cockpit.
+FastAPI Backend Gateway for Metrixa Cockpit.
 Provides REST APIs for Leads, Metrics, Artifacts, Tools, and Settings,
 plus Server-Sent Events (SSE) for Real-Time Pipeline Progress and Streaming Logs.
 """
@@ -76,8 +76,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Heidi Cockpit API",
-    description="Autonomous B2B LeadOps & Metering Intelligence Gateway for Heidi Systems",
+    title="Metrixa Cockpit API",
+    description="Autonomous B2B LeadOps & Metering Intelligence Gateway for Metrixa Systems",
     version="1.0.0",
     lifespan=lifespan,
 )
@@ -236,7 +236,7 @@ async def get_leads(
                 c.street_address, c.postal_code, c.city, c.district,
                 c.phone_e164, c.website_url, c.canonical_domain,
                 c.general_email, c.company_linkedin_url, c.is_vdiv_member,
-                c.source_count, c.sources_csv, c.heidi_lead_score, c.lead_tier,
+                c.source_count, c.sources_csv, c.metrixa_lead_score, c.heidi_lead_score, c.lead_tier,
                 k.founding_year, k.exact_units_managed, k.units_evidence_quote,
                 k.estimated_units_tier, k.employee_count_est,
                 k.manages_weg, k.manages_miet, k.manages_gewerbe, k.manages_sev,
@@ -256,9 +256,10 @@ async def get_leads(
         """
         rows = [dict(r) for r in conn.execute(data_sql, params + [limit, offset]).fetchall()]
 
-        # Attach formatted Lead ID (e.g. HEIDI-BER-0001)
+        # Attach formatted Lead ID (e.g. METRIXA-BER-0001)
         for idx, r in enumerate(rows, start=offset + 1):
-            r["lead_id"] = f"HEIDI-BER-{r['company_id']:04d}"
+            r["lead_id"] = f"METRIXA-BER-{r['company_id']:04d}"
+            r["metrixa_lead_score"] = r.get("metrixa_lead_score") if r.get("metrixa_lead_score") is not None else r.get("heidi_lead_score", 0)
             r["linkedin_url"] = r["decision_maker_linkedin"] or r["company_linkedin_url"]
 
     return {
@@ -344,7 +345,7 @@ async def get_lead_evidence(company_id: int):
             "digital_pts": min(20, s_digital),
             "trust_pts": min(10, s_trust),
             "contact_pts": min(10, s_contact),
-            "total_score": comp_d.get("heidi_lead_score", 0),
+            "total_score": comp_d.get("metrixa_lead_score") or comp_d.get("heidi_lead_score", 0),
         }
 
     return {
@@ -519,12 +520,17 @@ async def stream_pipeline_events():
 @app.get("/api/artifacts/download/excel")
 async def download_excel():
     """Download styled 4-Tab Master Excel (.xlsx) file."""
-    path = settings.export_dir / "heidi_berlin_hausverwaltungen.xlsx"
+    path = settings.export_dir / "metrixa_berlin_hausverwaltungen.xlsx"
     if not path.exists():
-        ExcelExporter(db).export_all()
+        fallback_path = settings.export_dir / "heidi_berlin_hausverwaltungen.xlsx"
+        if fallback_path.exists():
+            import shutil
+            shutil.copyfile(fallback_path, path)
+        else:
+            ExcelExporter(db).export_all()
     return FileResponse(
         path=path,
-        filename="heidi_berlin_hausverwaltungen.xlsx",
+        filename="metrixa_berlin_hausverwaltungen.xlsx",
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
 
@@ -532,12 +538,17 @@ async def download_excel():
 @app.get("/api/artifacts/download/csv")
 async def download_csv():
     """Download Master CSV file."""
-    path = settings.export_dir / "heidi_berlin_leads_master.csv"
+    path = settings.export_dir / "metrixa_berlin_leads_master.csv"
     if not path.exists():
-        ExcelExporter(db).export_all()
+        fallback_path = settings.export_dir / "heidi_berlin_leads_master.csv"
+        if fallback_path.exists():
+            import shutil
+            shutil.copyfile(fallback_path, path)
+        else:
+            ExcelExporter(db).export_all()
     return FileResponse(
         path=path,
-        filename="heidi_berlin_leads_master.csv",
+        filename="metrixa_berlin_leads_master.csv",
         media_type="text/csv",
     )
 

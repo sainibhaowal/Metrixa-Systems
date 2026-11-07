@@ -63,6 +63,7 @@ CREATE TABLE IF NOT EXISTS companies_golden (
     sources_csv TEXT NOT NULL,
     pipeline_stage TEXT NOT NULL DEFAULT 'DEDUPED',
     disqualification_reason TEXT,
+    metrixa_lead_score INTEGER DEFAULT 0,
     heidi_lead_score INTEGER DEFAULT 0,
     lead_tier TEXT DEFAULT 'Tier C (Long-Tail / Small)',
     updated_at TEXT NOT NULL
@@ -70,7 +71,8 @@ CREATE TABLE IF NOT EXISTS companies_golden (
 
 CREATE INDEX IF NOT EXISTS idx_golden_stage ON companies_golden(pipeline_stage);
 CREATE INDEX IF NOT EXISTS idx_golden_domain ON companies_golden(canonical_domain);
-CREATE INDEX IF NOT EXISTS idx_golden_score ON companies_golden(heidi_lead_score DESC);
+CREATE INDEX IF NOT EXISTS idx_golden_score ON companies_golden(metrixa_lead_score DESC);
+CREATE INDEX IF NOT EXISTS idx_golden_score_legacy ON companies_golden(heidi_lead_score DESC);
 CREATE INDEX IF NOT EXISTS idx_golden_plz ON companies_golden(postal_code);
 
 CREATE TABLE IF NOT EXISTS company_sources_map (

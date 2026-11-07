@@ -5,8 +5,8 @@ import { StickyTopbar } from "@/components/layout/StickyTopbar";
 import { SidebarProvider } from "@/components/layout/SidebarContext";
 
 export const metadata: Metadata = {
-  title: "Heidi Cockpit — Autonomous LeadOps & Metering Intelligence",
-  description: "Enterprise GTM Intelligence Cockpit for Heidi Systems GmbH (Berlin Property Management Companies)",
+  title: "Metrixa Cockpit — Autonomous LeadOps & Metering Intelligence",
+  description: "Enterprise GTM Intelligence Cockpit for Metrixa Systems GmbH (Berlin Property Management Companies)",
 };
 
 export default function RootLayout({

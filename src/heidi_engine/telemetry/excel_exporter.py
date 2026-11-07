@@ -1,7 +1,7 @@
 """
-Stage 6 Multi-Tab Excel (.xlsx) & CSV Exporter for Heidi Systems.
+Stage 6 Multi-Tab Excel (.xlsx) & CSV Exporter for Metrixa Systems.
 Builds a 4-Tab Workbook ready for direct upload to Google Sheets or Excel attachment:
-  Tab 1: Qualified_Berlin_Leads (31 KPI & Contact columns, sorted by Heidi Lead Score)
+  Tab 1: Qualified_Berlin_Leads (31 KPI & Contact columns, sorted by Metrixa Lead Score)
   Tab 2: All_Decision_Makers_Contacts (Bonus Task deep-dive with MX & Evidence verification)
   Tab 3: Evidence_And_Audit_Trail (Anti-Hallucination URLs, HTTP codes & verbatim quotes)
   Tab 4: KPI_Methodology_And_Summary (Executive KPI rationale, scoring formula & live stats)
@@ -66,8 +66,8 @@ class ExcelExporter:
         csv_path: Optional[Path] = None,
     ) -> Dict[str, Any]:
         settings.ensure_dirs()
-        out_xlsx = xlsx_path or (settings.export_dir / "heidi_berlin_hausverwaltungen.xlsx")
-        out_csv = csv_path or (settings.export_dir / "heidi_berlin_leads_master.csv")
+        out_xlsx = xlsx_path or (settings.export_dir / "metrixa_berlin_hausverwaltungen.xlsx")
+        out_csv = csv_path or (settings.export_dir / "metrixa_berlin_leads_master.csv")
 
         with self.db.connect() as conn:
             master_rows = conn.execute(
@@ -135,7 +135,7 @@ class ExcelExporter:
         headers_tab1 = [
             "Lead ID",
             "Lead Tier",
-            "Heidi Lead Score (0-100)",
+            "Metrixa Lead Score (0-100)",
             "Company Name",
             "Legal Form",
             "Berlin District (Bezirk)",
@@ -171,7 +171,7 @@ class ExcelExporter:
 
         for idx, r in enumerate(master_rows, start=1):
             cid = r["company_id"]
-            lead_id = f"HEIDI-BER-{idx:04d}"
+            lead_id = f"METRIXA-BER-{idx:04d}"
             pdm = primary_dm_by_comp.get(cid, {})
 
             li_url = pdm.get("linkedin_url") or r["company_linkedin_url"] or ""
@@ -383,7 +383,7 @@ class ExcelExporter:
         ws4 = wb.create_sheet(title="KPI_Methodology_And_Summary")
         tel = self.db.get_pipeline_telemetry()
 
-        ws4.append(["Section / Metric", "Value / Specification", "Business Rationale for Heidi Systems (Submetering)"])
+        ws4.append(["Section / Metric", "Value / Specification", "Business Rationale for Metrixa Systems (Submetering)"])
         summary_rows = [
             (
                 "Total Raw Scraped Listings (Stage 1)",
@@ -443,7 +443,7 @@ class ExcelExporter:
             (
                 "KPI Pillar 5: Contact Reachability (Max 10 pts)",
                 "Decision Maker Name, Personal Email (MX Valid), LinkedIn URL",
-                "Enables Heidi Systems Account Executives to bypass info@ gatekeepers and reach the contract signer.",
+                "Enables Metrixa Systems Account Executives to bypass info@ gatekeepers and reach the contract signer.",
             ),
         ]
         for sr_idx, sr in enumerate(summary_rows, start=2):

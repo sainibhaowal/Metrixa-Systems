@@ -45,7 +45,7 @@ export default function ToolsCatalogPage() {
             </span>
           </h1>
           <p className="text-xs text-zinc-400 mt-1">
-            Inspect, test and verify scrapers, legal parsers, and DNS network verifiers powering Heidi Engine.
+            Inspect, test and verify scrapers, legal parsers, and DNS network verifiers powering Metrixa Engine.
           </p>
         </div>
       </div>

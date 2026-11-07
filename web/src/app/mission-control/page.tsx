@@ -27,8 +27,8 @@ export default function MissionControlPage() {
   const [running, setRunning] = useState(false);
   const [activeStage, setActiveStage] = useState<string | null>(null);
   const [logs, setLogs] = useState<Array<{ time: string; level: string; msg: string }>>([
-    { time: "INIT", level: "INFO", msg: "Heidi Cockpit Mission Control ready. EventBus active on http://127.0.0.1:8000" },
-    { time: "STATUS", level: "SUCCESS", msg: "Connected to SQLite WAL (heidi_leads.db) — 1,199 qualified companies loaded." },
+    { time: "INIT", level: "INFO", msg: "Metrixa Cockpit Mission Control ready. EventBus active on http://127.0.0.1:8000" },
+    { time: "STATUS", level: "SUCCESS", msg: "Connected to SQLite WAL (metrixa_leads.db) — 1,199 qualified companies loaded." },
   ]);
   const [progress, setProgress] = useState<number>(0);
   const logEndRef = useRef<HTMLDivElement>(null);

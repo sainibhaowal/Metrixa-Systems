@@ -19,7 +19,7 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("heidi_sidebar_collapsed");
+      const saved = localStorage.getItem("metrixa_sidebar_collapsed");
       if (saved !== null) {
         setIsCollapsed(saved === "true");
       }
@@ -32,7 +32,7 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
     setIsCollapsed((prev) => {
       const next = !prev;
       try {
-        localStorage.setItem("heidi_sidebar_collapsed", String(next));
+        localStorage.setItem("metrixa_sidebar_collapsed", String(next));
       } catch {}
       return next;
     });
@@ -41,7 +41,7 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
   const setCollapsed = (val: boolean) => {
     setIsCollapsed(val);
     try {
-      localStorage.setItem("heidi_sidebar_collapsed", String(val));
+      localStorage.setItem("metrixa_sidebar_collapsed", String(val));
     } catch {}
   };
 

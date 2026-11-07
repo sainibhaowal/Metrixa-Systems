@@ -194,11 +194,11 @@ class PipelineEvaluator:
         val = self.evaluate_validation_and_gold_sample()
         now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
-        report_md = f"""# Heidi Engine — Task 3 Evaluation, Data Validation & Ablation Report
+        report_md = f"""# Metrixa Engine — Task 3 Evaluation, Data Validation & Ablation Report
 
 **Generated At:** `{now_str}`  
-**Database:** `data/heidi_leads.db`  
-**Primary Excel Deliverable:** `data/exports/heidi_berlin_hausverwaltungen.xlsx`
+**Database:** `data/metrixa_leads.db`  
+**Primary Excel Deliverable:** `data/exports/metrixa_berlin_hausverwaltungen.xlsx`
 
 ---
 
@@ -221,7 +221,7 @@ class PipelineEvaluator:
 
 ## 2. Stage-by-Stage Pipeline Ablation Study
 
-This ablation table demonstrates why a single scraper is insufficient and quantifies the value added by each stage of **Heidi Engine**:
+This ablation table demonstrates why a single scraper is insufficient and quantifies the value added by each stage of **Metrixa Engine**:
 
 | Pipeline Configuration (Ablation Stage) | Raw / Unique Berlin Leads | Corporate Website Coverage | Qualifying KPIs Populated (WEG/Miet/Scale/ERP) | Named Decision Maker (*Geschäftsführer*) | Personal Email (`Non-info@`) Coverage |
 | :--- | :---: | :---: | :---: | :---: | :---: |
@@ -229,7 +229,7 @@ This ablation table demonstrates why a single scraper is insufficient and quanti
 | **Stage 1 + 2:** Multi-Source Scrapers (*GS + 11880 + VDIV + OSM + Search*) + Union-Find Deduplication | **{abl['golden_total']} Unique** | {abl['golden_web_pct']}% | {abl['vdiv_pct']}% *(VDIV flags)* | 0.0% | 0.0% |
 | **Stage 3:** + Async Website & *Impressum* Crawler + DOM PropTech/ERP Scanner | {abl['golden_total']} Unique | {abl['golden_web_pct']}% | {abl['dom_portal_or_erp_pct']}% *(DOM ERP/Portal)* | ~18.0% | {abl['public_direct_emails_pct']}% |
 | **Stage 4:** + Multi-LLM & German *Impressum* Structured Extractor (*With Evidence Gate*) | {abl['golden_total']} Unique | {abl['golden_web_pct']}% | **{abl['kpi_populated_pct']}%** | **{abl['dm_extracted_pct']}%** | {abl['public_direct_emails_pct']}% |
-| **Stage 5 (Full Heidi Engine):** + SearXNG/Tavily LinkedIn Enricher + DNS `MX` Corporate Pattern Verifier + Scorer | **{abl['golden_total']} Scored** | **{abl['golden_web_pct']}%** | **{abl['kpi_populated_pct']}%** | **{abl['dm_extracted_pct']}%** | **{abl['total_pers_emails_pct']}% (`MX` Verified)** |
+| **Stage 5 (Full Metrixa Engine):** + SearXNG/Tavily LinkedIn Enricher + DNS `MX` Corporate Pattern Verifier + Scorer | **{abl['golden_total']} Scored** | **{abl['golden_web_pct']}%** | **{abl['kpi_populated_pct']}%** | **{abl['dm_extracted_pct']}%** | **{abl['total_pers_emails_pct']}% (`MX` Verified)** |
 
 ---
 
