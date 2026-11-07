@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Download, RefreshCw, Database, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import {
+  Download,
+  RefreshCw,
+  Database,
+  PanelLeftClose,
+  PanelLeftOpen,
+} from "lucide-react";
 import { fetchMetrics } from "@/lib/api";
 import { useSidebar } from "./SidebarContext";
 
@@ -61,7 +67,11 @@ export function StickyTopbar() {
         <div className="hidden sm:flex items-center gap-2 text-xs font-mono text-zinc-400">
           <Database className="w-3.5 h-3.5 text-emerald-400" />
           <span>
-            Database: <strong className="text-zinc-200">{metrics?.golden_total || "1,199"}</strong> Qualified Berlin Leads
+            Database:{" "}
+            <strong className="text-zinc-200">
+              {metrics?.golden_total || "1,199"}
+            </strong>{" "}
+            Qualified Berlin Leads
           </span>
         </div>
       </div>
@@ -74,7 +84,9 @@ export function StickyTopbar() {
           className="p-2 rounded-xl text-zinc-400 hover:text-zinc-100 hover:bg-zinc-850 border border-zinc-800 hover:border-zinc-700 transition-colors"
           title="Refresh Telemetry"
         >
-          <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-emerald-400" : ""}`} />
+          <RefreshCw
+            className={`w-4 h-4 ${loading ? "animate-spin text-emerald-400" : ""}`}
+          />
         </button>
 
         <a

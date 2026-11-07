@@ -198,7 +198,10 @@ export function NvidiaLogo({ className = "w-5 h-5", size = 20 }: LogoProps) {
 }
 
 // 8. Auto Fallback Routing DAG Logo
-export function AutoFallbackLogo({ className = "w-5 h-5", size = 20 }: LogoProps) {
+export function AutoFallbackLogo({
+  className = "w-5 h-5",
+  size = 20,
+}: LogoProps) {
   return (
     <svg
       width={size}
@@ -218,14 +221,27 @@ export function AutoFallbackLogo({ className = "w-5 h-5", size = 20 }: LogoProps
       <circle cx="10" cy="10" r="3" fill="#10B981" />
       <circle cx="22" cy="10" r="3" fill="#3B82F6" />
       <circle cx="16" cy="22" r="3.5" fill="#F59E0B" />
-      <path d="M12.5 11.5L14.5 19" stroke="#10B981" strokeWidth="1.5" strokeDasharray="2 2" />
-      <path d="M19.5 11.5L17.5 19" stroke="#3B82F6" strokeWidth="1.5" strokeDasharray="2 2" />
+      <path
+        d="M12.5 11.5L14.5 19"
+        stroke="#10B981"
+        strokeWidth="1.5"
+        strokeDasharray="2 2"
+      />
+      <path
+        d="M19.5 11.5L17.5 19"
+        stroke="#3B82F6"
+        strokeWidth="1.5"
+        strokeDasharray="2 2"
+      />
     </svg>
   );
 }
 
 // 9. Deterministic Legal (§) Engine Logo
-export function DeterministicLogo({ className = "w-5 h-5", size = 20 }: LogoProps) {
+export function DeterministicLogo({
+  className = "w-5 h-5",
+  size = 20,
+}: LogoProps) {
   return (
     <svg
       width={size}
@@ -276,9 +292,25 @@ export function SearXNGLogo({ className = "w-5 h-5", size = 20 }: LogoProps) {
         </linearGradient>
       </defs>
       <rect width="32" height="32" rx="8" fill="#0C1A1A" />
-      <circle cx="15" cy="15" r="7" stroke="url(#searxng-grad)" strokeWidth="2.5" />
-      <path d="M20 20L25 25" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round" />
-      <path d="M12 15H18M15 12V18" stroke="#3B82F6" strokeWidth="1.5" strokeLinecap="round" />
+      <circle
+        cx="15"
+        cy="15"
+        r="7"
+        stroke="url(#searxng-grad)"
+        strokeWidth="2.5"
+      />
+      <path
+        d="M20 20L25 25"
+        stroke="#10B981"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+      />
+      <path
+        d="M12 15H18M15 12V18"
+        stroke="#3B82F6"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
@@ -310,7 +342,10 @@ export function TavilyLogo({ className = "w-5 h-5", size = 20 }: LogoProps) {
 }
 
 // 12. Native Meta-Search Direct German Directory Logo
-export function NativeMetaSearchLogo({ className = "w-5 h-5", size = 20 }: LogoProps) {
+export function NativeMetaSearchLogo({
+  className = "w-5 h-5",
+  size = 20,
+}: LogoProps) {
   return (
     <svg
       width={size}

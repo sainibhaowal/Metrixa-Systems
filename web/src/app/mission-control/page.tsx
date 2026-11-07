@@ -10,25 +10,65 @@ import {
   Layers,
   Sparkles,
   ShieldAlert,
-  ArrowRight
+  ArrowRight,
 } from "lucide-react";
 import { triggerPipelineStage } from "@/lib/api";
 
 const STAGES = [
-  { id: "ingest", name: "Stage 1: Multi-Source Berlin Ingest", desc: "Scrape Gelbe Seiten, 11880, VDIV, OSM, Search", time: "~45s" },
-  { id: "deduplicate", name: "Stage 2: Entity Deduplication", desc: "Union-Find & RapidFuzz blocking across Berlin PLZs", time: "~5s" },
-  { id: "crawl", name: "Stage 3: Async Impressum Crawler", desc: "HTTP/2 crawl of /, /impressum, /team, /portal + DOM tech", time: "~50s" },
-  { id: "extract", name: "Stage 4: Multi-LLM KPI Extraction", desc: "Extract units, WEG/Miet focus & Geschäftsführer", time: "~25s" },
-  { id: "enrich", name: "Stage 5: MX Verification & Scoring", desc: "Live DNS MX validation & deterministic 0-100 scoring", time: "~10s" },
-  { id: "export", name: "Stage 6: Excel Deliverables & Eval", desc: "Build 4-Tab Excel (.xlsx), CSV and Ablation Report", time: "~5s" },
+  {
+    id: "ingest",
+    name: "Stage 1: Multi-Source Berlin Ingest",
+    desc: "Scrape Gelbe Seiten, 11880, VDIV, OSM, Search",
+    time: "~45s",
+  },
+  {
+    id: "deduplicate",
+    name: "Stage 2: Entity Deduplication",
+    desc: "Union-Find & RapidFuzz blocking across Berlin PLZs",
+    time: "~5s",
+  },
+  {
+    id: "crawl",
+    name: "Stage 3: Async Impressum Crawler",
+    desc: "HTTP/2 crawl of /, /impressum, /team, /portal + DOM tech",
+    time: "~50s",
+  },
+  {
+    id: "extract",
+    name: "Stage 4: Multi-LLM KPI Extraction",
+    desc: "Extract units, WEG/Miet focus & Geschäftsführer",
+    time: "~25s",
+  },
+  {
+    id: "enrich",
+    name: "Stage 5: MX Verification & Scoring",
+    desc: "Live DNS MX validation & deterministic 0-100 scoring",
+    time: "~10s",
+  },
+  {
+    id: "export",
+    name: "Stage 6: Excel Deliverables & Eval",
+    desc: "Build 4-Tab Excel (.xlsx), CSV and Ablation Report",
+    time: "~5s",
+  },
 ];
 
 export default function MissionControlPage() {
   const [running, setRunning] = useState(false);
   const [activeStage, setActiveStage] = useState<string | null>(null);
-  const [logs, setLogs] = useState<Array<{ time: string; level: string; msg: string }>>([
-    { time: "INIT", level: "INFO", msg: "Metrixa Cockpit Mission Control ready. EventBus active on http://127.0.0.1:8000" },
-    { time: "STATUS", level: "SUCCESS", msg: "Connected to SQLite WAL (metrixa_leads.db) — 1,199 qualified companies loaded." },
+  const [logs, setLogs] = useState<
+    Array<{ time: string; level: string; msg: string }>
+  >([
+    {
+      time: "INIT",
+      level: "INFO",
+      msg: "Metrixa Cockpit Mission Control ready. EventBus active on http://127.0.0.1:8000",
+    },
+    {
+      time: "STATUS",
+      level: "SUCCESS",
+      msg: "Connected to SQLite WAL (metrixa_leads.db) — 1,199 qualified companies loaded.",
+    },
   ]);
   const [progress, setProgress] = useState<number>(0);
   const logEndRef = useRef<HTMLDivElement>(null);
@@ -55,7 +95,10 @@ export default function MissionControlPage() {
       try {
         const data = JSON.parse(e.data);
         const now = new Date().toLocaleTimeString();
-        setLogs((prev) => [...prev, { time: now, level: data.level || "INFO", msg: data.message || "" }]);
+        setLogs((prev) => [
+          ...prev,
+          { time: now, level: data.level || "INFO", msg: data.message || "" },
+        ]);
       } catch {}
     });
 
@@ -72,7 +115,11 @@ export default function MissionControlPage() {
       setProgress(100);
       setLogs((prev) => [
         ...prev,
-        { time: new Date().toLocaleTimeString(), level: "SUCCESS", msg: "Stage execution finished successfully!" },
+        {
+          time: new Date().toLocaleTimeString(),
+          level: "SUCCESS",
+          msg: "Stage execution finished successfully!",
+        },
       ]);
     });
 
@@ -81,7 +128,11 @@ export default function MissionControlPage() {
       setActiveStage(null);
       setLogs((prev) => [
         ...prev,
-        { time: new Date().toLocaleTimeString(), level: "ERROR", msg: `Execution error: ${e.data}` },
+        {
+          time: new Date().toLocaleTimeString(),
+          level: "ERROR",
+          msg: `Execution error: ${e.data}`,
+        },
       ]);
     });
 
@@ -95,14 +146,22 @@ export default function MissionControlPage() {
       setProgress(5);
       setLogs((prev) => [
         ...prev,
-        { time: new Date().toLocaleTimeString(), level: "INFO", msg: `Dispatched command: [${stage.toUpperCase()}]` },
+        {
+          time: new Date().toLocaleTimeString(),
+          level: "INFO",
+          msg: `Dispatched command: [${stage.toUpperCase()}]`,
+        },
       ]);
       await triggerPipelineStage(stage);
     } catch (err: any) {
       setRunning(false);
       setLogs((prev) => [
         ...prev,
-        { time: new Date().toLocaleTimeString(), level: "ERROR", msg: `Failed to trigger stage: ${err.message}` },
+        {
+          time: new Date().toLocaleTimeString(),
+          level: "ERROR",
+          msg: `Failed to trigger stage: ${err.message}`,
+        },
       ]);
     }
   };
@@ -119,7 +178,8 @@ export default function MissionControlPage() {
             </span>
           </h1>
           <p className="text-xs text-zinc-400 mt-1">
-            Trigger deterministic scrapers, async crawlers, LLM extraction and DNS MX verifiers in real-time.
+            Trigger deterministic scrapers, async crawlers, LLM extraction and
+            DNS MX verifiers in real-time.
           </p>
         </div>
 
@@ -129,7 +189,11 @@ export default function MissionControlPage() {
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs shadow-glowEmerald transition-all disabled:opacity-50"
         >
           <Play className="w-4 h-4 fill-zinc-950" />
-          <span>{running ? "Execution in Progress..." : "Execute Full Pipeline (End-to-End)"}</span>
+          <span>
+            {running
+              ? "Execution in Progress..."
+              : "Execute Full Pipeline (End-to-End)"}
+          </span>
         </button>
       </div>
 
@@ -147,7 +211,9 @@ export default function MissionControlPage() {
               }`}
             >
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] font-mono text-zinc-400">Step 0{idx + 1}</span>
+                <span className="text-[11px] font-mono text-zinc-400">
+                  Step 0{idx + 1}
+                </span>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700/50">
                   {s.time}
                 </span>
@@ -173,7 +239,9 @@ export default function MissionControlPage() {
       {running && (
         <div className="p-4 rounded-2xl bg-[#111114] border border-emerald-500/40 shadow-matte space-y-2">
           <div className="flex justify-between text-xs font-mono">
-            <span className="text-emerald-400 font-bold">Active Stage: {activeStage?.toUpperCase()}</span>
+            <span className="text-emerald-400 font-bold">
+              Active Stage: {activeStage?.toUpperCase()}
+            </span>
             <span className="text-zinc-300">{progress}%</span>
           </div>
           <div className="w-full h-2 rounded-md bg-zinc-900 overflow-hidden">
@@ -190,7 +258,9 @@ export default function MissionControlPage() {
         <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
           <div className="flex items-center gap-2.5">
             <TerminalIcon className="w-4 h-4 text-emerald-400" />
-            <h2 className="text-sm font-bold text-zinc-100 tracking-wide">Live Cockpit Telemetry Stream</h2>
+            <h2 className="text-sm font-bold text-zinc-100 tracking-wide">
+              Live Cockpit Telemetry Stream
+            </h2>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-[11px] font-mono text-zinc-400">
@@ -216,7 +286,9 @@ export default function MissionControlPage() {
             return (
               <div key={i} className="flex gap-2.5 leading-relaxed">
                 <span className="text-zinc-600 select-none">[{log.time}]</span>
-                <span className={`font-semibold shrink-0 w-16 select-none ${color}`}>
+                <span
+                  className={`font-semibold shrink-0 w-16 select-none ${color}`}
+                >
                   {log.level}
                 </span>
                 <span className="text-zinc-200 break-all">{log.msg}</span>

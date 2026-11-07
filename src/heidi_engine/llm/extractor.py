@@ -50,7 +50,11 @@ def infer_portfolio_units_tier(
         return UnitsSizeTier.LARGE.value
 
     if legal_form == "GmbH":
-        return UnitsSizeTier.LARGE.value if has_erp_or_portal else UnitsSizeTier.MEDIUM.value
+        return (
+            UnitsSizeTier.LARGE.value
+            if has_erp_or_portal
+            else UnitsSizeTier.MEDIUM.value
+        )
 
     return UnitsSizeTier.SMALL.value
 
@@ -125,7 +129,9 @@ class KPIExtractionPipeline:
                     impressum_url = p["url"]
                 md = (p["clean_markdown"] or "").strip()
                 if md:
-                    combined_parts.append(f"=== PAGE [{pt.upper()}] ({p['url']}) ===\n{md[:3500]}")
+                    combined_parts.append(
+                        f"=== PAGE [{pt.upper()}] ({p['url']}) ===\n{md[:3500]}"
+                    )
                 for item in (p["detected_erp_csv"] or "").split(","):
                     if item.strip():
                         erp_set.add(item.strip())
@@ -147,16 +153,18 @@ class KPIExtractionPipeline:
             emails_list = sorted(emails_set)
             linkedin_list = sorted(linkedin_set)
 
-            extraction, audit_meta = await llm_router.extract_kpis_with_llm_and_deterministic_guard(
-                company_name=comp_name,
-                website_url=website_url,
-                combined_markdown=combined_markdown,
-                dom_erp_list=erp_list,
-                dom_metering_list=metering_list,
-                dom_has_portal=has_portal,
-                dom_emails=emails_list,
-                dom_linkedin_urls=linkedin_list,
-                requested_provider=requested_provider,
+            extraction, audit_meta = (
+                await llm_router.extract_kpis_with_llm_and_deterministic_guard(
+                    company_name=comp_name,
+                    website_url=website_url,
+                    combined_markdown=combined_markdown,
+                    dom_erp_list=erp_list,
+                    dom_metering_list=metering_list,
+                    dom_has_portal=has_portal,
+                    dom_emails=emails_list,
+                    dom_linkedin_urls=linkedin_list,
+                    requested_provider=requested_provider,
+                )
             )
 
             final_legal_form = extraction.legal_form or company_row["legal_form"]
@@ -191,7 +199,9 @@ class KPIExtractionPipeline:
             )
 
             now_iso = datetime.now(timezone.utc).isoformat()
-            next_stage = "EXTRACTED" if extraction.is_actual_hausverwaltung else "DISQUALIFIED"
+            next_stage = (
+                "EXTRACTED" if extraction.is_actual_hausverwaltung else "DISQUALIFIED"
+            )
 
             with self.db.connect() as conn:
                 conn.execute(
@@ -252,7 +262,9 @@ class KPIExtractionPipeline:
                 )
 
                 # Save extracted Decision Makers
-                conn.execute("DELETE FROM decision_makers WHERE company_id = ?", (comp_id,))
+                conn.execute(
+                    "DELETE FROM decision_makers WHERE company_id = ?", (comp_id,)
+                )
                 for idx, dm in enumerate(extraction.decision_makers):
                     parts = dm.full_name.split()
                     first_name = parts[0] if parts else ""

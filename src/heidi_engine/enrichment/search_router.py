@@ -106,7 +106,9 @@ class SearchRouter:
                         continue
                     href = a_el.attributes.get("href", "")
                     if "uddg=" in href:
-                        parsed_qs = urllib.parse.parse_qs(urllib.parse.urlparse(href).query)
+                        parsed_qs = urllib.parse.parse_qs(
+                            urllib.parse.urlparse(href).query
+                        )
                         if "uddg" in parsed_qs:
                             href = parsed_qs["uddg"][0]
                     if href.startswith("http") and "duckduckgo.com" not in href:
@@ -203,19 +205,25 @@ class SearchRouter:
         async with self._semaphore:
             async with httpx.AsyncClient(http2=True, follow_redirects=True) as client:
                 # Tier 1: Local SearXNG
-                items = await self._query_local_searxng(client, query, max_results=max_results)
+                items = await self._query_local_searxng(
+                    client, query, max_results=max_results
+                )
                 if items:
                     return items
 
                 # Tier 2: Built-in Native Meta-Search
                 await asyncio.sleep(random.uniform(0.3, 0.7))
-                items = await self._query_native_metasearch(client, query, max_results=max_results)
+                items = await self._query_native_metasearch(
+                    client, query, max_results=max_results
+                )
                 if items:
                     return items
 
                 # Tier 3: Tavily API Fallback
                 if allow_tavily_fallback:
-                    items = await self._query_tavily_fallback(client, query, max_results=max_results)
+                    items = await self._query_tavily_fallback(
+                        client, query, max_results=max_results
+                    )
                     if items:
                         return items
 

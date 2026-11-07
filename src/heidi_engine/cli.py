@@ -37,7 +37,6 @@ from heidi_engine.scrapers.vdiv import VDIVScraper
 from heidi_engine.telemetry.evaluator import PipelineEvaluator
 from heidi_engine.telemetry.excel_exporter import ExcelExporter
 
-
 app = typer.Typer(
     name="metrixa",
     help="Metrixa Engine — Autonomous B2B Lead Discovery, Website/Impressum Crawler, Multi-LLM KPI Extractor & Scoring CLI",
@@ -72,7 +71,9 @@ def cmd_init() -> None:
 
 @app.command("ingest")
 def cmd_ingest(
-    max_pages: int = typer.Option(6, "--max-pages", "-p", help="Max pagination depth per directory keyword"),
+    max_pages: int = typer.Option(
+        6, "--max-pages", "-p", help="Max pagination depth per directory keyword"
+    ),
 ) -> None:
     """Stage 1 (Task 1): Scrape Berlin Hausverwaltungen across Gelbe Seiten, 11880, VDIV, OpenStreetMap & Search."""
     print_banner()
@@ -92,8 +93,12 @@ def cmd_ingest(
             header_style="bold white on navy_blue",
         )
         summary_table.add_column("Data Source", style="cyan")
-        summary_table.add_column("Scraped Records", justify="right", style="bold yellow")
-        summary_table.add_column("Newly Inserted to SQLite", justify="right", style="bold green")
+        summary_table.add_column(
+            "Scraped Records", justify="right", style="bold yellow"
+        )
+        summary_table.add_column(
+            "Newly Inserted to SQLite", justify="right", style="bold green"
+        )
 
         with Progress(
             SpinnerColumn(),
@@ -102,7 +107,9 @@ def cmd_ingest(
             console=console,
         ) as progress:
             for label, scraper in scrapers:
-                task_id = progress.add_task(f"Scraping [bold cyan]{label}[/bold cyan]...", total=None)
+                task_id = progress.add_task(
+                    f"Scraping [bold cyan]{label}[/bold cyan]...", total=None
+                )
                 listings = await scraper.scrape_berlin(max_pages=max_pages)
                 inserted = db.insert_raw_listings(listings)
                 progress.remove_task(task_id)
@@ -128,9 +135,15 @@ def cmd_deduplicate() -> None:
     table.add_column("Metric", style="cyan")
     table.add_column("Count", justify="right", style="bold green")
     table.add_row("Total Raw Scraped Listings", str(stats["raw_total"]))
-    table.add_row("Eligible Berlin Hausverwaltung Listings", str(stats["eligible_count"]))
-    table.add_row("Filtered Noise / Non-Berlin Listings", str(stats["disqualified_count"]))
-    table.add_row("Duplicates Merged (Union-Find + RapidFuzz)", str(stats["duplicates_merged"]))
+    table.add_row(
+        "Eligible Berlin Hausverwaltung Listings", str(stats["eligible_count"])
+    )
+    table.add_row(
+        "Filtered Noise / Non-Berlin Listings", str(stats["disqualified_count"])
+    )
+    table.add_row(
+        "Duplicates Merged (Union-Find + RapidFuzz)", str(stats["duplicates_merged"])
+    )
     table.add_row(
         "Unique Golden Berlin Companies (companies_golden)",
         f"[bold yellow]{stats['golden_clusters']}[/bold yellow]",
@@ -140,8 +153,12 @@ def cmd_deduplicate() -> None:
 
 @app.command("crawl")
 def cmd_crawl(
-    limit: Optional[int] = typer.Option(None, "--limit", "-l", help="Max companies to crawl (default: all)"),
-    resolve_missing_urls: int = typer.Option(15, "--resolve-urls", help="Max missing URLs to resolve via SearchRouter"),
+    limit: Optional[int] = typer.Option(
+        None, "--limit", "-l", help="Max companies to crawl (default: all)"
+    ),
+    resolve_missing_urls: int = typer.Option(
+        15, "--resolve-urls", help="Max missing URLs to resolve via SearchRouter"
+    ),
 ) -> None:
     """Stage 3 (Task 2): Crawl company websites & German Impressum pages + scan DOM for ERP/Portals."""
     print_banner()
@@ -153,8 +170,12 @@ def cmd_crawl(
                 f"[cyan]→ Resolving up to {resolve_missing_urls} missing company URLs via SearchRouter...[/cyan]"
             )
             resolver = MissingURLResolver(db)
-            found_urls = await resolver.resolve_missing_batch(limit=resolve_missing_urls)
-            console.print(f"[green]✔ Resolved {found_urls} additional corporate URLs.[/green]")
+            found_urls = await resolver.resolve_missing_batch(
+                limit=resolve_missing_urls
+            )
+            console.print(
+                f"[green]✔ Resolved {found_urls} additional corporate URLs.[/green]"
+            )
 
         crawler = AsyncWebsiteCrawler(db)
         with Progress(
@@ -189,8 +210,14 @@ def cmd_extract(
         "-m",
         help="LLM Provider: auto_fallback | deepseek | gemini | nvidia_nim | local_llamacpp | lm_studio | deterministic",
     ),
-    limit: Optional[int] = typer.Option(None, "--limit", "-l", help="Max companies to extract"),
-    reprocess_all: bool = typer.Option(False, "--reprocess-all", help="Re-run extraction on all non-disqualified companies"),
+    limit: Optional[int] = typer.Option(
+        None, "--limit", "-l", help="Max companies to extract"
+    ),
+    reprocess_all: bool = typer.Option(
+        False,
+        "--reprocess-all",
+        help="Re-run extraction on all non-disqualified companies",
+    ),
 ) -> None:
     """Stage 4 (Task 2 & Bonus): Extract Qualifying KPIs & Impressum Decision-Makers with Evidence Gate."""
     print_banner()
@@ -230,7 +257,9 @@ def cmd_extract(
 @app.command("enrich")
 def cmd_enrich(
     web_search_top_n: int = typer.Option(
-        15, "--search-top", help="Number of top companies to query via SearchRouter for LinkedIn/Director fallback"
+        15,
+        "--search-top",
+        help="Number of top companies to query via SearchRouter for LinkedIn/Director fallback",
     ),
 ) -> None:
     """Stage 5 (Task 2 & Bonus): Verify DNS MX records, resolve Personal Emails/LinkedIn & compute 0-100 Metrixa Lead Score."""
@@ -242,7 +271,9 @@ def cmd_enrich(
     async def _run_enrich() -> None:
         with Progress(
             SpinnerColumn(),
-            TextColumn("[bold yellow]Verifying DNS MX Records & Personal Decision-Maker Emails"),
+            TextColumn(
+                "[bold yellow]Verifying DNS MX Records & Personal Decision-Maker Emails"
+            ),
             BarColumn(),
             MofNCompleteColumn(),
             TimeElapsedColumn(),
@@ -361,7 +392,9 @@ def cmd_evaluate() -> None:
 
 @app.command("dashboard")
 def cmd_dashboard(
-    top_n: int = typer.Option(20, "--top", "-n", help="Number of top Berlin leads to display in TUI"),
+    top_n: int = typer.Option(
+        20, "--top", "-n", help="Number of top Berlin leads to display in TUI"
+    ),
 ) -> None:
     """Render the Rich Terminal UI (TUI) Telemetry Dashboard & Top Berlin Tier-A Leads."""
     print_banner()
@@ -379,13 +412,26 @@ def cmd_dashboard(
     t_overview.add_row("Raw Listings Scraped (All Sources)", str(tel["raw_total"]))
     for src, cnt in tel["raw_by_source"].items():
         t_overview.add_row(f"  ├─ Source: {src}", str(cnt))
-    t_overview.add_row("Unique Qualified Berlin Hausverwaltungen", str(tel["golden_qualified_total"]))
+    t_overview.add_row(
+        "Unique Qualified Berlin Hausverwaltungen", str(tel["golden_qualified_total"])
+    )
     t_overview.add_row("Companies with Corporate Website", str(tel["with_website"]))
-    t_overview.add_row("Total Website / Impressum Pages Crawled", str(tel["crawled_pages_cnt"]))
-    t_overview.add_row("Companies with Detected PropTech / ERP", str(tel["with_erp_stack"]))
-    t_overview.add_row("Companies with Online Customer Portal", str(tel["with_customer_portal"]))
-    t_overview.add_row("Companies with Named Decision Maker", str(tel["companies_with_decision_maker"]))
-    t_overview.add_row("Companies with Personal Email (Non-info@)", str(tel["companies_with_personal_email"]))
+    t_overview.add_row(
+        "Total Website / Impressum Pages Crawled", str(tel["crawled_pages_cnt"])
+    )
+    t_overview.add_row(
+        "Companies with Detected PropTech / ERP", str(tel["with_erp_stack"])
+    )
+    t_overview.add_row(
+        "Companies with Online Customer Portal", str(tel["with_customer_portal"])
+    )
+    t_overview.add_row(
+        "Companies with Named Decision Maker", str(tel["companies_with_decision_maker"])
+    )
+    t_overview.add_row(
+        "Companies with Personal Email (Non-info@)",
+        str(tel["companies_with_personal_email"]),
+    )
     t_overview.add_row(
         "🟢 Tier A (High Priority Leads)",
         f"[bold green]{tel['tiers'].get('Tier A (High Priority)', 0)}[/bold green]",
@@ -431,8 +477,12 @@ def cmd_dashboard(
         leads_table.add_column("Bezirk (PLZ)", style="cyan", max_width=22)
         leads_table.add_column("Units / Size Tier", justify="right", style="yellow")
         leads_table.add_column("ERP / Portal", style="magenta", max_width=20)
-        leads_table.add_column("Decision Maker (Geschäftsführer)", style="green", max_width=24)
-        leads_table.add_column("Personal Email (Bonus)", style="bold cyan", max_width=28)
+        leads_table.add_column(
+            "Decision Maker (Geschäftsführer)", style="green", max_width=24
+        )
+        leads_table.add_column(
+            "Personal Email (Bonus)", style="bold cyan", max_width=28
+        )
 
         for idx, r in enumerate(top_rows, start=1):
             units_str = (
@@ -440,7 +490,9 @@ def cmd_dashboard(
                 if r["exact_units_managed"]
                 else (r["estimated_units_tier"] or "<250")
             )
-            erp_str = r["detected_erp_proptech"] or ("Portal" if r["has_customer_portal"] else "-")
+            erp_str = r["detected_erp_proptech"] or (
+                "Portal" if r["has_customer_portal"] else "-"
+            )
             bezirk_str = f"{r['district'] or 'Berlin'} ({r['postal_code'] or '-'})"
             leads_table.add_row(
                 str(idx),
@@ -457,9 +509,15 @@ def cmd_dashboard(
 
 @app.command("run-all")
 def cmd_run_all(
-    max_pages: int = typer.Option(5, "--max-pages", "-p", help="Max directory pages per keyword"),
-    crawl_limit: Optional[int] = typer.Option(None, "--crawl-limit", help="Optional limit on websites to crawl"),
-    provider: Optional[str] = typer.Option(None, "--provider", "-m", help="LLM provider override"),
+    max_pages: int = typer.Option(
+        5, "--max-pages", "-p", help="Max directory pages per keyword"
+    ),
+    crawl_limit: Optional[int] = typer.Option(
+        None, "--crawl-limit", help="Optional limit on websites to crawl"
+    ),
+    provider: Optional[str] = typer.Option(
+        None, "--provider", "-m", help="LLM provider override"
+    ),
 ) -> None:
     """Execute the complete 6-Stage Metrixa Engine Pipeline End-to-End."""
     cmd_init()

@@ -1,7 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Download, FileSpreadsheet, FileText, CheckCircle2, ExternalLink, ShieldCheck } from "lucide-react";
+import {
+  Download,
+  FileSpreadsheet,
+  FileText,
+  CheckCircle2,
+  ExternalLink,
+  ShieldCheck,
+} from "lucide-react";
 
 export default function ArtifactsVaultPage() {
   const [report, setReport] = useState<string>("");
@@ -25,7 +32,8 @@ export default function ArtifactsVaultPage() {
             </span>
           </h1>
           <p className="text-xs text-zinc-400 mt-1">
-            Download timestamped Excel files, RFC CSV exports, and inspect the Task 3 evaluation and ablation report.
+            Download timestamped Excel files, RFC CSV exports, and inspect the
+            Task 3 evaluation and ablation report.
           </p>
         </div>
       </div>
@@ -44,9 +52,13 @@ export default function ArtifactsVaultPage() {
           </div>
 
           <div>
-            <h2 className="text-base font-bold text-zinc-100">Master Berlin Leads Excel (.xlsx)</h2>
+            <h2 className="text-base font-bold text-zinc-100">
+              Master Berlin Leads Excel (.xlsx)
+            </h2>
             <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
-              4-Tab formatted workbook containing all 1,199 Berlin Hausverwaltungen ranked by Metrixa Lead Score (0–100), full decision-maker dossier, and crawled evidence logs.
+              4-Tab formatted workbook containing all 1,199 Berlin
+              Hausverwaltungen ranked by Metrixa Lead Score (0–100), full
+              decision-maker dossier, and crawled evidence logs.
             </p>
           </div>
 
@@ -57,7 +69,9 @@ export default function ArtifactsVaultPage() {
               className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs shadow-glowEmerald transition-all"
             >
               <Download className="w-4 h-4" />
-              <span>Download metrixa_berlin_hausverwaltungen.xlsx (271 KB)</span>
+              <span>
+                Download metrixa_berlin_hausverwaltungen.xlsx (271 KB)
+              </span>
             </a>
           </div>
         </div>
@@ -74,9 +88,12 @@ export default function ArtifactsVaultPage() {
           </div>
 
           <div>
-            <h2 className="text-base font-bold text-zinc-100">Master Clean CSV File (.csv)</h2>
+            <h2 className="text-base font-bold text-zinc-100">
+              Master Clean CSV File (.csv)
+            </h2>
             <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
-              Standardized CSV with UTF-8 BOM encoding for seamless import into Salesforce, HubSpot, or Google Drive spreadsheets.
+              Standardized CSV with UTF-8 BOM encoding for seamless import into
+              Salesforce, HubSpot, or Google Drive spreadsheets.
             </p>
           </div>
 
@@ -98,9 +115,13 @@ export default function ArtifactsVaultPage() {
         <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
           <div className="flex items-center gap-2.5">
             <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            <h2 className="text-sm font-bold text-zinc-100">Task 3 — Quantitative Evaluation & Ablation Report</h2>
+            <h2 className="text-sm font-bold text-zinc-100">
+              Task 3 — Quantitative Evaluation & Ablation Report
+            </h2>
           </div>
-          <span className="text-[11px] font-mono text-emerald-400">0% Hallucination Rate (Verified)</span>
+          <span className="text-[11px] font-mono text-emerald-400">
+            0% Hallucination Rate (Verified)
+          </span>
         </div>
 
         <div className="p-5 rounded-xl bg-[#09090b] border border-zinc-850 font-mono text-xs text-zinc-300 whitespace-pre-wrap leading-relaxed overflow-x-auto max-h-[500px] overflow-y-auto">

@@ -15,7 +15,6 @@ from heidi_engine.enrichment.search_router import search_router
 from heidi_engine.models import RawListing
 from heidi_engine.scrapers.base import BaseAsyncScraper
 
-
 BERLIN_SEARCH_DORKS = [
     '"Hausverwaltung" "Berlin" "Impressum" "GmbH"',
     '"WEG-Verwaltung" "Berlin" "Wohneinheiten" "GmbH"',
@@ -70,7 +69,9 @@ class SearchDiscoveryScraper(BaseAsyncScraper):
                 seen_domains.add(host)
 
                 # Clean title to extract company name
-                raw_title = item.title.split("|")[0].split("–")[0].split(" - ")[0].strip()
+                raw_title = (
+                    item.title.split("|")[0].split("–")[0].split(" - ")[0].strip()
+                )
                 if len(raw_title) < 4 or len(raw_title) > 110:
                     raw_title = host
 

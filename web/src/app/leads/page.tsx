@@ -14,7 +14,7 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
-  Download
+  Download,
 } from "lucide-react";
 import { fetchLeads } from "@/lib/api";
 import { getTierColorClasses, formatNumber } from "@/lib/utils";
@@ -52,7 +52,9 @@ export default function LeadsExplorerPage() {
   const [hasErp, setHasErp] = useState(false);
 
   // Selected lead for evidence drawer
-  const [selectedCompanyId, setSelectedCompanyId] = useState<number | null>(null);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<number | null>(
+    null,
+  );
   const [copiedId, setCopiedId] = useState<number | null>(null);
 
   const loadLeads = () => {
@@ -99,7 +101,8 @@ export default function LeadsExplorerPage() {
             </span>
           </h1>
           <p className="text-xs text-zinc-400 mt-1">
-            Browse, filter, and inspect verified Berlin Hausverwaltungen with 100% evidence-grounded decision makers.
+            Browse, filter, and inspect verified Berlin Hausverwaltungen with
+            100% evidence-grounded decision makers.
           </p>
         </div>
 
@@ -150,11 +153,15 @@ export default function LeadsExplorerPage() {
 
         {/* Tier & Feature Filter Pills */}
         <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-zinc-800/80 text-xs select-none">
-          <span className="text-[11px] text-zinc-400 font-medium mr-1">Tiers:</span>
+          <span className="text-[11px] text-zinc-400 font-medium mr-1">
+            Tiers:
+          </span>
           <button
             onClick={() => setTier("")}
             className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
-              tier === "" ? "bg-emerald-500 text-zinc-950 font-bold" : "bg-zinc-900 text-zinc-400 hover:text-zinc-200 border border-zinc-800"
+              tier === ""
+                ? "bg-emerald-500 text-zinc-950 font-bold"
+                : "bg-zinc-900 text-zinc-400 hover:text-zinc-200 border border-zinc-800"
             }`}
           >
             All
@@ -196,7 +203,9 @@ export default function LeadsExplorerPage() {
           <button
             onClick={() => setHasDm(!hasDm)}
             className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
-              hasDm ? "bg-zinc-200 text-zinc-950 font-bold" : "bg-zinc-900 text-zinc-400 hover:text-zinc-200 border border-zinc-800"
+              hasDm
+                ? "bg-zinc-200 text-zinc-950 font-bold"
+                : "bg-zinc-900 text-zinc-400 hover:text-zinc-200 border border-zinc-800"
             }`}
           >
             Named Decision Maker
@@ -204,7 +213,9 @@ export default function LeadsExplorerPage() {
           <button
             onClick={() => setHasEmail(!hasEmail)}
             className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
-              hasEmail ? "bg-emerald-500 text-zinc-950 font-bold" : "bg-zinc-900 text-zinc-400 hover:text-zinc-200 border border-zinc-800"
+              hasEmail
+                ? "bg-emerald-500 text-zinc-950 font-bold"
+                : "bg-zinc-900 text-zinc-400 hover:text-zinc-200 border border-zinc-800"
             }`}
           >
             Personal Email (MX Valid)
@@ -212,7 +223,9 @@ export default function LeadsExplorerPage() {
           <button
             onClick={() => setHasErp(!hasErp)}
             className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
-              hasErp ? "bg-zinc-200 text-zinc-950 font-bold" : "bg-zinc-900 text-zinc-400 hover:text-zinc-200 border border-zinc-800"
+              hasErp
+                ? "bg-zinc-200 text-zinc-950 font-bold"
+                : "bg-zinc-900 text-zinc-400 hover:text-zinc-200 border border-zinc-800"
             }`}
           >
             PropTech ERP
@@ -240,13 +253,19 @@ export default function LeadsExplorerPage() {
             <tbody className="divide-y divide-zinc-800/60 font-sans">
               {loading ? (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center text-zinc-400 font-mono">
+                  <td
+                    colSpan={9}
+                    className="py-12 text-center text-zinc-400 font-mono"
+                  >
                     Loading verified Berlin property managers...
                   </td>
                 </tr>
               ) : leads.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center text-zinc-400 font-mono">
+                  <td
+                    colSpan={9}
+                    className="py-12 text-center text-zinc-400 font-mono"
+                  >
                     No leads match your filter criteria.
                   </td>
                 </tr>
@@ -259,7 +278,9 @@ export default function LeadsExplorerPage() {
                   >
                     {/* Score */}
                     <td className="py-3 px-4 font-mono">
-                      <span className={`inline-flex px-2 py-0.5 rounded-md font-bold text-xs border ${getTierColorClasses(lead.lead_tier)}`}>
+                      <span
+                        className={`inline-flex px-2 py-0.5 rounded-md font-bold text-xs border ${getTierColorClasses(lead.lead_tier)}`}
+                      >
                         {lead.metrixa_lead_score}
                       </span>
                     </td>
@@ -267,36 +288,54 @@ export default function LeadsExplorerPage() {
                     {/* Company Name */}
                     <td className="py-3 px-4">
                       <div className="font-semibold text-zinc-100 group-hover:text-emerald-400 transition-colors flex items-center gap-1.5">
-                        <span className="truncate max-w-[220px]">{lead.display_name}</span>
+                        <span className="truncate max-w-[220px]">
+                          {lead.display_name}
+                        </span>
                         {lead.is_vdiv_member && (
                           <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 shrink-0">
                             VDIV
                           </span>
                         )}
                       </div>
-                      <span className="text-[10px] font-mono text-zinc-500">{lead.lead_id} • {lead.legal_form || "GmbH"}</span>
+                      <span className="text-[10px] font-mono text-zinc-500">
+                        {lead.lead_id} • {lead.legal_form || "GmbH"}
+                      </span>
                     </td>
 
                     {/* District */}
                     <td className="py-3 px-4 text-zinc-300">
                       <span>{lead.district || "Berlin"}</span>
-                      <span className="text-[10px] text-zinc-500 block font-mono">{lead.postal_code || "-"}</span>
+                      <span className="text-[10px] text-zinc-500 block font-mono">
+                        {lead.postal_code || "-"}
+                      </span>
                     </td>
 
                     {/* Units */}
                     <td className="py-3 px-4 font-mono">
                       {lead.exact_units_managed ? (
-                        <span className="text-emerald-400 font-bold">{formatNumber(lead.exact_units_managed)} Units</span>
+                        <span className="text-emerald-400 font-bold">
+                          {formatNumber(lead.exact_units_managed)} Units
+                        </span>
                       ) : (
-                        <span className="text-zinc-400">{lead.estimated_units_tier || "<250"}</span>
+                        <span className="text-zinc-400">
+                          {lead.estimated_units_tier || "<250"}
+                        </span>
                       )}
                     </td>
 
                     {/* Focus */}
                     <td className="py-3 px-4">
                       <div className="flex gap-1 text-[10px] font-mono">
-                        {lead.manages_weg && <span className="px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700/50">WEG</span>}
-                        {lead.manages_miet && <span className="px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700/50">Miet</span>}
+                        {lead.manages_weg && (
+                          <span className="px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700/50">
+                            WEG
+                          </span>
+                        )}
+                        {lead.manages_miet && (
+                          <span className="px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700/50">
+                            Miet
+                          </span>
+                        )}
                       </div>
                     </td>
 
@@ -317,19 +356,30 @@ export default function LeadsExplorerPage() {
                     <td className="py-3 px-4">
                       {lead.decision_maker_name ? (
                         <div>
-                          <span className="font-semibold text-zinc-100 block truncate max-w-[140px]">{lead.decision_maker_name}</span>
-                          <span className="text-[10px] text-emerald-400">{lead.decision_maker_role || "Geschäftsführer"}</span>
+                          <span className="font-semibold text-zinc-100 block truncate max-w-[140px]">
+                            {lead.decision_maker_name}
+                          </span>
+                          <span className="text-[10px] text-emerald-400">
+                            {lead.decision_maker_role || "Geschäftsführer"}
+                          </span>
                         </div>
                       ) : (
-                        <span className="text-zinc-600 font-mono text-[11px]">-</span>
+                        <span className="text-zinc-600 font-mono text-[11px]">
+                          -
+                        </span>
                       )}
                     </td>
 
                     {/* Personal Email */}
-                    <td className="py-3 px-4 font-mono text-[11px]" onClick={(e) => e.stopPropagation()}>
+                    <td
+                      className="py-3 px-4 font-mono text-[11px]"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       {lead.personal_email ? (
                         <button
-                          onClick={() => copyEmail(lead.company_id, lead.personal_email)}
+                          onClick={() =>
+                            copyEmail(lead.company_id, lead.personal_email)
+                          }
                           className="flex items-center gap-1.5 px-2 py-1 rounded bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white hover:border-emerald-500 transition-all group/btn"
                         >
                           {copiedId === lead.company_id ? (
@@ -337,7 +387,9 @@ export default function LeadsExplorerPage() {
                           ) : (
                             <Copy className="w-3 h-3 text-zinc-500 group-hover/btn:text-emerald-400" />
                           )}
-                          <span className="truncate max-w-[130px]">{lead.personal_email}</span>
+                          <span className="truncate max-w-[130px]">
+                            {lead.personal_email}
+                          </span>
                         </button>
                       ) : (
                         <span className="text-zinc-600">-</span>
@@ -345,7 +397,10 @@ export default function LeadsExplorerPage() {
                     </td>
 
                     {/* Actions */}
-                    <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
+                    <td
+                      className="py-3 px-4 text-right"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <button
                         onClick={() => setSelectedCompanyId(lead.company_id)}
                         className="p-1.5 rounded-lg bg-zinc-800 hover:bg-emerald-500/20 text-zinc-400 hover:text-emerald-400 transition-colors"

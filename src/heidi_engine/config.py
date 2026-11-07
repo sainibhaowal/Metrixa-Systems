@@ -43,7 +43,9 @@ class Settings(BaseModel):
 
     # 1. Local Models (llama.cpp & LM Studio)
     llamacpp_base_url: str = Field(
-        default_factory=lambda: os.getenv("LLAMACPP_BASE_URL", "http://127.0.0.1:8080/v1")
+        default_factory=lambda: os.getenv(
+            "LLAMACPP_BASE_URL", "http://127.0.0.1:8080/v1"
+        )
     )
     llamacpp_model: str = Field(
         default_factory=lambda: os.getenv("LLAMACPP_MODEL", "qwen2.5-14b-instruct")
@@ -53,7 +55,9 @@ class Settings(BaseModel):
     )
 
     lmstudio_base_url: str = Field(
-        default_factory=lambda: os.getenv("LMSTUDIO_BASE_URL", "http://127.0.0.1:1234/v1")
+        default_factory=lambda: os.getenv(
+            "LMSTUDIO_BASE_URL", "http://127.0.0.1:1234/v1"
+        )
     )
     lmstudio_model: str = Field(
         default_factory=lambda: os.getenv("LMSTUDIO_MODEL", "local-model")
@@ -67,7 +71,9 @@ class Settings(BaseModel):
         default_factory=lambda: os.getenv("DEEPSEEK_API_KEY", "").strip()
     )
     deepseek_base_url: str = Field(
-        default_factory=lambda: os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com/v1")
+        default_factory=lambda: os.getenv(
+            "DEEPSEEK_BASE_URL", "https://api.deepseek.com/v1"
+        )
     )
     deepseek_model: str = Field(
         default_factory=lambda: os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
@@ -82,7 +88,9 @@ class Settings(BaseModel):
         )
     )
     nvidia_nim_model: str = Field(
-        default_factory=lambda: os.getenv("NVIDIA_NIM_MODEL", "meta/llama-3.3-70b-instruct")
+        default_factory=lambda: os.getenv(
+            "NVIDIA_NIM_MODEL", "meta/llama-3.3-70b-instruct"
+        )
     )
 
     gemini_api_key: str = Field(
@@ -102,14 +110,18 @@ class Settings(BaseModel):
         default_factory=lambda: os.getenv("OPENAI_API_KEY", "").strip()
     )
     openai_base_url: str = Field(
-        default_factory=lambda: os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
+        default_factory=lambda: os.getenv(
+            "OPENAI_BASE_URL", "https://api.openai.com/v1"
+        )
     )
     openai_model: str = Field(
         default_factory=lambda: os.getenv("OPENAI_MODEL", "gpt-4o-mini")
     )
 
     ollama_base_url: str = Field(
-        default_factory=lambda: os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1")
+        default_factory=lambda: os.getenv(
+            "OLLAMA_BASE_URL", "http://localhost:11434/v1"
+        )
     )
     ollama_model: str = Field(
         default_factory=lambda: os.getenv("OLLAMA_MODEL", "llama3.2")
@@ -120,10 +132,13 @@ class Settings(BaseModel):
         default_factory=lambda: os.getenv("DEFAULT_SEARCH_PROVIDER", "searxng")
     )
     searxng_base_url: str = Field(
-        default_factory=lambda: os.getenv("SEARXNG_BASE_URL", "http://127.0.0.1:8888").rstrip("/")
+        default_factory=lambda: os.getenv(
+            "SEARXNG_BASE_URL", "http://127.0.0.1:8888"
+        ).rstrip("/")
     )
     enable_native_metasearch: bool = Field(
-        default_factory=lambda: os.getenv("ENABLE_NATIVE_METASEARCH", "true").lower() == "true"
+        default_factory=lambda: os.getenv("ENABLE_NATIVE_METASEARCH", "true").lower()
+        == "true"
     )
     tavily_api_key: str = Field(
         default_factory=lambda: os.getenv("TAVILY_API_KEY", "").strip()
@@ -152,7 +167,8 @@ class Settings(BaseModel):
         default_factory=lambda: float(os.getenv("HTTP_TIMEOUT_SECONDS", "15.0"))
     )
     enable_dns_mx_check: bool = Field(
-        default_factory=lambda: os.getenv("ENABLE_DNS_MX_CHECK", "true").lower() == "true"
+        default_factory=lambda: os.getenv("ENABLE_DNS_MX_CHECK", "true").lower()
+        == "true"
     )
 
     def ensure_dirs(self) -> None:
@@ -196,7 +212,9 @@ def is_valid_berlin_plz(plz: Optional[str]) -> bool:
     return 10115 <= num <= 14199
 
 
-def map_berlin_plz_to_district(plz: Optional[str], fallback_district: Optional[str] = None) -> str:
+def map_berlin_plz_to_district(
+    plz: Optional[str], fallback_district: Optional[str] = None
+) -> str:
     """
     Deterministically map a 5-digit Berlin postal code (10115-14199)
     to one of the 12 official Berlin Bezirke (districts).

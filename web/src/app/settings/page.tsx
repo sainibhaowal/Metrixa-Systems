@@ -17,9 +17,14 @@ import {
   Server,
   Layers,
   Sparkles,
-  ShieldCheck
+  ShieldCheck,
 } from "lucide-react";
-import { fetchSettings, saveSettings, pingProvider, pingSearchProvider } from "@/lib/api";
+import {
+  fetchSettings,
+  saveSettings,
+  pingProvider,
+  pingSearchProvider,
+} from "@/lib/api";
 import { ProviderIcon } from "@/components/icons/ProviderLogos";
 
 // 1. LLM Models
@@ -233,13 +238,17 @@ export default function SettingsHubPage() {
           setActiveSearch(data.default_search_provider);
           setSelectedSearchId(data.default_search_provider);
         }
-        if (data.max_concurrent_crawls) setConcurrency(data.max_concurrent_crawls);
+        if (data.max_concurrent_crawls)
+          setConcurrency(data.max_concurrent_crawls);
       })
       .catch(console.error);
   }, []);
 
-  const selectedLLMDef = LLM_PROVIDERS.find((p) => p.id === selectedLLMId) || LLM_PROVIDERS[0];
-  const selectedSearchDef = SEARCH_PROVIDERS.find((p) => p.id === selectedSearchId) || SEARCH_PROVIDERS[0];
+  const selectedLLMDef =
+    LLM_PROVIDERS.find((p) => p.id === selectedLLMId) || LLM_PROVIDERS[0];
+  const selectedSearchDef =
+    SEARCH_PROVIDERS.find((p) => p.id === selectedSearchId) ||
+    SEARCH_PROVIDERS[0];
 
   // Update LLM form values when selection changes
   useEffect(() => {
@@ -298,7 +307,9 @@ export default function SettingsHubPage() {
     }
 
     if (selectedSearchId === "searxng") {
-      setSearchBaseUrl(cfg.searxng_base_url || selectedSearchDef.defaultBaseUrl);
+      setSearchBaseUrl(
+        cfg.searxng_base_url || selectedSearchDef.defaultBaseUrl,
+      );
       setSearchApiKey("");
     } else if (selectedSearchId === "tavily") {
       setSearchBaseUrl(selectedSearchDef.defaultBaseUrl);
@@ -435,7 +446,8 @@ export default function SettingsHubPage() {
             </span>
           </h1>
           <p className="text-xs text-zinc-400 mt-1">
-            Toggle between LLM extraction models and Web Search engines, test live pings, and connect to Metrixa Engine.
+            Toggle between LLM extraction models and Web Search engines, test
+            live pings, and connect to Metrixa Engine.
           </p>
         </div>
 
@@ -453,7 +465,8 @@ export default function SettingsHubPage() {
             <span className="text-zinc-500">Active Search:</span>
             <span className="text-emerald-400 font-bold flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-sm bg-emerald-400"></span>
-              {SEARCH_PROVIDERS.find((p) => p.id === activeSearch)?.name || activeSearch}
+              {SEARCH_PROVIDERS.find((p) => p.id === activeSearch)?.name ||
+                activeSearch}
             </span>
           </div>
         </div>
@@ -479,7 +492,9 @@ export default function SettingsHubPage() {
               setPingResult(null);
             }}
             className={`relative z-10 flex items-center gap-2.5 px-6 py-2.5 rounded-xl text-xs font-bold transition-colors duration-200 ${
-              activeTab === "llm" ? "text-emerald-400" : "text-zinc-400 hover:text-zinc-200"
+              activeTab === "llm"
+                ? "text-emerald-400"
+                : "text-zinc-400 hover:text-zinc-200"
             }`}
           >
             <Cpu className="w-4 h-4" />
@@ -492,7 +507,9 @@ export default function SettingsHubPage() {
               setPingResult(null);
             }}
             className={`relative z-10 flex items-center gap-2.5 px-6 py-2.5 rounded-xl text-xs font-bold transition-colors duration-200 ${
-              activeTab === "search" ? "text-emerald-400" : "text-zinc-400 hover:text-zinc-200"
+              activeTab === "search"
+                ? "text-emerald-400"
+                : "text-zinc-400 hover:text-zinc-200"
             }`}
           >
             <Search className="w-4 h-4" />
@@ -511,97 +528,107 @@ export default function SettingsHubPage() {
         <div className="lg:col-span-5 p-5 rounded-2xl bg-[#111114] border border-zinc-800/80 shadow-matte space-y-3">
           <div className="flex items-center justify-between pb-2 border-b border-zinc-800">
             <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">
-              {activeTab === "llm" ? "LLM Engine Inventory" : "Search Provider Inventory"}
+              {activeTab === "llm"
+                ? "LLM Engine Inventory"
+                : "Search Provider Inventory"}
             </span>
-            <span className="text-[10px] font-mono text-zinc-500">Click to Select</span>
+            <span className="text-[10px] font-mono text-zinc-500">
+              Click to Select
+            </span>
           </div>
 
           <div className="space-y-2 max-h-[640px] overflow-y-auto pr-1">
-            {activeTab === "llm" ? (
-              // LLM Providers List
-              LLM_PROVIDERS.map((p) => {
-                const isSelected = selectedLLMId === p.id;
-                const isActive = activeLLM === p.id;
+            {activeTab === "llm"
+              ? // LLM Providers List
+                LLM_PROVIDERS.map((p) => {
+                  const isSelected = selectedLLMId === p.id;
+                  const isActive = activeLLM === p.id;
 
-                return (
-                  <div
-                    key={p.id}
-                    onClick={() => setSelectedLLMId(p.id)}
-                    className={`p-3.5 rounded-xl cursor-pointer transition-all border text-left flex items-start justify-between gap-3 ${
-                      isSelected
-                        ? "border-emerald-500/80 bg-zinc-900 shadow-[0_0_15px_-3px_rgba(16,185,129,0.2)]"
-                        : "border-zinc-800/80 bg-[#141418] hover:bg-zinc-850 hover:border-zinc-700"
-                    }`}
-                  >
-                    <div className="flex items-start gap-3 min-w-0">
-                      <div className="w-9 h-9 rounded-xl bg-zinc-950 border border-zinc-800/80 flex items-center justify-center shrink-0 shadow-sm overflow-hidden p-1.5 mt-0.5">
-                        <ProviderIcon providerId={p.id} size={22} />
-                      </div>
-
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className={`text-xs font-bold truncate ${isSelected ? "text-emerald-400" : "text-zinc-200"}`}>
-                            {p.name}
-                          </span>
-                          {isActive && (
-                            <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0">
-                              ACTIVE
-                            </span>
-                          )}
+                  return (
+                    <div
+                      key={p.id}
+                      onClick={() => setSelectedLLMId(p.id)}
+                      className={`p-3.5 rounded-xl cursor-pointer transition-all border text-left flex items-start justify-between gap-3 ${
+                        isSelected
+                          ? "border-emerald-500/80 bg-zinc-900 shadow-[0_0_15px_-3px_rgba(16,185,129,0.2)]"
+                          : "border-zinc-800/80 bg-[#141418] hover:bg-zinc-850 hover:border-zinc-700"
+                      }`}
+                    >
+                      <div className="flex items-start gap-3 min-w-0">
+                        <div className="w-9 h-9 rounded-xl bg-zinc-950 border border-zinc-800/80 flex items-center justify-center shrink-0 shadow-sm overflow-hidden p-1.5 mt-0.5">
+                          <ProviderIcon providerId={p.id} size={22} />
                         </div>
-                        <p className="text-[11px] text-zinc-400 line-clamp-1 mt-0.5">{p.desc}</p>
-                      </div>
-                    </div>
 
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-400 shrink-0">
-                      {p.badge}
-                    </span>
-                  </div>
-                );
-              })
-            ) : (
-              // Search Providers List
-              SEARCH_PROVIDERS.map((p) => {
-                const isSelected = selectedSearchId === p.id;
-                const isActive = activeSearch === p.id;
-
-                return (
-                  <div
-                    key={p.id}
-                    onClick={() => setSelectedSearchId(p.id)}
-                    className={`p-3.5 rounded-xl cursor-pointer transition-all border text-left flex items-start justify-between gap-3 ${
-                      isSelected
-                        ? "border-emerald-500/80 bg-zinc-900 shadow-[0_0_15px_-3px_rgba(16,185,129,0.2)]"
-                        : "border-zinc-800/80 bg-[#141418] hover:bg-zinc-850 hover:border-zinc-700"
-                    }`}
-                  >
-                    <div className="flex items-start gap-3 min-w-0">
-                      <div className="w-9 h-9 rounded-xl bg-zinc-950 border border-zinc-800/80 flex items-center justify-center shrink-0 shadow-sm overflow-hidden p-1.5 mt-0.5">
-                        <ProviderIcon providerId={p.id} size={22} />
-                      </div>
-
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className={`text-xs font-bold truncate ${isSelected ? "text-emerald-400" : "text-zinc-200"}`}>
-                            {p.name}
-                          </span>
-                          {isActive && (
-                            <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0">
-                              DEFAULT ACTIVE
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`text-xs font-bold truncate ${isSelected ? "text-emerald-400" : "text-zinc-200"}`}
+                            >
+                              {p.name}
                             </span>
-                          )}
+                            {isActive && (
+                              <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0">
+                                ACTIVE
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-zinc-400 line-clamp-1 mt-0.5">
+                            {p.desc}
+                          </p>
                         </div>
-                        <p className="text-[11px] text-zinc-400 line-clamp-1 mt-0.5">{p.desc}</p>
                       </div>
-                    </div>
 
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-400 shrink-0">
-                      {p.badge}
-                    </span>
-                  </div>
-                );
-              })
-            )}
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-400 shrink-0">
+                        {p.badge}
+                      </span>
+                    </div>
+                  );
+                })
+              : // Search Providers List
+                SEARCH_PROVIDERS.map((p) => {
+                  const isSelected = selectedSearchId === p.id;
+                  const isActive = activeSearch === p.id;
+
+                  return (
+                    <div
+                      key={p.id}
+                      onClick={() => setSelectedSearchId(p.id)}
+                      className={`p-3.5 rounded-xl cursor-pointer transition-all border text-left flex items-start justify-between gap-3 ${
+                        isSelected
+                          ? "border-emerald-500/80 bg-zinc-900 shadow-[0_0_15px_-3px_rgba(16,185,129,0.2)]"
+                          : "border-zinc-800/80 bg-[#141418] hover:bg-zinc-850 hover:border-zinc-700"
+                      }`}
+                    >
+                      <div className="flex items-start gap-3 min-w-0">
+                        <div className="w-9 h-9 rounded-xl bg-zinc-950 border border-zinc-800/80 flex items-center justify-center shrink-0 shadow-sm overflow-hidden p-1.5 mt-0.5">
+                          <ProviderIcon providerId={p.id} size={22} />
+                        </div>
+
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`text-xs font-bold truncate ${isSelected ? "text-emerald-400" : "text-zinc-200"}`}
+                            >
+                              {p.name}
+                            </span>
+                            {isActive && (
+                              <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0">
+                                DEFAULT ACTIVE
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-zinc-400 line-clamp-1 mt-0.5">
+                            {p.desc}
+                          </p>
+                        </div>
+                      </div>
+
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-400 shrink-0">
+                        {p.badge}
+                      </span>
+                    </div>
+                  );
+                })}
           </div>
         </div>
 
@@ -620,7 +647,9 @@ export default function SettingsHubPage() {
                   </div>
                   <div>
                     <div className="flex items-center gap-2.5">
-                      <h2 className="text-lg font-bold text-zinc-100">{selectedLLMDef.name}</h2>
+                      <h2 className="text-lg font-bold text-zinc-100">
+                        {selectedLLMDef.name}
+                      </h2>
                       <span className="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-zinc-850 text-zinc-300 border border-zinc-700">
                         {selectedLLMDef.badge}
                       </span>
@@ -631,7 +660,9 @@ export default function SettingsHubPage() {
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-zinc-400 mt-1 leading-relaxed">{selectedLLMDef.desc}</p>
+                    <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+                      {selectedLLMDef.desc}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -641,7 +672,9 @@ export default function SettingsHubPage() {
                 <div>
                   <label className="text-xs font-semibold text-zinc-300 block mb-1.5 flex items-center justify-between">
                     <span>Base Endpoint URL</span>
-                    <span className="text-[10px] font-mono text-zinc-500">OpenAI-Compatible /v1</span>
+                    <span className="text-[10px] font-mono text-zinc-500">
+                      OpenAI-Compatible /v1
+                    </span>
                   </label>
                   <input
                     type="text"
@@ -658,7 +691,9 @@ export default function SettingsHubPage() {
                       ) : (
                         <Wifi className="w-3 h-3 text-amber-400" />
                       )}
-                      {llmBaseUrl.startsWith("https") ? "TLS Encrypted (HTTPS)" : "Local Loopback (HTTP)"}
+                      {llmBaseUrl.startsWith("https")
+                        ? "TLS Encrypted (HTTPS)"
+                        : "Local Loopback (HTTP)"}
                     </span>
                     <span>•</span>
                     <span>Protocol: OpenAI ChatCompletions v1</span>
@@ -668,7 +703,9 @@ export default function SettingsHubPage() {
                 <div>
                   <label className="text-xs font-semibold text-zinc-300 block mb-1.5 flex items-center justify-between">
                     <span>Model ID / Tag</span>
-                    <span className="text-[10px] font-mono text-zinc-500">e.g. llama3.2, gpt-4o-mini, gemini-2.5-flash</span>
+                    <span className="text-[10px] font-mono text-zinc-500">
+                      e.g. llama3.2, gpt-4o-mini, gemini-2.5-flash
+                    </span>
                   </label>
                   <input
                     type="text"
@@ -685,7 +722,9 @@ export default function SettingsHubPage() {
                     <label className="text-xs font-semibold text-zinc-300 block mb-1.5 flex items-center justify-between">
                       <span>API Key</span>
                       <span className="text-[10px] font-mono text-zinc-500">
-                        {isLLMConfigured(selectedLLMDef.id) ? "Configured in .env" : "Required"}
+                        {isLLMConfigured(selectedLLMDef.id)
+                          ? "Configured in .env"
+                          : "Required"}
                       </span>
                     </label>
                     <div className="relative">
@@ -705,7 +744,11 @@ export default function SettingsHubPage() {
                         onClick={() => setShowLlmKey(!showLlmKey)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
                       >
-                        {showLlmKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        {showLlmKey ? (
+                          <EyeOff className="w-4 h-4" />
+                        ) : (
+                          <Eye className="w-4 h-4" />
+                        )}
                       </button>
                     </div>
                   </div>
@@ -719,8 +762,14 @@ export default function SettingsHubPage() {
                   disabled={pinging}
                   className="w-full sm:w-auto flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-200 font-semibold text-xs border border-zinc-800 hover:border-zinc-700 transition-all disabled:opacity-50"
                 >
-                  <Zap className={`w-4 h-4 ${pinging ? "animate-spin text-emerald-400" : "text-emerald-400"}`} />
-                  <span>{pinging ? "Pinging Endpoint (10 Tokens)..." : "Test Connection (10-Token Ping)"}</span>
+                  <Zap
+                    className={`w-4 h-4 ${pinging ? "animate-spin text-emerald-400" : "text-emerald-400"}`}
+                  />
+                  <span>
+                    {pinging
+                      ? "Pinging Endpoint (10 Tokens)..."
+                      : "Test Connection (10-Token Ping)"}
+                  </span>
                 </button>
 
                 <button
@@ -729,7 +778,11 @@ export default function SettingsHubPage() {
                   className="w-full sm:w-auto flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs shadow-glowEmerald transition-all disabled:opacity-50"
                 >
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>{savedSuccess ? "✓ Connected & Active!" : "Connect & Apply as Active"}</span>
+                  <span>
+                    {savedSuccess
+                      ? "✓ Connected & Active!"
+                      : "Connect & Apply as Active"}
+                  </span>
                 </button>
               </div>
             </>
@@ -744,7 +797,9 @@ export default function SettingsHubPage() {
                   </div>
                   <div>
                     <div className="flex items-center gap-2.5">
-                      <h2 className="text-lg font-bold text-zinc-100">{selectedSearchDef.name}</h2>
+                      <h2 className="text-lg font-bold text-zinc-100">
+                        {selectedSearchDef.name}
+                      </h2>
                       <span className="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-zinc-850 text-zinc-300 border border-zinc-700">
                         {selectedSearchDef.badge}
                       </span>
@@ -755,7 +810,9 @@ export default function SettingsHubPage() {
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-zinc-400 mt-1 leading-relaxed">{selectedSearchDef.desc}</p>
+                    <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+                      {selectedSearchDef.desc}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -766,7 +823,9 @@ export default function SettingsHubPage() {
                   <label className="text-xs font-semibold text-zinc-300 block mb-1.5 flex items-center justify-between">
                     <span>Search Engine Endpoint URL</span>
                     <span className="text-[10px] font-mono text-zinc-500">
-                      {selectedSearchDef.id === "searxng" ? "Local Self-Hosted Instance" : "Cloud API"}
+                      {selectedSearchDef.id === "searxng"
+                        ? "Local Self-Hosted Instance"
+                        : "Cloud API"}
                     </span>
                   </label>
                   <input
@@ -797,7 +856,9 @@ export default function SettingsHubPage() {
                 <div>
                   <label className="text-xs font-semibold text-zinc-300 block mb-1.5 flex items-center justify-between">
                     <span>Verification Test Query</span>
-                    <span className="text-[10px] font-mono text-zinc-500">Live Query Ping</span>
+                    <span className="text-[10px] font-mono text-zinc-500">
+                      Live Query Ping
+                    </span>
                   </label>
                   <input
                     type="text"
@@ -814,7 +875,9 @@ export default function SettingsHubPage() {
                     <label className="text-xs font-semibold text-zinc-300 block mb-1.5 flex items-center justify-between">
                       <span>Search API Key</span>
                       <span className="text-[10px] font-mono text-zinc-500">
-                        {isSearchConfigured(selectedSearchDef.id) ? "Configured in .env" : "Required"}
+                        {isSearchConfigured(selectedSearchDef.id)
+                          ? "Configured in .env"
+                          : "Required"}
                       </span>
                     </label>
                     <div className="relative">
@@ -834,7 +897,11 @@ export default function SettingsHubPage() {
                         onClick={() => setShowSearchKey(!showSearchKey)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
                       >
-                        {showSearchKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        {showSearchKey ? (
+                          <EyeOff className="w-4 h-4" />
+                        ) : (
+                          <Eye className="w-4 h-4" />
+                        )}
                       </button>
                     </div>
                   </div>
@@ -848,8 +915,14 @@ export default function SettingsHubPage() {
                   disabled={pinging}
                   className="w-full sm:w-auto flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-200 font-semibold text-xs border border-zinc-800 hover:border-zinc-700 transition-all disabled:opacity-50"
                 >
-                  <Zap className={`w-4 h-4 ${pinging ? "animate-spin text-emerald-400" : "text-emerald-400"}`} />
-                  <span>{pinging ? "Testing Search Connection..." : "Test Search Engine (Live Ping)"}</span>
+                  <Zap
+                    className={`w-4 h-4 ${pinging ? "animate-spin text-emerald-400" : "text-emerald-400"}`}
+                  />
+                  <span>
+                    {pinging
+                      ? "Testing Search Connection..."
+                      : "Test Search Engine (Live Ping)"}
+                  </span>
                 </button>
 
                 <button
@@ -858,7 +931,11 @@ export default function SettingsHubPage() {
                   className="w-full sm:w-auto flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs shadow-glowEmerald transition-all disabled:opacity-50"
                 >
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>{savedSuccess ? "✓ Connected & Active!" : "Connect & Apply as Active Search"}</span>
+                  <span>
+                    {savedSuccess
+                      ? "✓ Connected & Active!"
+                      : "Connect & Apply as Active Search"}
+                  </span>
                 </button>
               </div>
             </>
@@ -879,7 +956,9 @@ export default function SettingsHubPage() {
                     <>
                       <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                       <span>
-                        {activeTab === "llm" ? "10-Token Ping: SUCCESS (200 OK)" : "Search Connection: VERIFIED (200 OK)"}
+                        {activeTab === "llm"
+                          ? "10-Token Ping: SUCCESS (200 OK)"
+                          : "Search Connection: VERIFIED (200 OK)"}
                       </span>
                     </>
                   ) : (
@@ -891,7 +970,10 @@ export default function SettingsHubPage() {
                 </div>
 
                 <span className="text-[11px] text-zinc-400">
-                  Latency: <strong className="text-zinc-200">{pingResult.latency_ms}ms</strong>
+                  Latency:{" "}
+                  <strong className="text-zinc-200">
+                    {pingResult.latency_ms}ms
+                  </strong>
                 </span>
               </div>
 
@@ -910,7 +992,10 @@ export default function SettingsHubPage() {
                     </span>
                   </div>
                   <p className="text-[11px] font-mono text-zinc-100">
-                    Output: <span className="text-emerald-400">"{pingResult.reply}"</span>
+                    Output:{" "}
+                    <span className="text-emerald-400">
+                      &quot;{pingResult.reply}&quot;
+                    </span>
                   </p>
                 </div>
               ) : (
@@ -933,8 +1018,12 @@ export default function SettingsHubPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
           <div>
             <div className="flex items-center justify-between text-xs font-mono mb-2">
-              <span className="text-zinc-400">HTTP/2 Async Crawler Workers:</span>
-              <strong className="text-emerald-400">{concurrency} concurrent requests</strong>
+              <span className="text-zinc-400">
+                HTTP/2 Async Crawler Workers:
+              </span>
+              <strong className="text-emerald-400">
+                {concurrency} concurrent requests
+              </strong>
             </div>
             <input
               type="range"
@@ -945,7 +1034,8 @@ export default function SettingsHubPage() {
               className="w-full accent-emerald-500 cursor-pointer"
             />
             <p className="text-[10px] text-zinc-500 mt-1">
-              Higher workers accelerate discovery across Berlin property management subpages.
+              Higher workers accelerate discovery across Berlin property
+              management subpages.
             </p>
           </div>
 

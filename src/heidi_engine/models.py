@@ -107,7 +107,8 @@ class CompanyKPIExtraction(BaseModel):
         default=None, description="e.g., HRB 123456 B"
     )
     founding_year: Optional[int] = Field(
-        default=None, description="4-digit founding year if explicitly mentioned (1850-2026)"
+        default=None,
+        description="4-digit founding year if explicitly mentioned (1850-2026)",
     )
     exact_units_managed: Optional[int] = Field(
         default=None,
@@ -117,7 +118,8 @@ class CompanyKPIExtraction(BaseModel):
         default=None, description="Verbatim quote stating the unit count, else null"
     )
     reference_buildings_count: Optional[int] = Field(
-        default=None, description="Number of reference properties listed on website if any"
+        default=None,
+        description="Number of reference properties listed on website if any",
     )
     employee_count_mentioned: Optional[int] = Field(
         default=None,

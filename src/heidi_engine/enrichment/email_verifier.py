@@ -11,7 +11,10 @@ from typing import Dict, Optional, Tuple
 import dns.resolver
 
 from heidi_engine.config import settings
-from heidi_engine.entity_resolution.normalizer import FREEMAIL_DOMAINS, transliterate_german
+from heidi_engine.entity_resolution.normalizer import (
+    FREEMAIL_DOMAINS,
+    transliterate_german,
+)
 from heidi_engine.llm.router import GENERIC_EMAIL_PREFIXES
 
 
@@ -52,7 +55,9 @@ class EmailVerifier:
         self._mx_cache[dom] = (False, None)
         return False, None
 
-    async def check_domain_mx(self, domain: Optional[str]) -> Tuple[bool, Optional[str]]:
+    async def check_domain_mx(
+        self, domain: Optional[str]
+    ) -> Tuple[bool, Optional[str]]:
         return await asyncio.to_thread(self.check_domain_mx_sync, domain)
 
     @staticmethod
@@ -66,7 +71,9 @@ class EmailVerifier:
         if local in GENERIC_EMAIL_PREFIXES:
             return False
         if any(
-            local.startswith(p + ".") or local.startswith(p + "-") or local.startswith(p + "_")
+            local.startswith(p + ".")
+            or local.startswith(p + "-")
+            or local.startswith(p + "_")
             for p in GENERIC_EMAIL_PREFIXES
         ):
             return False

@@ -31,7 +31,6 @@ from heidi_engine.scrapers.vdiv import VDIVScraper
 from heidi_engine.telemetry.evaluator import PipelineEvaluator
 from heidi_engine.telemetry.excel_exporter import ExcelExporter
 
-
 db = Database()
 
 
@@ -93,6 +92,7 @@ app.add_middleware(
 # 1. METRICS & TELEMETRY APIS
 # ============================================================================
 
+
 @app.get("/api/metrics")
 async def get_metrics():
     """Return live aggregate KPI metrics, tier distribution, ERP counts, and district shares."""
@@ -123,7 +123,10 @@ async def get_metrics():
             ORDER BY cnt DESC
             """
         ).fetchall()
-        district_breakdown = [{"district": r["district"] or "Berlin", "count": r["cnt"]} for r in dist_rows]
+        district_breakdown = [
+            {"district": r["district"] or "Berlin", "count": r["cnt"]}
+            for r in dist_rows
+        ]
 
     return {
         "status": "online",
@@ -152,9 +155,12 @@ async def get_metrics():
 # 2. LEAD SEARCH, FILTERING & DOSSIER APIS
 # ============================================================================
 
+
 @app.get("/api/leads")
 async def get_leads(
-    q: Optional[str] = Query(None, description="Search query across company name, decision maker, address"),
+    q: Optional[str] = Query(
+        None, description="Search query across company name, decision maker, address"
+    ),
     tier: Optional[str] = Query(None, description="Tier A, Tier B, Tier C"),
     district: Optional[str] = Query(None, description="Berlin Bezirk"),
     has_dm: Optional[bool] = Query(None),
@@ -208,10 +214,14 @@ async def get_leads(
         params.append(1 if is_vdiv else 0)
 
     if has_erp:
-        where_clauses.append("(k.detected_erp_proptech IS NOT NULL AND k.detected_erp_proptech != '')")
+        where_clauses.append(
+            "(k.detected_erp_proptech IS NOT NULL AND k.detected_erp_proptech != '')"
+        )
 
     if has_dm:
-        where_clauses.append("EXISTS (SELECT 1 FROM decision_makers d WHERE d.company_id = c.company_id)")
+        where_clauses.append(
+            "EXISTS (SELECT 1 FROM decision_makers d WHERE d.company_id = c.company_id)"
+        )
 
     if has_email:
         where_clauses.append(
@@ -252,13 +262,21 @@ async def get_leads(
             ORDER BY {sort_col} {sort_order}, c.is_vdiv_member DESC, c.source_count DESC
             LIMIT ? OFFSET ?
         """
-        rows = [dict(r) for r in conn.execute(data_sql, params + [limit, offset]).fetchall()]
+        rows = [
+            dict(r) for r in conn.execute(data_sql, params + [limit, offset]).fetchall()
+        ]
 
         # Attach formatted Lead ID (e.g. METRIXA-BER-0001)
         for idx, r in enumerate(rows, start=offset + 1):
             r["lead_id"] = f"METRIXA-BER-{r['company_id']:04d}"
-            r["metrixa_lead_score"] = r.get("metrixa_lead_score") if r.get("metrixa_lead_score") is not None else r.get("heidi_lead_score", 0)
-            r["linkedin_url"] = r["decision_maker_linkedin"] or r["company_linkedin_url"]
+            r["metrixa_lead_score"] = (
+                r.get("metrixa_lead_score")
+                if r.get("metrixa_lead_score") is not None
+                else r.get("heidi_lead_score", 0)
+            )
+            r["linkedin_url"] = (
+                r["decision_maker_linkedin"] or r["company_linkedin_url"]
+            )
 
     return {
         "items": rows,
@@ -334,8 +352,16 @@ async def get_lead_evidence(company_id: int):
         if comp_d.get("website_url"):
             s_digital += 3
 
-        s_trust = (5 if comp_d.get("is_vdiv_member") else 0) + (3 if comp_d.get("commercial_register_id") else 0) + 2
-        s_contact = (4 if dms else 0) + (4 if any(d.get("personal_email") for d in dms) else 0) + 2
+        s_trust = (
+            (5 if comp_d.get("is_vdiv_member") else 0)
+            + (3 if comp_d.get("commercial_register_id") else 0)
+            + 2
+        )
+        s_contact = (
+            (4 if dms else 0)
+            + (4 if any(d.get("personal_email") for d in dms) else 0)
+            + 2
+        )
 
         scorecard = {
             "scale_pts": min(35, s_scale),
@@ -343,7 +369,8 @@ async def get_lead_evidence(company_id: int):
             "digital_pts": min(20, s_digital),
             "trust_pts": min(10, s_trust),
             "contact_pts": min(10, s_contact),
-            "total_score": comp_d.get("metrixa_lead_score") or comp_d.get("heidi_lead_score", 0),
+            "total_score": comp_d.get("metrixa_lead_score")
+            or comp_d.get("heidi_lead_score", 0),
         }
 
     return {
@@ -359,8 +386,12 @@ async def get_lead_evidence(company_id: int):
 # 3. REAL-TIME PIPELINE RUNNER & SERVER-SENT EVENTS (SSE)
 # ============================================================================
 
+
 class PipelineRunRequest(BaseModel):
-    stage: str = Field(default="full", description="full | ingest | deduplicate | crawl | extract | enrich | export")
+    stage: str = Field(
+        default="full",
+        description="full | ingest | deduplicate | crawl | extract | enrich | export",
+    )
     provider: Optional[str] = Field(default="auto_fallback")
     limit: Optional[int] = Field(default=None)
     reprocess_all: bool = Field(default=False)
@@ -373,6 +404,7 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
         raise HTTPException(status_code=409, detail="Pipeline run already in progress")
 
     import uuid
+
     run_id = f"run-{uuid.uuid4().hex[:8]}"
 
     async def _execute_task():
@@ -380,11 +412,20 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
         event_bus.current_run_id = run_id
         event_bus.current_stage = req.stage.upper()
 
-        await event_bus.emit("LOG", {"level": "INFO", "message": f"Starting pipeline execution: {req.stage.upper()}"})
+        await event_bus.emit(
+            "LOG",
+            {
+                "level": "INFO",
+                "message": f"Starting pipeline execution: {req.stage.upper()}",
+            },
+        )
 
         try:
             if req.stage in ("full", "ingest"):
-                await event_bus.emit("PROGRESS", {"stage": "INGEST", "completed": 0, "total": 5, "pct": 0})
+                await event_bus.emit(
+                    "PROGRESS",
+                    {"stage": "INGEST", "completed": 0, "total": 5, "pct": 0},
+                )
                 scrapers = [
                     ("VDIV Association", VDIVScraper()),
                     ("OpenStreetMap", OSMOverpassScraper()),
@@ -393,15 +434,38 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                     ("Search Discovery", SearchDiscoveryScraper()),
                 ]
                 for idx, (label, sc) in enumerate(scrapers, start=1):
-                    await event_bus.emit("LOG", {"level": "INFO", "message": f"Executing scraper: {label}"})
+                    await event_bus.emit(
+                        "LOG",
+                        {"level": "INFO", "message": f"Executing scraper: {label}"},
+                    )
                     items = await sc.scrape_berlin(max_pages=4)
                     ins = db.insert_raw_listings(items)
                     pct = round((idx / len(scrapers)) * 100, 1)
-                    await event_bus.emit("PROGRESS", {"stage": "INGEST", "completed": idx, "total": len(scrapers), "pct": pct})
-                    await event_bus.emit("LOG", {"level": "SUCCESS", "message": f"Scraped {len(items)} from {label} ({ins} new)"})
+                    await event_bus.emit(
+                        "PROGRESS",
+                        {
+                            "stage": "INGEST",
+                            "completed": idx,
+                            "total": len(scrapers),
+                            "pct": pct,
+                        },
+                    )
+                    await event_bus.emit(
+                        "LOG",
+                        {
+                            "level": "SUCCESS",
+                            "message": f"Scraped {len(items)} from {label} ({ins} new)",
+                        },
+                    )
 
             if req.stage in ("full", "deduplicate"):
-                await event_bus.emit("LOG", {"level": "INFO", "message": "Starting entity resolution and deduplication..."})
+                await event_bus.emit(
+                    "LOG",
+                    {
+                        "level": "INFO",
+                        "message": "Starting entity resolution and deduplication...",
+                    },
+                )
                 deduper = EntityDeduplicator(db)
                 stats = deduper.run_deduplication()
                 await event_bus.emit(
@@ -414,25 +478,61 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
 
             if req.stage in ("full", "crawl"):
                 crawler = AsyncWebsiteCrawler(db)
-                await event_bus.emit("LOG", {"level": "INFO", "message": "Crawling company websites and Impressum pages..."})
+                await event_bus.emit(
+                    "LOG",
+                    {
+                        "level": "INFO",
+                        "message": "Crawling company websites and Impressum pages...",
+                    },
+                )
 
                 def _crawl_cb(done: int, total: int):
                     pct = round((done / max(1, total)) * 100, 1)
                     asyncio.create_task(
-                        event_bus.emit("PROGRESS", {"stage": "CRAWL", "completed": done, "total": total, "pct": pct})
+                        event_bus.emit(
+                            "PROGRESS",
+                            {
+                                "stage": "CRAWL",
+                                "completed": done,
+                                "total": total,
+                                "pct": pct,
+                            },
+                        )
                     )
 
-                res = await crawler.crawl_batch(limit=req.limit, progress_callback=_crawl_cb)
-                await event_bus.emit("LOG", {"level": "SUCCESS", "message": f"Crawled {res['companies_processed']} companies ({res['total_pages_saved']} subpages saved)"})
+                res = await crawler.crawl_batch(
+                    limit=req.limit, progress_callback=_crawl_cb
+                )
+                await event_bus.emit(
+                    "LOG",
+                    {
+                        "level": "SUCCESS",
+                        "message": f"Crawled {res['companies_processed']} companies ({res['total_pages_saved']} subpages saved)",
+                    },
+                )
 
             if req.stage in ("full", "extract"):
                 pipeline = KPIExtractionPipeline(db)
-                await event_bus.emit("LOG", {"level": "INFO", "message": f"Extracting KPIs via {req.provider or 'auto_fallback'}..."})
+                await event_bus.emit(
+                    "LOG",
+                    {
+                        "level": "INFO",
+                        "message": f"Extracting KPIs via {req.provider or 'auto_fallback'}...",
+                    },
+                )
 
                 def _extract_cb(done: int, total: int):
                     pct = round((done / max(1, total)) * 100, 1)
                     asyncio.create_task(
-                        event_bus.emit("PROGRESS", {"stage": "EXTRACT", "completed": done, "total": total, "pct": pct})
+                        event_bus.emit(
+                            "PROGRESS",
+                            {
+                                "stage": "EXTRACT",
+                                "completed": done,
+                                "total": total,
+                                "pct": pct,
+                            },
+                        )
                     )
 
                 res = await pipeline.extract_batch(
@@ -441,20 +541,42 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                     reprocess_all=req.reprocess_all,
                     progress_callback=_extract_cb,
                 )
-                await event_bus.emit("LOG", {"level": "SUCCESS", "message": f"Extracted KPIs: {res['with_decision_maker']} decision makers, {res['with_erp']} ERPs"})
+                await event_bus.emit(
+                    "LOG",
+                    {
+                        "level": "SUCCESS",
+                        "message": f"Extracted KPIs: {res['with_decision_maker']} decision makers, {res['with_erp']} ERPs",
+                    },
+                )
 
             if req.stage in ("full", "enrich"):
                 enricher = ContactEnricher(db)
                 scorer = LeadScorer(db)
-                await event_bus.emit("LOG", {"level": "INFO", "message": "Verifying DNS MX records & scoring leads..."})
+                await event_bus.emit(
+                    "LOG",
+                    {
+                        "level": "INFO",
+                        "message": "Verifying DNS MX records & scoring leads...",
+                    },
+                )
 
                 def _enrich_cb(done: int, total: int):
                     pct = round((done / max(1, total)) * 100, 1)
                     asyncio.create_task(
-                        event_bus.emit("PROGRESS", {"stage": "ENRICH", "completed": done, "total": total, "pct": pct})
+                        event_bus.emit(
+                            "PROGRESS",
+                            {
+                                "stage": "ENRICH",
+                                "completed": done,
+                                "total": total,
+                                "pct": pct,
+                            },
+                        )
                     )
 
-                en_res = await enricher.enrich_batch(web_search_top_n=5, progress_callback=_enrich_cb)
+                en_res = await enricher.enrich_batch(
+                    web_search_top_n=5, progress_callback=_enrich_cb
+                )
                 tier_counts = scorer.score_all_companies()
                 await event_bus.emit(
                     "LOG",
@@ -467,16 +589,37 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
             if req.stage in ("full", "export"):
                 exporter = ExcelExporter(db)
                 evaluator = PipelineEvaluator(db)
-                await event_bus.emit("LOG", {"level": "INFO", "message": "Generating 4-Tab Excel workbook & evaluation report..."})
+                await event_bus.emit(
+                    "LOG",
+                    {
+                        "level": "INFO",
+                        "message": "Generating 4-Tab Excel workbook & evaluation report...",
+                    },
+                )
                 exp_res = exporter.export_all()
                 eval_path = evaluator.generate_markdown_report()
-                await event_bus.emit("LOG", {"level": "SUCCESS", "message": f"Exported: {exp_res['xlsx_path']} | Evaluation report: {eval_path}"})
+                await event_bus.emit(
+                    "LOG",
+                    {
+                        "level": "SUCCESS",
+                        "message": f"Exported: {exp_res['xlsx_path']} | Evaluation report: {eval_path}",
+                    },
+                )
 
             await event_bus.emit("COMPLETE", {"run_id": run_id, "stage": req.stage})
-            await event_bus.emit("LOG", {"level": "SUCCESS", "message": "Pipeline execution completed successfully."})
+            await event_bus.emit(
+                "LOG",
+                {
+                    "level": "SUCCESS",
+                    "message": "Pipeline execution completed successfully.",
+                },
+            )
 
         except Exception as e:
-            await event_bus.emit("LOG", {"level": "ERROR", "message": f"Pipeline execution failed: {str(e)}"})
+            await event_bus.emit(
+                "LOG",
+                {"level": "ERROR", "message": f"Pipeline execution failed: {str(e)}"},
+            )
             await event_bus.emit("ERROR", {"error": str(e)})
         finally:
             event_bus.is_running = False
@@ -489,13 +632,20 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
 @app.get("/api/pipeline/stream")
 async def stream_pipeline_events():
     """SSE endpoint streaming live logs and stage progress to Next.js."""
+
     async def _event_generator() -> AsyncGenerator[Dict[str, str], None]:
         q = event_bus.subscribe()
         try:
             # Emit initial connection handshake
             yield {
                 "event": "HEARTBEAT",
-                "data": json.dumps({"status": "connected", "is_running": event_bus.is_running, "stage": event_bus.current_stage}),
+                "data": json.dumps(
+                    {
+                        "status": "connected",
+                        "is_running": event_bus.is_running,
+                        "stage": event_bus.current_stage,
+                    }
+                ),
             }
             while True:
                 msg = await q.get()
@@ -515,6 +665,7 @@ async def stream_pipeline_events():
 # 4. ARTIFACTS & EXPORT DOWNLOADS
 # ============================================================================
 
+
 @app.get("/api/artifacts/download/excel")
 async def download_excel():
     """Download styled 4-Tab Master Excel (.xlsx) file."""
@@ -523,6 +674,7 @@ async def download_excel():
         fallback_path = settings.export_dir / "heidi_berlin_hausverwaltungen.xlsx"
         if fallback_path.exists():
             import shutil
+
             shutil.copyfile(fallback_path, path)
         else:
             ExcelExporter(db).export_all()
@@ -541,6 +693,7 @@ async def download_csv():
         fallback_path = settings.export_dir / "heidi_berlin_leads_master.csv"
         if fallback_path.exists():
             import shutil
+
             shutil.copyfile(fallback_path, path)
         else:
             ExcelExporter(db).export_all()
@@ -563,6 +716,7 @@ async def get_evaluation_report():
 # ============================================================================
 # 5. AGENTIC TOOLS & PROVIDER SETTINGS
 # ============================================================================
+
 
 @app.get("/api/tools")
 async def get_tools_catalog():
@@ -777,38 +931,54 @@ async def ping_provider(req: ProviderPingRequest):
     # 2. Map provider to base_url, model, and api_key
     provider_map = {
         "deepseek": {
-            "base_url": req.base_url or settings.deepseek_base_url or "https://api.deepseek.com/v1",
+            "base_url": req.base_url
+            or settings.deepseek_base_url
+            or "https://api.deepseek.com/v1",
             "model": req.model or settings.deepseek_model or "deepseek-chat",
             "api_key": req.api_key or settings.deepseek_api_key or "",
         },
         "gemini": {
-            "base_url": req.base_url or settings.gemini_base_url or "https://generativelanguage.googleapis.com/v1beta/openai",
+            "base_url": req.base_url
+            or settings.gemini_base_url
+            or "https://generativelanguage.googleapis.com/v1beta/openai",
             "model": req.model or settings.gemini_model or "gemini-2.5-flash",
             "api_key": req.api_key or settings.gemini_api_key or "",
         },
         "openai": {
-            "base_url": req.base_url or settings.openai_base_url or "https://api.openai.com/v1",
+            "base_url": req.base_url
+            or settings.openai_base_url
+            or "https://api.openai.com/v1",
             "model": req.model or settings.openai_model or "gpt-4o-mini",
             "api_key": req.api_key or settings.openai_api_key or "",
         },
         "ollama": {
-            "base_url": req.base_url or settings.ollama_base_url or "http://localhost:11434/v1",
+            "base_url": req.base_url
+            or settings.ollama_base_url
+            or "http://localhost:11434/v1",
             "model": req.model or settings.ollama_model or "llama3.2",
             "api_key": req.api_key or "ollama-local",
         },
         "lm_studio": {
-            "base_url": req.base_url or settings.lmstudio_base_url or "http://localhost:1234/v1",
+            "base_url": req.base_url
+            or settings.lmstudio_base_url
+            or "http://localhost:1234/v1",
             "model": req.model or settings.lmstudio_model or "local-model",
             "api_key": req.api_key or settings.lmstudio_api_key or "lm-studio",
         },
         "local_llamacpp": {
-            "base_url": req.base_url or settings.llamacpp_base_url or "http://localhost:8080/v1",
+            "base_url": req.base_url
+            or settings.llamacpp_base_url
+            or "http://localhost:8080/v1",
             "model": req.model or settings.llamacpp_model or "qwen2.5-14b-instruct",
             "api_key": req.api_key or settings.llamacpp_api_key or "local-no-key",
         },
         "nvidia_nim": {
-            "base_url": req.base_url or settings.nvidia_nim_base_url or "https://integrate.api.nvidia.com/v1",
-            "model": req.model or settings.nvidia_nim_model or "meta/llama-3.3-70b-instruct",
+            "base_url": req.base_url
+            or settings.nvidia_nim_base_url
+            or "https://integrate.api.nvidia.com/v1",
+            "model": req.model
+            or settings.nvidia_nim_model
+            or "meta/llama-3.3-70b-instruct",
             "api_key": req.api_key or settings.nvidia_nim_api_key or "",
         },
     }
@@ -826,7 +996,10 @@ async def ping_provider(req: ProviderPingRequest):
     payload = {
         "model": model,
         "messages": [
-            {"role": "system", "content": "You are a ping test validator. Output only the word: PONG"},
+            {
+                "role": "system",
+                "content": "You are a ping test validator. Output only the word: PONG",
+            },
             {"role": "user", "content": "Ping test."},
         ],
         "max_tokens": 10,
@@ -834,7 +1007,9 @@ async def ping_provider(req: ProviderPingRequest):
     }
 
     try:
-        async with httpx.AsyncClient(timeout=10.0, verify=False) as client:
+        async with httpx.AsyncClient(
+            timeout=10.0, verify=False
+        ) as client:  # nosec B501
             res = await client.post(endpoint, headers=headers, json=payload)
             res.raise_for_status()
             data = res.json()
@@ -913,7 +1088,9 @@ async def ping_search_provider(req: SearchPingRequest):
 
     # 2. SearXNG Local Engine
     if req.provider == "searxng":
-        url = (req.base_url or settings.searxng_base_url or "http://127.0.0.1:8888").rstrip("/")
+        url = (
+            req.base_url or settings.searxng_base_url or "http://127.0.0.1:8888"
+        ).rstrip("/")
         endpoint = f"{url}/search"
         params = {"q": req.query or "Hausverwaltung Berlin", "format": "json"}
         try:
@@ -953,8 +1130,15 @@ async def ping_search_provider(req: SearchPingRequest):
             async with httpx.AsyncClient(timeout=6.0) as client:
                 res = await client.post(
                     "https://api.tavily.com/search",
-                    json={"query": req.query or "Hausverwaltung Berlin", "search_depth": "basic", "max_results": 2},
-                    headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+                    json={
+                        "query": req.query or "Hausverwaltung Berlin",
+                        "search_depth": "basic",
+                        "max_results": 2,
+                    },
+                    headers={
+                        "Authorization": f"Bearer {key}",
+                        "Content-Type": "application/json",
+                    },
                 )
                 latency_ms = int((time.perf_counter() - t0) * 1000)
                 if res.status_code == 200:

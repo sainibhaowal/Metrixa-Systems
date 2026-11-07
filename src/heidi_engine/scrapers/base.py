@@ -15,7 +15,6 @@ import httpx
 from heidi_engine.config import settings
 from heidi_engine.models import RawListing
 
-
 USER_AGENTS: List[str] = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:132.0) Gecko/20100101 Firefox/132.0",
@@ -29,7 +28,9 @@ class BaseAsyncScraper:
 
     source_name: str = "base"
 
-    def __init__(self, concurrency: int = 6, delay_range: tuple[float, float] = (0.25, 0.75)) -> None:
+    def __init__(
+        self, concurrency: int = 6, delay_range: tuple[float, float] = (0.25, 0.75)
+    ) -> None:
         self.semaphore = asyncio.Semaphore(concurrency)
         self.delay_range = delay_range
 

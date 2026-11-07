@@ -13,14 +13,16 @@ import tldextract
 
 from heidi_engine.config import is_valid_berlin_plz
 
-
 # Ordered from most specific to general so 'GmbH & Co. KG' matches before 'GmbH'
 LEGAL_FORM_PATTERNS: list[tuple[str, str]] = [
     (r"\bgmbh\s*&\s*co\.?\s*kg\b", "GmbH & Co. KG"),
     (r"\bgmbh\s*&\s*co\.?\s*ohg\b", "GmbH & Co. OHG"),
     (r"\bug\s*\(haftungsbeschr[aä]nkt\)\s*&\s*co\.?\s*kg\b", "UG & Co. KG"),
     (r"\bug\s*\(haftungsbeschr[aä]nkt\)", "UG (haftungsbeschränkt)"),
-    (r"\bhaftungsbeschr[aä]nkte\s+unternehmergesellschaft\b", "UG (haftungsbeschränkt)"),
+    (
+        r"\bhaftungsbeschr[aä]nkte\s+unternehmergesellschaft\b",
+        "UG (haftungsbeschränkt)",
+    ),
     (r"\bgmbh\b", "GmbH"),
     (r"\bgesellschaft\s+mit\s+beschr[aä]nkter\s+haftung\b", "GmbH"),
     (r"\bag\b", "AG"),
@@ -202,7 +204,9 @@ def normalize_phone_e164(raw_phone: Optional[str]) -> Optional[str]:
     try:
         parsed = phonenumbers.parse(raw_phone, "DE")
         if phonenumbers.is_possible_number(parsed):
-            return phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.E164)
+            return phonenumbers.format_number(
+                parsed, phonenumbers.PhoneNumberFormat.E164
+            )
     except Exception:
         pass
     # Fallback manual normalization for Berlin 030 numbers
@@ -233,10 +237,7 @@ def extract_canonical_domain(
         if not ext.domain or not ext.suffix:
             continue
         reg_domain = f"{ext.domain}.{ext.suffix}"
-        if (
-            reg_domain in DIRECTORY_AND_SOCIAL_DOMAINS
-            or reg_domain in FREEMAIL_DOMAINS
-        ):
+        if reg_domain in DIRECTORY_AND_SOCIAL_DOMAINS or reg_domain in FREEMAIL_DOMAINS:
             continue
         return reg_domain
     return None
@@ -299,7 +300,9 @@ def check_listing_eligibility(
 
     # 3. Check Category Exclusion (e.g., pure cleaning, moving, locksmith)
     lower_name = company_name.lower()
-    has_positive = any(re.search(p, lower_name) for p in POSITIVE_HAUSVERWALTUNG_PATTERNS)
+    has_positive = any(
+        re.search(p, lower_name) for p in POSITIVE_HAUSVERWALTUNG_PATTERNS
+    )
     if not has_positive:
         for excl in NON_HAUSVERWALTUNG_EXCLUSION_PATTERNS:
             if re.search(excl, lower_name):

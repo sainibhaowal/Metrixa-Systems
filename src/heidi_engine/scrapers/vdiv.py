@@ -15,7 +15,6 @@ from heidi_engine.config import map_berlin_plz_to_district
 from heidi_engine.models import RawListing
 from heidi_engine.scrapers.base import BaseAsyncScraper
 
-
 # Verified Berlin VDIV / Institutional Property Management Companies (Real Berlin firms & domains)
 VERIFIED_VDIV_BERLIN_MEMBERS: List[Dict[str, str]] = [
     {
@@ -276,7 +275,9 @@ class VDIVScraper(BaseAsyncScraper):
             ".member-item, .verwalter-item, .directory-entry, article, .card"
         ):
             text_block = card.text(separator=" ")
-            plz_match = re.search(r"\b(1[0-4]\d{3})\s+Berlin", text_block, re.IGNORECASE)
+            plz_match = re.search(
+                r"\b(1[0-4]\d{3})\s+Berlin", text_block, re.IGNORECASE
+            )
             if not plz_match:
                 continue
             plz = plz_match.group(1)

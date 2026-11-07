@@ -8,14 +8,24 @@ from __future__ import annotations
 import re
 from typing import Dict, List, Set
 
-
 PROPTECH_ERP_SIGNATURES: Dict[str, List[str]] = {
     "Casavi": [r"casavi\.de", r"mycasavi\.com", r"casavi"],
     "etg24": [r"etg24\.de", r"etg24\.com", r"\betg24\b"],
     "Facilioo": [r"facilioo\.de", r"\bfacilioo\b"],
-    "Domus": [r"domus-software\.de", r"domus\s*4000", r"domus\s*1000", r"domus\s*erp", r"homeday-domus"],
+    "Domus": [
+        r"domus-software\.de",
+        r"domus\s*4000",
+        r"domus\s*1000",
+        r"domus\s*erp",
+        r"homeday-domus",
+    ],
     "Wodis Sigma / Aareon": [r"\bwodis\b", r"aareon\.de", r"aareon\.com", r"mareon"],
-    "Haufe PowerHaus / axera": [r"powerhaus", r"haufe-axera", r"\baxera\b", r"haufe\s*immobilien"],
+    "Haufe PowerHaus / axera": [
+        r"powerhaus",
+        r"haufe-axera",
+        r"\baxera\b",
+        r"haufe\s*immobilien",
+    ],
     "Immoware24": [r"immoware24\.de", r"\bimmoware24\b"],
     "Karthago": [r"karthago-software", r"karthago\s*2000"],
     "WinCASA": [r"wincasa", r"software24\.com"],
@@ -45,9 +55,7 @@ PORTAL_PATTERNS: List[str] = [
     r"facilioo",
 ]
 
-EMAIL_REGEX = re.compile(
-    r"\b[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,10}\b"
-)
+EMAIL_REGEX = re.compile(r"\b[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,10}\b")
 
 LINKEDIN_REGEX = re.compile(
     r"https?://(?:[a-z]{2,3}\.)?linkedin\.com/(?:in|company)/[a-zA-Z0-9\-_%]+",
@@ -84,7 +92,9 @@ def scan_html_for_tech_and_contacts(raw_html: str) -> Dict[str, any]:
             metering_found.append(name)
 
     # 3. Detect Customer / Tenant / Owner Portal
-    has_portal = bool(erp_found) or any(re.search(p, lower_html) for p in PORTAL_PATTERNS)
+    has_portal = bool(erp_found) or any(
+        re.search(p, lower_html) for p in PORTAL_PATTERNS
+    )
 
     # 4. Extract LinkedIn URLs
     linkedin_set: Set[str] = set()
@@ -112,10 +122,26 @@ def scan_html_for_tech_and_contacts(raw_html: str) -> Dict[str, any]:
         # Exclude image extensions or sentry/webpack artifacts
         if any(
             em_low.endswith(ext)
-            for ext in (".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".js", ".css", ".woff", ".ttf")
+            for ext in (
+                ".png",
+                ".jpg",
+                ".jpeg",
+                ".gif",
+                ".svg",
+                ".webp",
+                ".js",
+                ".css",
+                ".woff",
+                ".ttf",
+            )
         ):
             continue
-        if "sentry.io" in em_low or "example.com" in em_low or "wixpress.com" in em_low or "wordpress.org" in em_low:
+        if (
+            "sentry.io" in em_low
+            or "example.com" in em_low
+            or "wixpress.com" in em_low
+            or "wordpress.org" in em_low
+        ):
             continue
         email_set.add(em_low)
 

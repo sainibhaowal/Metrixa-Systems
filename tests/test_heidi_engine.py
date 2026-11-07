@@ -11,11 +11,9 @@ from pathlib import Path
 from heidi_engine.config import is_valid_berlin_plz, map_berlin_plz_to_district
 from heidi_engine.crawler.tech_detector import scan_html_for_tech_and_contacts
 from heidi_engine.db import Database
-from heidi_engine.enrichment.email_verifier import email_verifier
 from heidi_engine.enrichment.scorer import calculate_heidi_lead_score
 from heidi_engine.entity_resolution.deduplicator import EntityDeduplicator
 from heidi_engine.entity_resolution.normalizer import (
-    canonicalize_company_name,
     check_listing_eligibility,
     extract_canonical_domain,
     extract_legal_form,
@@ -41,7 +39,10 @@ def test_berlin_plz_and_district_mapping() -> None:
 def test_german_normalizer_and_eligibility() -> None:
     assert extract_legal_form("Muster Hausverwaltung GmbH & Co. KG") == "GmbH & Co. KG"
     assert extract_legal_form("BVBI Immobilienmanagement GmbH") == "GmbH"
-    assert extract_legal_form("Berlin Wohnen UG (haftungsbeschränkt)") == "UG (haftungsbeschränkt)"
+    assert (
+        extract_legal_form("Berlin Wohnen UG (haftungsbeschränkt)")
+        == "UG (haftungsbeschränkt)"
+    )
 
     assert normalize_phone_e164("030 / 88 42 100") == "+49308842100"
     assert extract_canonical_domain("https://www.bvbi.de/impressum") == "bvbi.de"
@@ -50,7 +51,9 @@ def test_german_normalizer_and_eligibility() -> None:
 
     ok, _ = check_listing_eligibility("BVBI Hausverwaltung GmbH", "10719", "Berlin")
     assert ok is True
-    ok_clean, _ = check_listing_eligibility("Blitz Gebäudereinigung GmbH", "10115", "Berlin")
+    ok_clean, _ = check_listing_eligibility(
+        "Blitz Gebäudereinigung GmbH", "10115", "Berlin"
+    )
     assert ok_clean is False
 
 

@@ -20,7 +20,6 @@ from heidi_engine.entity_resolution.normalizer import (
 from heidi_engine.models import RawListing
 from heidi_engine.scrapers.base import BaseAsyncScraper
 
-
 KEYWORDS_11880 = [
     "hausverwaltung",
     "immobilienverwaltung",
@@ -93,7 +92,9 @@ class Dir11880Scraper(BaseAsyncScraper):
         for card in tree.css(
             "li.result-list-entry, article.result-list-entry, div.result-list-entry"
         ):
-            title_el = card.css_first("h2, .result-list-entry-title, a.result-list-entry-title__link")
+            title_el = card.css_first(
+                "h2, .result-list-entry-title, a.result-list-entry-title__link"
+            )
             name = self.clean_whitespace(title_el.text()) if title_el else None
             if not name:
                 continue
@@ -183,7 +184,12 @@ class Dir11880Scraper(BaseAsyncScraper):
                     item_type = str(item.get("@type", ""))
                     if not any(
                         t in item_type
-                        for t in ("LocalBusiness", "RealEstateAgent", "Organization", "ProfessionalService")
+                        for t in (
+                            "LocalBusiness",
+                            "RealEstateAgent",
+                            "Organization",
+                            "ProfessionalService",
+                        )
                     ):
                         continue
                     name = self.clean_whitespace(item.get("name"))
@@ -260,7 +266,9 @@ class Dir11880Scraper(BaseAsyncScraper):
                 if not html_text:
                     continue
                 for item in self.parse_page(html_text, url):
-                    key = f"{item.raw_company_name.lower()}_{item.raw_postal_code or ''}"
+                    key = (
+                        f"{item.raw_company_name.lower()}_{item.raw_postal_code or ''}"
+                    )
                     if key not in seen_keys:
                         seen_keys.add(key)
                         all_listings.append(item)

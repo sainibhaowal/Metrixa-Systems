@@ -6,7 +6,8 @@ import { SidebarProvider } from "@/components/layout/SidebarContext";
 
 export const metadata: Metadata = {
   title: "Metrixa Cockpit — Autonomous LeadOps & Metering Intelligence",
-  description: "Enterprise GTM Intelligence Cockpit for Metrixa Systems GmbH (Berlin Property Management Companies)",
+  description:
+    "Enterprise GTM Intelligence Cockpit for Metrixa Systems GmbH (Berlin Property Management Companies)",
 };
 
 export default function RootLayout({

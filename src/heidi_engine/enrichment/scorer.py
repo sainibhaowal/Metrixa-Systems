@@ -44,9 +44,13 @@ def calculate_heidi_lead_score(
     """
     # --- PILLAR 1: PORTFOLIO SCALE (Max 35 pts) ---
     s_scale = 6
-    if (exact_units and exact_units >= 2500) or estimated_units_tier == UnitsSizeTier.ENTERPRISE.value:
+    if (
+        exact_units and exact_units >= 2500
+    ) or estimated_units_tier == UnitsSizeTier.ENTERPRISE.value:
         s_scale = 35
-    elif (exact_units and exact_units >= 1000) or estimated_units_tier == UnitsSizeTier.LARGE.value:
+    elif (
+        exact_units and exact_units >= 1000
+    ) or estimated_units_tier == UnitsSizeTier.LARGE.value:
         s_scale = 28
     elif (
         (exact_units and exact_units >= 300)
@@ -175,8 +179,14 @@ class LeadScorer:
                     employee_count=r["employee_count_est"],
                     legal_form=r["legal_form"],
                     has_website=bool(web),
-                    manages_weg=bool(r["manages_weg"]) if r["manages_weg"] is not None else True,
-                    manages_miet=bool(r["manages_miet"]) if r["manages_miet"] is not None else True,
+                    manages_weg=(
+                        bool(r["manages_weg"]) if r["manages_weg"] is not None else True
+                    ),
+                    manages_miet=(
+                        bool(r["manages_miet"])
+                        if r["manages_miet"] is not None
+                        else True
+                    ),
                     manages_gewerbe=bool(r["manages_gewerbe"]),
                     manages_sev=bool(r["manages_sev"]),
                     detected_erp_proptech=r["detected_erp_proptech"],

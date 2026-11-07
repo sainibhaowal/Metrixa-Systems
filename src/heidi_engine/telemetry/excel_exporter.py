@@ -19,7 +19,6 @@ from openpyxl.utils import get_column_letter
 from heidi_engine.config import settings
 from heidi_engine.db import Database
 
-
 HEADER_FILL = PatternFill(start_color="1B365D", end_color="1B365D", fill_type="solid")
 HEADER_FONT = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
 BODY_FONT = Font(name="Calibri", size=10, color="111111")
@@ -54,7 +53,9 @@ class ExcelExporter:
             cell = ws.cell(row=1, column=col_idx)
             cell.fill = HEADER_FILL
             cell.font = HEADER_FONT
-            cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+            cell.alignment = Alignment(
+                horizontal="center", vertical="center", wrap_text=True
+            )
             col_letter = get_column_letter(col_idx)
             ws.column_dimensions[col_letter].width = col_widths.get(col_idx, 20)
 
@@ -66,7 +67,9 @@ class ExcelExporter:
         csv_path: Optional[Path] = None,
     ) -> Dict[str, Any]:
         settings.ensure_dirs()
-        out_xlsx = xlsx_path or (settings.export_dir / "metrixa_berlin_hausverwaltungen.xlsx")
+        out_xlsx = xlsx_path or (
+            settings.export_dir / "metrixa_berlin_hausverwaltungen.xlsx"
+        )
         out_csv = csv_path or (settings.export_dir / "metrixa_berlin_leads_master.csv")
 
         with self.db.connect() as conn:
@@ -374,7 +377,19 @@ class ExcelExporter:
 
         self._style_worksheet(
             ws3,
-            {1: 34, 2: 24, 3: 12, 4: 16, 5: 38, 6: 12, 7: 24, 8: 24, 9: 18, 10: 42, 11: 24},
+            {
+                1: 34,
+                2: 24,
+                3: 12,
+                4: 16,
+                5: 38,
+                6: 12,
+                7: 24,
+                8: 24,
+                9: 18,
+                10: 42,
+                11: 24,
+            },
         )
 
         # ====================================================================
@@ -383,7 +398,13 @@ class ExcelExporter:
         ws4 = wb.create_sheet(title="KPI_Methodology_And_Summary")
         tel = self.db.get_pipeline_telemetry()
 
-        ws4.append(["Section / Metric", "Value / Specification", "Business Rationale for Metrixa Systems (Submetering)"])
+        ws4.append(
+            [
+                "Section / Metric",
+                "Value / Specification",
+                "Business Rationale for Metrixa Systems (Submetering)",
+            ]
+        )
         summary_rows = [
             (
                 "Total Raw Scraped Listings (Stage 1)",

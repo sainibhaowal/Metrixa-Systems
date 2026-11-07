@@ -101,7 +101,9 @@ class PipelineEvaluator:
             denom = max(1, golden_total)
             return {
                 "gs_raw": gs_raw,
-                "gs_web_pct": round(100.0 * gs_raw and (100.0 * gs_with_web / max(1, gs_raw)), 1),
+                "gs_web_pct": round(
+                    100.0 * gs_raw and (100.0 * gs_with_web / max(1, gs_raw)), 1
+                ),
                 "all_raw": all_raw,
                 "golden_total": golden_total,
                 "duplicates_removed": max(0, all_raw - golden_total),
@@ -115,7 +117,9 @@ class PipelineEvaluator:
                 "dm_extracted_cnt": dm_extracted,
                 "dm_extracted_pct": round(100.0 * dm_extracted / denom, 1),
                 "public_direct_emails_cnt": public_direct_emails,
-                "public_direct_emails_pct": round(100.0 * public_direct_emails / denom, 1),
+                "public_direct_emails_pct": round(
+                    100.0 * public_direct_emails / denom, 1
+                ),
                 "total_pers_emails_cnt": total_pers_emails,
                 "total_pers_emails_pct": round(100.0 * total_pers_emails / denom, 1),
                 "mx_verified_domains": mx_verified_domains,
@@ -150,7 +154,9 @@ class PipelineEvaluator:
                 """
             ).fetchall()
             grounded_units = sum(
-                1 for r in units_rows if r["units_evidence_quote"] and len(r["units_evidence_quote"]) >= 5
+                1
+                for r in units_rows
+                if r["units_evidence_quote"] and len(r["units_evidence_quote"]) >= 5
             )
 
             pers_emails = conn.execute(
@@ -159,7 +165,9 @@ class PipelineEvaluator:
             non_info_emails = sum(
                 1
                 for r in pers_emails
-                if not r["personal_email"].lower().startswith(("info@", "kontakt@", "office@", "mail@", "service@"))
+                if not r["personal_email"]
+                .lower()
+                .startswith(("info@", "kontakt@", "office@", "mail@", "service@"))
             )
 
             blocked_hallucinations = conn.execute(
@@ -168,26 +176,30 @@ class PipelineEvaluator:
 
         return {
             "total_evaluated_leads": total_gold,
-            "berlin_plz_precision_pct": round(100.0 * valid_berlin_plz / max(1, total_gold), 1),
+            "berlin_plz_precision_pct": round(
+                100.0 * valid_berlin_plz / max(1, total_gold), 1
+            ),
             "explicit_units_extracted": len(units_rows),
-            "units_evidence_grounded_pct": round(
-                100.0 * grounded_units / max(1, len(units_rows)), 1
-            )
-            if units_rows
-            else 100.0,
+            "units_evidence_grounded_pct": (
+                round(100.0 * grounded_units / max(1, len(units_rows)), 1)
+                if units_rows
+                else 100.0
+            ),
             "personal_emails_total": len(pers_emails),
-            "personal_email_non_generic_precision_pct": round(
-                100.0 * non_info_emails / max(1, len(pers_emails)), 1
-            )
-            if pers_emails
-            else 100.0,
+            "personal_email_non_generic_precision_pct": (
+                round(100.0 * non_info_emails / max(1, len(pers_emails)), 1)
+                if pers_emails
+                else 100.0
+            ),
             "hallucinations_blocked_by_gate": blocked_hallucinations,
             "final_hallucination_rate_pct": 0.0,
         }
 
     def generate_markdown_report(self, output_path: Optional[Path] = None) -> Path:
         settings.ensure_dirs()
-        out_file = output_path or (settings.export_dir / "evaluation_ablation_report.md")
+        out_file = output_path or (
+            settings.export_dir / "evaluation_ablation_report.md"
+        )
         tel = self.db.get_pipeline_telemetry()
         abl = self.compute_live_ablation_metrics()
         val = self.evaluate_validation_and_gold_sample()

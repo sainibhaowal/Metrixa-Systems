@@ -13,7 +13,6 @@ from heidi_engine.config import map_berlin_plz_to_district
 from heidi_engine.models import RawListing
 from heidi_engine.scrapers.base import BaseAsyncScraper
 
-
 OVERPASS_ENDPOINTS = [
     "https://overpass-api.de/api/interpreter",
     "https://overpass.kumi.systems/api/interpreter",
@@ -60,7 +59,9 @@ class OSMOverpassScraper(BaseAsyncScraper):
 
                         tags = el.get("tags") or {}
                         name = self.clean_whitespace(
-                            tags.get("name") or tags.get("operator") or tags.get("official_name")
+                            tags.get("name")
+                            or tags.get("operator")
+                            or tags.get("official_name")
                         )
                         if not name:
                             continue

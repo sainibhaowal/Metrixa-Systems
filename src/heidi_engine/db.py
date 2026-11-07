@@ -16,7 +16,6 @@ from typing import Any, Dict, Generator, List, Optional
 from heidi_engine.config import settings
 from heidi_engine.models import RawListing
 
-
 SCHEMA_DDL = """
 PRAGMA journal_mode = WAL;
 PRAGMA synchronous = NORMAL;
@@ -295,7 +294,9 @@ class Database:
                 "SELECT COUNT(*) FROM companies_golden WHERE pipeline_stage != 'DISQUALIFIED' AND website_url IS NOT NULL AND website_url != ''"
             ).fetchone()[0]
 
-            crawled_pages_cnt = conn.execute("SELECT COUNT(*) FROM crawled_pages").fetchone()[0]
+            crawled_pages_cnt = conn.execute(
+                "SELECT COUNT(*) FROM crawled_pages"
+            ).fetchone()[0]
 
             kpi_cnt = conn.execute(
                 """

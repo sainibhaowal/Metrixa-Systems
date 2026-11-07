@@ -19,9 +19,11 @@ import httpx
 
 from heidi_engine.config import settings
 from heidi_engine.entity_resolution.normalizer import extract_legal_form
-from heidi_engine.llm.prompts import SYSTEM_EXTRACTION_PROMPT, build_user_extraction_prompt
+from heidi_engine.llm.prompts import (
+    SYSTEM_EXTRACTION_PROMPT,
+    build_user_extraction_prompt,
+)
 from heidi_engine.models import CompanyKPIExtraction, DecisionMakerExtracted
-
 
 # ============================================================================
 # DETERMINISTIC GERMAN IMPRESSUM & KPI EXTRACTOR (REGEX + GERMAN LEGAL RULES)
@@ -195,7 +197,9 @@ def extract_deterministic_german_kpis(
     # 1. Legal form & HRB
     legal_form = extract_legal_form(company_name) or extract_legal_form(text[:3000])
     hrb_match = HRB_REGEX.search(text)
-    hrb_id = re.sub(r"\s+", " ", hrb_match.group(1).upper()).strip() if hrb_match else None
+    hrb_id = (
+        re.sub(r"\s+", " ", hrb_match.group(1).upper()).strip() if hrb_match else None
+    )
 
     # 2. Founding year
     founding_year: Optional[int] = None
@@ -312,12 +316,18 @@ def extract_deterministic_german_kpis(
 
     # Attach personal LinkedIn URL if present on page
     for li_url in dom_linkedin_urls:
-        if "/in/" in li_url.lower() and decision_makers and not decision_makers[0].linkedin_url:
+        if (
+            "/in/" in li_url.lower()
+            and decision_makers
+            and not decision_makers[0].linkedin_url
+        ):
             decision_makers[0].linkedin_url = li_url
 
     software_combined = sorted(set(dom_erp_list + dom_metering_list))
     has_portal = dom_has_portal or bool(
-        re.search(r"kundenportal|eigent[uü]merportal|mieterportal|online-service", lower_text)
+        re.search(
+            r"kundenportal|eigent[uü]merportal|mieterportal|online-service", lower_text
+        )
     )
 
     # Build concise factual reasoning
@@ -371,6 +381,7 @@ def extract_deterministic_german_kpis(
 # ============================================================================
 # UNIFIED MULTI-PROVIDER LLM ROUTER
 # ============================================================================
+
 
 class LLMRouter:
     """
@@ -552,7 +563,9 @@ class LLMRouter:
                     c_tok = int(usage.get("completion_tokens", len(content) // 4))
 
                     # Strip markdown code fences if present
-                    content_clean = re.sub(r"^```(?:json)?\s*|\s*```$", "", content).strip()
+                    content_clean = re.sub(
+                        r"^```(?:json)?\s*|\s*```$", "", content
+                    ).strip()
                     parsed_dict = json.loads(content_clean)
                     llm_obj = CompanyKPIExtraction.model_validate(parsed_dict)
 
@@ -565,12 +578,16 @@ class LLMRouter:
                         u_dot = f"{llm_obj.exact_units_managed:,}".replace(",", ".")
                         if u_str not in norm_source and u_dot not in norm_source:
                             llm_obj.exact_units_managed = det_result.exact_units_managed
-                            llm_obj.units_evidence_quote = det_result.units_evidence_quote
+                            llm_obj.units_evidence_quote = (
+                                det_result.units_evidence_quote
+                            )
                             hallucination_blocked = True
 
                     verified_dms: List[DecisionMakerExtracted] = []
                     for dm in llm_obj.decision_makers:
-                        surname = dm.full_name.split()[-1].lower() if dm.full_name else ""
+                        surname = (
+                            dm.full_name.split()[-1].lower() if dm.full_name else ""
+                        )
                         if surname and len(surname) >= 2 and surname in norm_source:
                             verified_dms.append(dm)
                         else:
@@ -588,7 +605,9 @@ class LLMRouter:
                         llm_obj.has_online_portal or det_result.has_online_portal
                     )
                     if not llm_obj.commercial_register_id:
-                        llm_obj.commercial_register_id = det_result.commercial_register_id
+                        llm_obj.commercial_register_id = (
+                            det_result.commercial_register_id
+                        )
                     if not llm_obj.legal_form:
                         llm_obj.legal_form = det_result.legal_form
 

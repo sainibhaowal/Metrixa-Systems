@@ -15,7 +15,7 @@ import {
   FileText,
   Layers,
   CheckCircle2,
-  AlertTriangle
+  AlertTriangle,
 } from "lucide-react";
 import { fetchLeadEvidence } from "@/lib/api";
 import { getTierColorClasses, formatNumber } from "@/lib/utils";
@@ -29,7 +29,9 @@ export function EvidenceDrawer({ companyId, onClose }: EvidenceDrawerProps) {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [activeTab, setActiveTab] = useState<"dossier" | "evidence" | "pages">("dossier");
+  const [activeTab, setActiveTab] = useState<"dossier" | "evidence" | "pages">(
+    "dossier",
+  );
 
   useEffect(() => {
     if (!companyId) return;
@@ -61,11 +63,17 @@ export function EvidenceDrawer({ companyId, onClose }: EvidenceDrawerProps) {
         <div className="p-6 border-b border-zinc-800/90 flex items-start justify-between bg-[#141418]">
           <div className="space-y-1.5 pr-6">
             <div className="flex items-center gap-2.5">
-              <span className={`text-[11px] font-mono font-semibold px-2.5 py-1 rounded-xl border ${getTierColorClasses(comp?.lead_tier)}`}>
+              <span
+                className={`text-[11px] font-mono font-semibold px-2.5 py-1 rounded-xl border ${getTierColorClasses(comp?.lead_tier)}`}
+              >
                 {comp?.lead_tier || "Tier Loading"}
               </span>
               <span className="text-xs font-mono px-2.5 py-1 rounded-lg bg-zinc-850 text-zinc-300 border border-zinc-700/60">
-                Score: <strong className="text-emerald-400">{comp?.metrixa_lead_score ?? comp?.total_score ?? "-"}</strong>/100
+                Score:{" "}
+                <strong className="text-emerald-400">
+                  {comp?.metrixa_lead_score ?? comp?.total_score ?? "-"}
+                </strong>
+                /100
               </span>
             </div>
             <h2 className="text-lg font-bold text-zinc-100 tracking-tight leading-snug">
@@ -149,24 +157,44 @@ export function EvidenceDrawer({ companyId, onClose }: EvidenceDrawerProps) {
                     </h3>
                     <div className="grid grid-cols-5 gap-2 text-center font-mono">
                       <div className="p-2 rounded-lg bg-zinc-900 border border-zinc-800">
-                        <span className="text-[10px] text-zinc-400 block">Scale</span>
-                        <strong className="text-emerald-400 text-sm">{scorecard?.scale_pts}/35</strong>
+                        <span className="text-[10px] text-zinc-400 block">
+                          Scale
+                        </span>
+                        <strong className="text-emerald-400 text-sm">
+                          {scorecard?.scale_pts}/35
+                        </strong>
                       </div>
                       <div className="p-2 rounded-lg bg-zinc-900 border border-zinc-800">
-                        <span className="text-[10px] text-zinc-400 block">Focus</span>
-                        <strong className="text-emerald-400 text-sm">{scorecard?.focus_pts}/25</strong>
+                        <span className="text-[10px] text-zinc-400 block">
+                          Focus
+                        </span>
+                        <strong className="text-emerald-400 text-sm">
+                          {scorecard?.focus_pts}/25
+                        </strong>
                       </div>
                       <div className="p-2 rounded-lg bg-zinc-900 border border-zinc-800">
-                        <span className="text-[10px] text-zinc-400 block">Digital</span>
-                        <strong className="text-emerald-400 text-sm">{scorecard?.digital_pts}/20</strong>
+                        <span className="text-[10px] text-zinc-400 block">
+                          Digital
+                        </span>
+                        <strong className="text-emerald-400 text-sm">
+                          {scorecard?.digital_pts}/20
+                        </strong>
                       </div>
                       <div className="p-2 rounded-lg bg-zinc-900 border border-zinc-800">
-                        <span className="text-[10px] text-zinc-400 block">Trust</span>
-                        <strong className="text-emerald-400 text-sm">{scorecard?.trust_pts}/10</strong>
+                        <span className="text-[10px] text-zinc-400 block">
+                          Trust
+                        </span>
+                        <strong className="text-emerald-400 text-sm">
+                          {scorecard?.trust_pts}/10
+                        </strong>
                       </div>
                       <div className="p-2 rounded-lg bg-zinc-900 border border-zinc-800">
-                        <span className="text-[10px] text-zinc-400 block">Contact</span>
-                        <strong className="text-emerald-400 text-sm">{scorecard?.contact_pts}/10</strong>
+                        <span className="text-[10px] text-zinc-400 block">
+                          Contact
+                        </span>
+                        <strong className="text-emerald-400 text-sm">
+                          {scorecard?.contact_pts}/10
+                        </strong>
                       </div>
                     </div>
                   </div>
@@ -175,19 +203,30 @@ export function EvidenceDrawer({ companyId, onClose }: EvidenceDrawerProps) {
                   <div className="p-4 rounded-xl bg-[#141418] border border-zinc-800/80 shadow-matteCard space-y-3">
                     <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center justify-between">
                       <span>Decision-Maker Contacts</span>
-                      <span className="text-emerald-400 text-[11px] font-mono">§ 5 DDG Impressum</span>
+                      <span className="text-emerald-400 text-[11px] font-mono">
+                        § 5 DDG Impressum
+                      </span>
                     </h3>
 
                     {dms.length === 0 ? (
-                      <p className="text-xs text-zinc-500 italic">No named Geschäftsführer found on website.</p>
+                      <p className="text-xs text-zinc-500 italic">
+                        No named Geschäftsführer found on website.
+                      </p>
                     ) : (
                       <div className="space-y-3">
                         {dms.map((dm: any, i: number) => (
-                          <div key={i} className="p-3.5 rounded-xl bg-zinc-900 border border-zinc-800 space-y-2">
+                          <div
+                            key={i}
+                            className="p-3.5 rounded-xl bg-zinc-900 border border-zinc-800 space-y-2"
+                          >
                             <div className="flex items-center justify-between">
                               <div>
-                                <span className="font-bold text-sm text-zinc-100 block">{dm.full_name}</span>
-                                <span className="text-xs text-emerald-400 font-medium">{dm.role || "Geschäftsführer"}</span>
+                                <span className="font-bold text-sm text-zinc-100 block">
+                                  {dm.full_name}
+                                </span>
+                                <span className="text-xs text-emerald-400 font-medium">
+                                  {dm.role || "Geschäftsführer"}
+                                </span>
                               </div>
                               {dm.email_status && (
                                 <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
@@ -198,20 +237,31 @@ export function EvidenceDrawer({ companyId, onClose }: EvidenceDrawerProps) {
 
                             {dm.personal_email && (
                               <div className="flex items-center justify-between pt-2 border-t border-zinc-800 text-xs font-mono">
-                                <span className="text-zinc-300">{dm.personal_email}</span>
+                                <span className="text-zinc-300">
+                                  {dm.personal_email}
+                                </span>
                                 <button
                                   onClick={() => copyEmail(dm.personal_email)}
                                   className="flex items-center gap-1 text-[11px] text-emerald-400 hover:underline"
                                 >
-                                  {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                                  <span>{copied ? "Copied" : "Copy Email"}</span>
+                                  {copied ? (
+                                    <Check className="w-3 h-3 text-emerald-400" />
+                                  ) : (
+                                    <Copy className="w-3 h-3" />
+                                  )}
+                                  <span>
+                                    {copied ? "Copied" : "Copy Email"}
+                                  </span>
                                 </button>
                               </div>
                             )}
 
                             {dm.mx_host && (
                               <p className="text-[10px] text-zinc-500 font-mono">
-                                DNS MX Server: <strong className="text-zinc-400">{dm.mx_host}</strong>
+                                DNS MX Server:{" "}
+                                <strong className="text-zinc-400">
+                                  {dm.mx_host}
+                                </strong>
                               </p>
                             )}
                           </div>
@@ -227,23 +277,46 @@ export function EvidenceDrawer({ companyId, onClose }: EvidenceDrawerProps) {
                     </h3>
                     <div className="grid grid-cols-2 gap-3 text-xs">
                       <div>
-                        <span className="text-zinc-400 block text-[11px]">Reported Units:</span>
+                        <span className="text-zinc-400 block text-[11px]">
+                          Reported Units:
+                        </span>
                         <strong className="text-zinc-100 font-mono">
-                          {kpi?.exact_units_managed ? `${formatNumber(kpi.exact_units_managed)} Units` : kpi?.estimated_units_tier || "<250"}
+                          {kpi?.exact_units_managed
+                            ? `${formatNumber(kpi.exact_units_managed)} Units`
+                            : kpi?.estimated_units_tier || "<250"}
                         </strong>
                       </div>
                       <div>
-                        <span className="text-zinc-400 block text-[11px]">ERP Stack:</span>
-                        <strong className="text-emerald-400 font-mono">{kpi?.detected_erp_proptech || "None detected"}</strong>
+                        <span className="text-zinc-400 block text-[11px]">
+                          ERP Stack:
+                        </span>
+                        <strong className="text-emerald-400 font-mono">
+                          {kpi?.detected_erp_proptech || "None detected"}
+                        </strong>
                       </div>
                       <div>
-                        <span className="text-zinc-400 block text-[11px]">Commercial Register:</span>
-                        <strong className="text-zinc-200 font-mono">{comp?.commercial_register_id || "Amtsgericht Charlottenburg"}</strong>
+                        <span className="text-zinc-400 block text-[11px]">
+                          Commercial Register:
+                        </span>
+                        <strong className="text-zinc-200 font-mono">
+                          {comp?.commercial_register_id ||
+                            "Amtsgericht Charlottenburg"}
+                        </strong>
                       </div>
                       <div>
-                        <span className="text-zinc-400 block text-[11px]">VDIV Certified:</span>
-                        <strong className={comp?.is_vdiv_member ? "text-emerald-400" : "text-zinc-400"}>
-                          {comp?.is_vdiv_member ? "Yes (Association Member)" : "No"}
+                        <span className="text-zinc-400 block text-[11px]">
+                          VDIV Certified:
+                        </span>
+                        <strong
+                          className={
+                            comp?.is_vdiv_member
+                              ? "text-emerald-400"
+                              : "text-zinc-400"
+                          }
+                        >
+                          {comp?.is_vdiv_member
+                            ? "Yes (Association Member)"
+                            : "No"}
                         </strong>
                       </div>
                     </div>
@@ -259,7 +332,8 @@ export function EvidenceDrawer({ companyId, onClose }: EvidenceDrawerProps) {
                       Verbatim Impressum / Team Evidence Quote
                     </span>
                     <blockquote className="text-xs font-mono text-zinc-200 p-3 rounded-lg bg-zinc-950 border border-zinc-850 leading-relaxed">
-                      {dms[0]?.evidence_quote || "Extracted from German legal notice (§ 5 DDG)."}
+                      {dms[0]?.evidence_quote ||
+                        "Extracted from German legal notice (§ 5 DDG)."}
                     </blockquote>
                   </div>
 
@@ -269,7 +343,7 @@ export function EvidenceDrawer({ companyId, onClose }: EvidenceDrawerProps) {
                         Verbatim Unit Count Evidence Quote
                       </span>
                       <blockquote className="text-xs font-mono text-zinc-200 p-3 rounded-lg bg-zinc-950 border border-zinc-850 leading-relaxed">
-                        "{kpi.units_evidence_quote}"
+                        &quot;{kpi.units_evidence_quote}&quot;
                       </blockquote>
                     </div>
                   )}
@@ -279,7 +353,8 @@ export function EvidenceDrawer({ companyId, onClose }: EvidenceDrawerProps) {
                       AI Qualification Summary Reasoning
                     </span>
                     <p className="text-xs text-zinc-400 leading-relaxed">
-                      {kpi?.qualification_reasoning || "Active Berlin Hausverwaltung meeting residential submetering qualification criteria."}
+                      {kpi?.qualification_reasoning ||
+                        "Active Berlin Hausverwaltung meeting residential submetering qualification criteria."}
                     </p>
                   </div>
                 </div>
@@ -288,10 +363,17 @@ export function EvidenceDrawer({ companyId, onClose }: EvidenceDrawerProps) {
               {activeTab === "pages" && (
                 <div className="space-y-3">
                   {pages.map((p: any, idx: number) => (
-                    <div key={idx} className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 space-y-2">
+                    <div
+                      key={idx}
+                      className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 space-y-2"
+                    >
                       <div className="flex items-center justify-between text-xs">
-                        <span className="font-bold text-zinc-100 uppercase font-mono">{p.page_type}</span>
-                        <span className="text-emerald-400 font-mono text-[10px]">HTTP {p.http_status}</span>
+                        <span className="font-bold text-zinc-100 uppercase font-mono">
+                          {p.page_type}
+                        </span>
+                        <span className="text-emerald-400 font-mono text-[10px]">
+                          HTTP {p.http_status}
+                        </span>
                       </div>
                       <a
                         href={p.url}

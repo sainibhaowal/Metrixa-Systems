@@ -21,7 +21,6 @@ from heidi_engine.crawler.tech_detector import scan_html_for_tech_and_contacts
 from heidi_engine.db import Database
 from heidi_engine.scrapers.base import USER_AGENTS
 
-
 SUBPAGE_PRIORITY_RULES: List[Tuple[str, List[str]]] = [
     (
         "impressum",
@@ -120,10 +119,11 @@ class AsyncWebsiteCrawler:
                 for tag in tree.css("script, style, noscript, svg, path"):
                     tag.decompose()
                 body = tree.css_first("main, article, body")
-                raw_text = body.text(separator="\n") if body else tree.text(separator="\n")
+                raw_text = (
+                    body.text(separator="\n") if body else tree.text(separator="\n")
+                )
                 lines = [
-                    re.sub(r"\s+", " ", line).strip()
-                    for line in raw_text.splitlines()
+                    re.sub(r"\s+", " ", line).strip() for line in raw_text.splitlines()
                 ]
                 lines = [ln for ln in lines if len(ln) > 1]
                 dom_text = "\n".join(lines)
@@ -188,7 +188,10 @@ class AsyncWebsiteCrawler:
                     selected.append((page_type, extra_url))
 
         # If no impressum link was found in DOM, proactively probe /impressum
-        if not any(pt == "impressum" for pt, _ in selected) and len(selected) < max_subpages:
+        if (
+            not any(pt == "impressum" for pt, _ in selected)
+            and len(selected) < max_subpages
+        ):
             root = f"{parsed_base.scheme}://{parsed_base.netloc}"
             selected.insert(0, ("impressum", f"{root}/impressum"))
 
@@ -211,7 +214,11 @@ class AsyncWebsiteCrawler:
                 follow_redirects=True,
             )
             content_type = resp.headers.get("content-type", "").lower()
-            if "text/html" in content_type or "application/xhtml" in content_type or not content_type:
+            if (
+                "text/html" in content_type
+                or "application/xhtml" in content_type
+                or not content_type
+            ):
                 return resp.status_code, str(resp.url), resp.text
             return resp.status_code, str(resp.url), ""
         except Exception:
@@ -221,7 +228,9 @@ class AsyncWebsiteCrawler:
         self, client: httpx.AsyncClient, company_id: int, website_url: str
     ) -> Dict[str, Any]:
         async with self.semaphore:
-            status, final_home_url, home_html = await self._fetch_page(client, website_url)
+            status, final_home_url, home_html = await self._fetch_page(
+                client, website_url
+            )
             now_iso = datetime.now(timezone.utc).isoformat()
             pages_to_save: List[Dict[str, Any]] = []
 
@@ -245,10 +254,14 @@ class AsyncWebsiteCrawler:
                 )
 
                 subpages = self.discover_priority_subpages(
-                    home_html, final_home_url, max_subpages=settings.max_subpages_per_company
+                    home_html,
+                    final_home_url,
+                    max_subpages=settings.max_subpages_per_company,
                 )
                 for page_type, sub_url in subpages:
-                    s_code, s_final_url, s_html = await self._fetch_page(client, sub_url)
+                    s_code, s_final_url, s_html = await self._fetch_page(
+                        client, sub_url
+                    )
                     if s_code == 200 and s_html:
                         s_tech = scan_html_for_tech_and_contacts(s_html)
                         s_md = self.html_to_clean_markdown(s_html, page_type)
@@ -260,9 +273,13 @@ class AsyncWebsiteCrawler:
                                 "http_status": s_code,
                                 "clean_markdown": s_md,
                                 "detected_erp_csv": ", ".join(s_tech["erp_list"]),
-                                "detected_metering_csv": ", ".join(s_tech["metering_list"]),
+                                "detected_metering_csv": ", ".join(
+                                    s_tech["metering_list"]
+                                ),
                                 "has_portal_link": 1 if s_tech["has_portal"] else 0,
-                                "social_linkedin_csv": ", ".join(s_tech["linkedin_urls"]),
+                                "social_linkedin_csv": ", ".join(
+                                    s_tech["linkedin_urls"]
+                                ),
                                 "extracted_emails_csv": ", ".join(s_tech["emails"]),
                                 "crawled_at": now_iso,
                             }
@@ -286,7 +303,9 @@ class AsyncWebsiteCrawler:
                 )
 
             with self.db.connect() as conn:
-                conn.execute("DELETE FROM crawled_pages WHERE company_id = ?", (company_id,))
+                conn.execute(
+                    "DELETE FROM crawled_pages WHERE company_id = ?", (company_id,)
+                )
                 for p in pages_to_save:
                     conn.execute(
                         """
@@ -317,7 +336,9 @@ class AsyncWebsiteCrawler:
 
             return {
                 "company_id": company_id,
-                "pages_crawled": len([p for p in pages_to_save if p["http_status"] == 200]),
+                "pages_crawled": len(
+                    [p for p in pages_to_save if p["http_status"] == 200]
+                ),
                 "reachable": status == 200,
             }
 
@@ -339,13 +360,17 @@ class AsyncWebsiteCrawler:
 
         total = len(rows)
         if total == 0:
-            return {"companies_processed": 0, "reachable_websites": 0, "total_pages_saved": 0}
+            return {
+                "companies_processed": 0,
+                "reachable_websites": 0,
+                "total_pages_saved": 0,
+            }
 
         reachable = 0
         pages_saved = 0
         completed = 0
 
-        async with httpx.AsyncClient(http2=True, verify=False) as client:
+        async with httpx.AsyncClient(http2=True, verify=False) as client:  # nosec B501
             # Mark companies without website as CRAWLED immediately so they proceed to extraction/scoring
             no_web_ids = [r["company_id"] for r in rows if not r["website_url"]]
             if no_web_ids:

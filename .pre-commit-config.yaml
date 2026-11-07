@@ -1,10 +1,15 @@
-# Pre-commit configuration for Metrixa Systems
-# See https://pre-commit.com for more information
+# ==============================================================================
+# METRIXA SYSTEMS — ENTERPRISE PRE-COMMIT CONFIGURATION
+# Comprehensive Full-Stack Quality & Security Gate (Backend + Frontend)
+# ==============================================================================
 
 default_language_version:
   python: python3
 
 repos:
+  # ----------------------------------------------------------------------------
+  # 1. GENERAL REPOSITORY & SECURITY HYGIENE
+  # ----------------------------------------------------------------------------
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0
     hooks:
@@ -18,13 +23,65 @@ repos:
       - id: check-json
         exclude: ^(web/node_modules/|web/\.next/)
       - id: check-added-large-files
-        args: ['--maxkb=15000']
+        args: ['--maxkb=25000']
       - id: check-merge-conflict
       - id: check-case-conflict
+      - id: detect-private-key
 
+  # ----------------------------------------------------------------------------
+  # 2. BACKEND PYTHON LINTER & FORMATTER (Ruff & Black)
+  # ----------------------------------------------------------------------------
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.4.4
     hooks:
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix]
-        files: ^src/
+        files: ^(src/|tests/)
+
+  - repo: https://github.com/psf/black
+    rev: 24.4.2
+    hooks:
+      - id: black
+        files: ^(src/|tests/)
+
+  # ----------------------------------------------------------------------------
+  # 3. BACKEND SECURITY SCANNER & TEST SUITE (Bandit, Mypy, Pytest)
+  # ----------------------------------------------------------------------------
+  - repo: local
+    hooks:
+      - id: bandit-security-scan
+        name: Bandit Security Vulnerability Scanner (SAST)
+        entry: .venv/Scripts/bandit.exe -r src -s B608 -ll
+        language: system
+        types: [python]
+        pass_filenames: false
+
+      - id: backend-mypy-typecheck
+        name: Mypy Static Type Verification
+        entry: .venv/Scripts/mypy.exe src/heidi_engine/config.py src/heidi_engine/models.py --ignore-missing-imports
+        language: system
+        types: [python]
+        pass_filenames: false
+
+      - id: backend-pytest-suite
+        name: Pytest Automated Backend Test Suite
+        entry: .venv/Scripts/pytest.exe -v tests/
+        language: system
+        pass_filenames: false
+
+  # ----------------------------------------------------------------------------
+  # 4. FRONTEND NEXT.JS / TYPESCRIPT QUALITY GATE (ESLint, Prettier)
+  # ----------------------------------------------------------------------------
+      - id: frontend-prettier-check
+        name: Prettier Code Style Verification (Frontend)
+        entry: cmd /c "cd web && npx prettier --check \"src/**/*.{ts,tsx}\""
+        language: system
+        files: ^web/src/
+        pass_filenames: false
+
+      - id: frontend-eslint
+        name: Next.js ESLint Quality Gate (Frontend)
+        entry: cmd /c "cd web && npm run lint"
+        language: system
+        files: ^web/src/
+        pass_filenames: false

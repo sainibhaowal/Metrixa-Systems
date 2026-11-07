@@ -92,9 +92,13 @@ class ContactEnricher:
             pers_li_found = dms[0]["linkedin_url"] if dms else None
 
             # 2. Optional web search for LinkedIn / missing decision maker on priority leads
-            if enable_web_search_for_missing and (not primary_dm_name or not (pers_li_found or comp_li)):
-                s_pers_li, s_comp_li, s_dir_name = await self._search_linkedin_and_director(
-                    comp_name, primary_dm_name, enable_web_search=True
+            if enable_web_search_for_missing and (
+                not primary_dm_name or not (pers_li_found or comp_li)
+            ):
+                s_pers_li, s_comp_li, s_dir_name = (
+                    await self._search_linkedin_and_director(
+                        comp_name, primary_dm_name, enable_web_search=True
+                    )
                 )
                 if s_comp_li and not comp_li:
                     comp_li = s_comp_li

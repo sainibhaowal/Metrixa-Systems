@@ -5,7 +5,6 @@ Enforces strict JSON output and zero-hallucination evidence quotes.
 
 from __future__ import annotations
 
-
 SYSTEM_EXTRACTION_PROMPT = """You are a senior German PropTech B2B Data Extraction Agent built for Heidi Systems (a German submetering service provider / Messdienstleister).
 Your task is to analyze crawled website pages (Homepage, Impressum, Team, Leistungen, Referenzen) of a Berlin property management company (Hausverwaltung) and return a single valid JSON object matching the exact schema below.
 

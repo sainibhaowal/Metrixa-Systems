@@ -22,7 +22,6 @@ from heidi_engine.entity_resolution.normalizer import (
     normalize_website_url,
 )
 
-
 SOURCE_TRUST_RANK = {
     "vdiv": 100,
     "gelbe_seiten": 80,
@@ -217,20 +216,28 @@ class EntityDeduplicator:
                 street = next(
                     (m["raw_street"] for m in cluster_members if m["raw_street"]), None
                 )
-                plz = next((m["clean_plz"] for m in cluster_members if m["clean_plz"]), None)
+                plz = next(
+                    (m["clean_plz"] for m in cluster_members if m["clean_plz"]), None
+                )
                 district_raw = next(
-                    (m["raw_district"] for m in cluster_members if m["raw_district"]), None
+                    (m["raw_district"] for m in cluster_members if m["raw_district"]),
+                    None,
                 )
                 district = map_berlin_plz_to_district(plz, district_raw)
                 phone = next(
                     (m["phone_e164"] for m in cluster_members if m["phone_e164"]), None
                 )
                 domain = next(
-                    (m["canonical_domain"] for m in cluster_members if m["canonical_domain"]),
+                    (
+                        m["canonical_domain"]
+                        for m in cluster_members
+                        if m["canonical_domain"]
+                    ),
                     None,
                 )
                 website = next(
-                    (m["website_url"] for m in cluster_members if m["website_url"]), None
+                    (m["website_url"] for m in cluster_members if m["website_url"]),
+                    None,
                 )
                 email = next(
                     (m["raw_email"] for m in cluster_members if m["raw_email"]), None
@@ -260,7 +267,11 @@ class EntityDeduplicator:
                         "SELECT 1 FROM crawled_pages WHERE company_id = ? AND http_status = 200 LIMIT 1",
                         (comp_id,),
                     ).fetchone()
-                    new_stage = "DEDUPED" if (website and not has_crawled) else existing_row["pipeline_stage"]
+                    new_stage = (
+                        "DEDUPED"
+                        if (website and not has_crawled)
+                        else existing_row["pipeline_stage"]
+                    )
                     conn.execute(
                         """
                         UPDATE companies_golden

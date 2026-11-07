@@ -16,7 +16,6 @@ from heidi_engine.config import map_berlin_plz_to_district
 from heidi_engine.models import RawListing
 from heidi_engine.scrapers.base import BaseAsyncScraper
 
-
 GELBE_SEITEN_KEYWORDS = [
     "hausverwaltung",
     "immobilienverwaltung",
@@ -67,10 +66,14 @@ class GelbeSeitenScraper(BaseAsyncScraper):
 
         # 1. Parse <article class="mod mod-Treffer"> cards
         for article in tree.css("article.mod-Treffer, article[id^='treffer_']"):
-            ext_id = article.attributes.get("id") or article.attributes.get("data-realid")
+            ext_id = article.attributes.get("id") or article.attributes.get(
+                "data-realid"
+            )
 
             # Company Name
-            h2 = article.css_first("h2.mod-Treffer__name, h2[data-wipe-name='Titel'], h2")
+            h2 = article.css_first(
+                "h2.mod-Treffer__name, h2[data-wipe-name='Titel'], h2"
+            )
             name = self.clean_whitespace(h2.text()) if h2 else None
             if not name:
                 continue
@@ -115,23 +118,33 @@ class GelbeSeitenScraper(BaseAsyncScraper):
                 href_attr = web_node.attributes.get("href")
                 if b64_attr:
                     website = self.decode_b64_url(b64_attr)
-                elif href_attr and href_attr.startswith("http") and "gelbeseiten.de" not in href_attr:
+                elif (
+                    href_attr
+                    and href_attr.startswith("http")
+                    and "gelbeseiten.de" not in href_attr
+                ):
                     website = href_attr
                 else:
                     # Sometimes base64 is in span[data-webseitelink]
                     inner_b64 = web_node.css_first("[data-webseitelink]")
                     if inner_b64:
-                        website = self.decode_b64_url(inner_b64.attributes.get("data-webseitelink"))
+                        website = self.decode_b64_url(
+                            inner_b64.attributes.get("data-webseitelink")
+                        )
 
             if not website:
                 # Check any element inside article with data-webseitelink
                 any_b64 = article.css_first("[data-webseitelink]")
                 if any_b64:
-                    website = self.decode_b64_url(any_b64.attributes.get("data-webseitelink"))
+                    website = self.decode_b64_url(
+                        any_b64.attributes.get("data-webseitelink")
+                    )
 
             # Detail URL
             detail_link = article.css_first("a[href*='gelbeseiten.de/gsbiz/']")
-            detail_url = detail_link.attributes.get("href") if detail_link else source_url
+            detail_url = (
+                detail_link.attributes.get("href") if detail_link else source_url
+            )
 
             listings.append(
                 RawListing(
@@ -160,7 +173,11 @@ class GelbeSeitenScraper(BaseAsyncScraper):
                 for item in items:
                     if not isinstance(item, dict):
                         continue
-                    if item.get("@type") in ("LocalBusiness", "RealEstateAgent", "Organization"):
+                    if item.get("@type") in (
+                        "LocalBusiness",
+                        "RealEstateAgent",
+                        "Organization",
+                    ):
                         name = self.clean_whitespace(item.get("name"))
                         if not name:
                             continue
@@ -252,20 +269,27 @@ class GelbeSeitenScraper(BaseAsyncScraper):
                     client, kw, location="berlin", max_ajax_batches=max_pages
                 )
                 for item in kw_listings:
-                    key = f"{item.raw_company_name.lower()}_{item.raw_postal_code or ''}"
+                    key = (
+                        f"{item.raw_company_name.lower()}_{item.raw_postal_code or ''}"
+                    )
                     if key not in seen_keys:
                         seen_keys.add(key)
                         all_listings.append(item)
 
             # 2. District-sharded sweep across all 23 Berlin Bezirke/Ortsteile
             district_tasks = [
-                self.scrape_keyword(client, "hausverwaltung", location=loc, max_ajax_batches=2)
+                self.scrape_keyword(
+                    client, "hausverwaltung", location=loc, max_ajax_batches=2
+                )
                 for loc in BERLIN_DISTRICT_SHARDS[1:]
             ]
             import asyncio
+
             for batch in await asyncio.gather(*district_tasks):
                 for item in batch:
-                    key = f"{item.raw_company_name.lower()}_{item.raw_postal_code or ''}"
+                    key = (
+                        f"{item.raw_company_name.lower()}_{item.raw_postal_code or ''}"
+                    )
                     if key not in seen_keys:
                         seen_keys.add(key)
                         all_listings.append(item)
