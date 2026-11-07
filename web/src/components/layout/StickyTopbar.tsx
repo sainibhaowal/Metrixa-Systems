@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Download, RefreshCw, Database, CheckCircle2, PanelLeftOpen } from "lucide-react";
+import { Download, RefreshCw, Database, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { fetchMetrics } from "@/lib/api";
 import { useSidebar } from "./SidebarContext";
 
@@ -30,17 +30,20 @@ export function StickyTopbar() {
 
   return (
     <header className="h-16 px-6 bg-[#111114] border-b border-zinc-800/90 sticky top-0 z-30 flex items-center justify-between select-none shadow-matte">
-      {/* Left: Sidebar Toggle (when collapsed) & System Status Pulse */}
+      {/* Left: Single Sidebar Expand/Collapse Toggle & System Status Pulse */}
       <div className="flex items-center gap-4">
-        {isCollapsed && (
-          <button
-            onClick={toggleSidebar}
-            title="Expand Sidebar"
-            className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 border border-zinc-800 transition-colors mr-1"
-          >
-            <PanelLeftOpen className="w-4 h-4 text-emerald-400" />
-          </button>
-        )}
+        {/* The ONLY button to toggle sidebar */}
+        <button
+          onClick={toggleSidebar}
+          title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+          className="p-2 rounded-xl text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 border border-zinc-800 transition-colors flex items-center justify-center group"
+        >
+          {isCollapsed ? (
+            <PanelLeftOpen className="w-4 h-4 text-emerald-400 transition-transform group-hover:scale-110" />
+          ) : (
+            <PanelLeftClose className="w-4 h-4 text-zinc-400 group-hover:text-zinc-200 transition-transform group-hover:scale-110" />
+          )}
+        </button>
 
         <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-zinc-900 border border-zinc-800 shadow-sm">
           <span className="relative flex h-2 w-2">

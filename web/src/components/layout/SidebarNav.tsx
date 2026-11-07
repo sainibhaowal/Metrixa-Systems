@@ -10,11 +10,7 @@ import {
   Archive, 
   Settings, 
   ShieldCheck,
-  Zap,
-  ChevronLeft,
-  ChevronRight,
-  PanelLeftClose,
-  PanelLeftOpen
+  Zap
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "./SidebarContext";
@@ -30,7 +26,7 @@ const NAV_ITEMS = [
 
 export function SidebarNav() {
   const pathname = usePathname();
-  const { isCollapsed, toggleSidebar } = useSidebar();
+  const { isCollapsed } = useSidebar();
 
   return (
     <aside 
@@ -39,9 +35,9 @@ export function SidebarNav() {
         isCollapsed ? "w-[72px]" : "w-64"
       )}
     >
-      {/* Brand Header & Collapse Toggle */}
+      {/* Brand Header */}
       <div className={cn(
-        "p-4 border-b border-zinc-800/80 flex items-center justify-between transition-all",
+        "h-16 border-b border-zinc-800/80 flex items-center transition-all",
         isCollapsed ? "justify-center px-2" : "px-5"
       )}>
         <div className="flex items-center gap-3 overflow-hidden">
@@ -60,31 +56,7 @@ export function SidebarNav() {
             </div>
           )}
         </div>
-
-        {/* Collapse / Expand Button */}
-        {!isCollapsed && (
-          <button
-            onClick={toggleSidebar}
-            title="Collapse Navigation"
-            className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/80 border border-transparent hover:border-zinc-700/80 transition-all duration-200"
-          >
-            <PanelLeftClose className="w-4 h-4" />
-          </button>
-        )}
       </div>
-
-      {/* Floating expand button when collapsed */}
-      {isCollapsed && (
-        <div className="px-3 pt-3 flex justify-center">
-          <button
-            onClick={toggleSidebar}
-            title="Expand Navigation"
-            className="w-full py-1.5 rounded-lg text-zinc-400 hover:text-zinc-100 bg-zinc-900/60 hover:bg-zinc-800 border border-zinc-800/80 flex items-center justify-center transition-all duration-200"
-          >
-            <PanelLeftOpen className="w-4 h-4 text-zinc-300" />
-          </button>
-        </div>
-      )}
 
       {/* Navigation Links */}
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
