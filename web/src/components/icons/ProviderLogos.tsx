@@ -257,6 +257,133 @@ export function DeterministicLogo({ className = "w-5 h-5", size = 20 }: LogoProp
   );
 }
 
+// 10. SearXNG Official Privacy Meta-Search Logo
+export function SearXNGLogo({ className = "w-5 h-5", size = 20 }: LogoProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 32 32"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+    >
+      <defs>
+        <linearGradient id="searxng-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#3B82F6" />
+          <stop offset="50%" stopColor="#10B981" />
+          <stop offset="100%" stopColor="#F59E0B" />
+        </linearGradient>
+      </defs>
+      <rect width="32" height="32" rx="8" fill="#0C1A1A" />
+      <circle cx="15" cy="15" r="7" stroke="url(#searxng-grad)" strokeWidth="2.5" />
+      <path d="M20 20L25 25" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round" />
+      <path d="M12 15H18M15 12V18" stroke="#3B82F6" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+// 11. Tavily AI Search Logo
+export function TavilyLogo({ className = "w-5 h-5", size = 20 }: LogoProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 32 32"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+    >
+      <defs>
+        <linearGradient id="tavily-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#8B5CF6" />
+          <stop offset="100%" stopColor="#06B6D4" />
+        </linearGradient>
+      </defs>
+      <rect width="32" height="32" rx="8" fill="#150E28" />
+      <path
+        d="M16 6L19 13L26 16L19 19L16 26L13 19L6 16L13 13L16 6Z"
+        fill="url(#tavily-grad)"
+      />
+    </svg>
+  );
+}
+
+// 12. Native Meta-Search Direct German Directory Logo
+export function NativeMetaSearchLogo({ className = "w-5 h-5", size = 20 }: LogoProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 32 32"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+    >
+      <rect width="32" height="32" rx="8" fill="#1C1917" />
+      <rect x="8" y="8" width="16" height="5" rx="1.5" fill="#EAB308" />
+      <rect x="8" y="14" width="16" height="5" rx="1.5" fill="#3B82F6" />
+      <rect x="8" y="20" width="16" height="5" rx="1.5" fill="#10B981" />
+    </svg>
+  );
+}
+
+// 13. Brave Search Lion Emblem Logo
+export function BraveLogo({ className = "w-5 h-5", size = 20 }: LogoProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 32 32"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+    >
+      <rect width="32" height="32" rx="8" fill="#261005" />
+      <path
+        d="M16 7L22 9.5L24 16L21 21L16 25L11 21L9 16L11 9.5L16 7Z"
+        fill="#FF5500"
+      />
+      <path
+        d="M16 11L19 12.5L20 16L18 19L16 21L14 19L12 16L13 12.5L16 11Z"
+        fill="#FFFFFF"
+      />
+    </svg>
+  );
+}
+
+// 14. Google Search CSE Logo
+export function GoogleCSELogo({ className = "w-5 h-5", size = 20 }: LogoProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 32 32"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+    >
+      <rect width="32" height="32" rx="8" fill="#18181B" />
+      <path
+        d="M23.5 16.3c0-.6-.05-1.2-.15-1.7H16v3.3h4.2c-.2 1-.7 1.8-1.6 2.4v2h2.6c1.5-1.4 2.3-3.5 2.3-6z"
+        fill="#4285F4"
+      />
+      <path
+        d="M16 24c2.2 0 4-.7 5.3-2l-2.6-2c-.7.5-1.6.8-2.7.8-2.1 0-3.9-1.4-4.5-3.3H8.8v2.1C10.2 22.3 12.9 24 16 24z"
+        fill="#34A853"
+      />
+      <path
+        d="M11.5 17.5c-.2-.5-.3-1-.3-1.5s.1-1 .3-1.5V12.4H8.8C8.2 13.5 8 14.7 8 16s.2 2.5.8 3.6l2.7-2.1z"
+        fill="#FBBC05"
+      />
+      <path
+        d="M16 10.9c1.2 0 2.2.4 3 1.2l2.3-2.3C19.9 8.6 18.1 8 16 8c-3.1 0-5.8 1.7-7.2 4.4l2.7 2.1c.6-1.9 2.4-3.6 4.5-3.6z"
+        fill="#EA4335"
+      />
+    </svg>
+  );
+}
+
 // Map helper to return proper logo component
 export function ProviderIcon({
   providerId,
@@ -286,6 +413,17 @@ export function ProviderIcon({
       return <AutoFallbackLogo size={size} className={className} />;
     case "deterministic":
       return <DeterministicLogo size={size} className={className} />;
+    // Search Providers
+    case "searxng":
+      return <SearXNGLogo size={size} className={className} />;
+    case "tavily":
+      return <TavilyLogo size={size} className={className} />;
+    case "native_metasearch":
+      return <NativeMetaSearchLogo size={size} className={className} />;
+    case "brave":
+      return <BraveLogo size={size} className={className} />;
+    case "google_cse":
+      return <GoogleCSELogo size={size} className={className} />;
     default:
       return <GeminiLogo size={size} className={className} />;
   }

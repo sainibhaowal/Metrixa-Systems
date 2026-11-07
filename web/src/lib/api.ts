@@ -66,3 +66,13 @@ export async function pingProvider(data: { provider: string; base_url?: string; 
   return res.json();
 }
 
+export async function pingSearchProvider(data: { provider: string; base_url?: string; api_key?: string; query?: string }) {
+  const res = await fetch(`${API_BASE}/api/search/ping`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to ping search provider");
+  return res.json();
+}
+

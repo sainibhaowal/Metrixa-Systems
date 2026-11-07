@@ -112,6 +112,9 @@ class Settings(BaseModel):
     )
 
     # 3. Search Harness (Local SearXNG + Native Meta-Search + Tavily Fallback)
+    default_search_provider: str = Field(
+        default_factory=lambda: os.getenv("DEFAULT_SEARCH_PROVIDER", "searxng")
+    )
     searxng_base_url: str = Field(
         default_factory=lambda: os.getenv("SEARXNG_BASE_URL", "http://127.0.0.1:8888").rstrip("/")
     )
@@ -123,6 +126,15 @@ class Settings(BaseModel):
     )
     tavily_max_calls_per_run: int = Field(
         default_factory=lambda: int(os.getenv("TAVILY_MAX_CALLS_PER_RUN", "400"))
+    )
+    google_cse_api_key: str = Field(
+        default_factory=lambda: os.getenv("GOOGLE_CSE_API_KEY", "").strip()
+    )
+    google_cse_id: str = Field(
+        default_factory=lambda: os.getenv("GOOGLE_CSE_ID", "").strip()
+    )
+    brave_search_api_key: str = Field(
+        default_factory=lambda: os.getenv("BRAVE_SEARCH_API_KEY", "").strip()
     )
 
     # 4. Concurrency & Network Settings
