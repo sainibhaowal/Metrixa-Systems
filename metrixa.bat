@@ -1,2 +1,2 @@
 @echo off
-"%~dp0.venv\Scripts\python.exe" -m heidi_engine %*
+call "%~dp0start_cockpit.bat"

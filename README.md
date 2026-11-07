@@ -60,28 +60,22 @@ Open [http://localhost:3000](http://localhost:3000) in your browser to experienc
 
 ---
 
-## 🖥️ Rich Terminal UI (TUI) & CLI Usage
+## 🌐 Full Web Architecture & API Gateway
 
-Run any stage or inspect the live SQLite database directly from your terminal using `.\metrixa.bat` (or `.\.venv\Scripts\python.exe -m heidi_engine`):
+Metrixa Systems is engineered natively as an end-to-end **Web Application & REST API Gateway**. All pipeline orchestration, lead filtering, evidence inspection, provider testing, and exports are conducted 100% through the modern Web UI:
+
+* **Web Application UI:** [http://localhost:3000](http://localhost:3000)
+* **Interactive OpenAPI Docs:** [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+* **Backend Gateway:** [http://127.0.0.1:8000](http://127.0.0.1:8000)
 
 ```powershell
-# 1. View the Rich Terminal UI (TUI) Telemetry Dashboard & Top 25 Tier-A Berlin Leads
-.\metrixa.bat dashboard --top 25
+# Launch both FastAPI backend and Next.js 14 frontend simultaneously:
+.\start_cockpit.bat
 
-# 2. Run the Full 6-Stage Pipeline End-to-End
-.\metrixa.bat run-all
+# Or launch via metrixa batch script:
+.\metrixa.bat
 
-# 3. Run Individual Pipeline Stages
-.\metrixa.bat init
-.\metrixa.bat ingest --max-pages 6
-.\metrixa.bat deduplicate
-.\metrixa.bat crawl --resolve-urls 10
-.\metrixa.bat extract --provider auto_fallback   # Supports: deepseek | gemini | nvidia_nim | local_llamacpp | lm_studio | deterministic
-.\metrixa.bat enrich --search-top 10
-.\metrixa.bat export
-.\metrixa.bat evaluate
-
-# 4. Run Unit & Integration Tests
+# Run the backend test suite:
 .\.venv\Scripts\pytest.exe -v
 ```
 

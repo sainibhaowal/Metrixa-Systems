@@ -259,7 +259,7 @@ class Database:
             return [dict(r) for r in rows]
 
     def get_pipeline_telemetry(self) -> Dict[str, Any]:
-        """Aggregate real-time pipeline counts for the Rich TUI dashboard and reports."""
+        """Aggregate real-time pipeline counts for the Metrixa Web Cockpit and telemetry reports."""
         with self.connect() as conn:
             raw_total = conn.execute("SELECT COUNT(*) FROM raw_listings").fetchone()[0]
             raw_by_source = {

@@ -38,8 +38,7 @@ dev = [
 ]
 
 [project.scripts]
-metrixa = "heidi_engine.cli:app"
-heidi = "heidi_engine.cli:app"
+metrixa = "heidi_engine.__main__:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
