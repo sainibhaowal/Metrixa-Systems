@@ -31,7 +31,32 @@
 2. **Master CSV Deliverable:**👉 [`data/exports/heidi_berlin_leads_master.csv`](./data/exports/heidi_berlin_leads_master.csv)
 3. **Task 3 Quantitative Evaluation & Stage Ablation Report:**👉 [`data/exports/evaluation_ablation_report.md`](./data/exports/evaluation_ablation_report.md)
 4. **Task 3 Executive Presentation / Methodology Document:**
-   👉 [`docs/07_TASK3_EXECUTIVE_PRESENTATION.md`](./docs/07_TASK3_EXECUTIVE_PRESENTATION.md)
+   👉 [`docs/Working Docs/07_TASK3_EXECUTIVE_PRESENTATION.md`](./docs/Working%20Docs/07_TASK3_EXECUTIVE_PRESENTATION.md)
+
+---
+
+## 🚀 One-Click Launch: Full-Stack Web Cockpit & Dashboard
+
+Launch both the **FastAPI Backend (:8000)** and the **Next.js 14 Web Cockpit (:3000)** simultaneously:
+
+```powershell
+.\start_cockpit.bat
+```
+
+Open [http://localhost:3000](http://localhost:3000) in your browser to experience:
+* **Executive Cockpit (`/`)**: 5 live KPI metric cards, district market penetration bar charts, and PropTech ERP adoption matrix.
+* **Mission Control (`/mission-control`)**: 6-stage DAG runner with real-time Server-Sent Events (SSE) streaming terminal.
+* **Leads Database (`/leads`)**: 31-column virtualized data grid with debounced search, district filters, and tier badges.
+* **Evidence Drawer (`EvidenceDrawer.tsx`)**: 5-pillar scorecard, verified decision-maker dossier, and verbatim German legal *Impressum* quotes.
+* **Tools Catalog (`/tools`)**: Agentic scraping, parsing, and verification tool monitor with live latency health checks.
+* **Artifact Vault (`/artifacts`)**: Instant downloads for `.xlsx`, `.csv`, and Markdown reports.
+* **Provider & Harness Hub (`/settings`)**:
+  * **Sliding Motion Toggle:** Seamless transition between **LLM Extraction Engines** and **Web Search Providers**.
+  * **Real Brand Logos:** Official high-definition vector logos for Gemini, OpenAI, DeepSeek, Ollama, LM Studio, llama.cpp, NVIDIA, SearXNG, Tavily, and Brave.
+  * **SearXNG Local Default Active:** Zero-cost privacy meta-search engine with live test ping and automatic failover.
+  * **Live 10-Token Ping Tests:** Real-time token validation and connection testing.
+  * **Animated Collapsible Sidebar:** One-click toggle button on top bar with persistent state.
+  * **Pure Matte Dark Frost Theme:** Obsidian charcoal `#09090b` palette with crisp emerald `#10b981` accents.
 
 ---
 
