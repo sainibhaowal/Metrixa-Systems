@@ -9,47 +9,49 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        background: "#050811",
+        background: "#09090b",
         surface: {
-          50: "#0b101f",
-          100: "#0f172a",
-          200: "#131d36",
-          300: "#1e293b",
+          50: "#0d0d10",
+          100: "#111114",
+          200: "#16161b",
+          300: "#1c1c22",
         },
         frost: {
-          light: "rgba(255, 255, 255, 0.04)",
+          matte: "#111114",
+          card: "#141418",
           border: "rgba(255, 255, 255, 0.08)",
-          card: "rgba(15, 23, 42, 0.65)",
-          hover: "rgba(255, 255, 255, 0.07)",
+          hover: "rgba(255, 255, 255, 0.04)",
         },
         primary: {
-          DEFAULT: "#38bdf8",
-          glow: "rgba(56, 189, 248, 0.15)",
+          DEFAULT: "#10b981",
+          glow: "rgba(16, 185, 129, 0.15)",
+          dark: "#059669",
+        },
+        accent: {
+          DEFAULT: "#f4f4f5",
+          muted: "#71717a",
         },
         tierA: {
           DEFAULT: "#10b981",
-          glow: "rgba(16, 185, 129, 0.18)",
-          border: "rgba(16, 185, 129, 0.35)",
+          glow: "rgba(16, 185, 129, 0.15)",
+          border: "rgba(16, 185, 129, 0.3)",
         },
         tierB: {
           DEFAULT: "#f59e0b",
-          glow: "rgba(245, 158, 11, 0.18)",
-          border: "rgba(245, 158, 11, 0.35)",
+          glow: "rgba(245, 158, 11, 0.15)",
+          border: "rgba(245, 158, 11, 0.3)",
         },
         tierC: {
-          DEFAULT: "#94a3b8",
-          glow: "rgba(148, 163, 184, 0.12)",
-          border: "rgba(148, 163, 184, 0.25)",
+          DEFAULT: "#a1a1aa",
+          glow: "rgba(161, 161, 170, 0.1)",
+          border: "rgba(161, 161, 170, 0.25)",
         },
       },
-      backdropBlur: {
-        xs: "2px",
-        frost: "20px",
-      },
       boxShadow: {
-        glass: "0 8px 32px 0 rgba(0, 0, 0, 0.6)",
-        glowCyan: "0 0 25px -5px rgba(56, 189, 248, 0.3)",
-        glowEmerald: "0 0 25px -5px rgba(16, 185, 129, 0.3)",
+        matte: "0 4px 24px -4px rgba(0, 0, 0, 0.8)",
+        matteCard: "0 2px 12px -2px rgba(0, 0, 0, 0.6)",
+        matteHover: "0 8px 28px -4px rgba(0, 0, 0, 0.9)",
+        glowEmerald: "0 0 20px -3px rgba(16, 185, 129, 0.25)",
       },
       fontFamily: {
         mono: ["JetBrains Mono", "Menlo", "Courier New", "monospace"],
@@ -58,4 +60,3 @@ module.exports = {
   },
   plugins: [],
 };
-

@@ -55,25 +55,25 @@ export function EvidenceDrawer({ companyId, onClose }: EvidenceDrawerProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-black/60 backdrop-blur-sm flex justify-end animate-in fade-in duration-200">
-      <div className="w-full max-w-2xl bg-surface-100/95 border-l border-slate-800 h-full flex flex-col shadow-2xl glass-panel animate-in slide-in-from-right duration-300">
+    <div className="fixed inset-0 z-50 overflow-hidden bg-black/80 flex justify-end animate-in fade-in duration-200">
+      <div className="w-full max-w-2xl bg-[#111114] border-l border-zinc-800 h-full flex flex-col shadow-2xl animate-in slide-in-from-right duration-300">
         {/* Drawer Header */}
-        <div className="p-6 border-b border-slate-800/80 flex items-start justify-between">
+        <div className="p-6 border-b border-zinc-800/90 flex items-start justify-between bg-[#141418]">
           <div className="space-y-1.5 pr-6">
             <div className="flex items-center gap-2.5">
               <span className={`text-[11px] font-mono font-semibold px-2.5 py-0.5 rounded-full border ${getTierColorClasses(comp?.lead_tier)}`}>
                 {comp?.lead_tier || "Tier Loading"}
               </span>
-              <span className="text-xs font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">
-                Score: <strong className="text-white">{comp?.heidi_lead_score ?? "-"}</strong>/100
+              <span className="text-xs font-mono px-2 py-0.5 rounded bg-zinc-850 text-zinc-300 border border-zinc-700/60">
+                Score: <strong className="text-emerald-400">{comp?.heidi_lead_score ?? "-"}</strong>/100
               </span>
             </div>
-            <h2 className="text-lg font-bold text-white tracking-tight leading-snug">
+            <h2 className="text-lg font-bold text-zinc-100 tracking-tight leading-snug">
               {comp?.display_name || "Loading..."}
             </h2>
-            <div className="flex items-center gap-4 text-xs text-slate-400">
+            <div className="flex items-center gap-4 text-xs text-zinc-400">
               <span className="flex items-center gap-1">
-                <MapPin className="w-3.5 h-3.5 text-primary" />
+                <MapPin className="w-3.5 h-3.5 text-emerald-400" />
                 {comp?.district || "Berlin"} ({comp?.postal_code || "-"})
               </span>
               {comp?.website_url && (
@@ -81,7 +81,7 @@ export function EvidenceDrawer({ companyId, onClose }: EvidenceDrawerProps) {
                   href={comp.website_url}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center gap-1 text-primary hover:underline"
+                  className="flex items-center gap-1 text-emerald-400 hover:underline"
                 >
                   <ExternalLink className="w-3 h-3" />
                   Website
@@ -92,20 +92,20 @@ export function EvidenceDrawer({ companyId, onClose }: EvidenceDrawerProps) {
 
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/[0.05] transition-colors"
+            className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Tab Switcher */}
-        <div className="px-6 border-b border-slate-800/80 flex gap-6 text-xs font-semibold select-none">
+        <div className="px-6 border-b border-zinc-800 flex gap-6 text-xs font-semibold select-none bg-[#111114]">
           <button
             onClick={() => setActiveTab("dossier")}
             className={`py-3 border-b-2 transition-all ${
               activeTab === "dossier"
-                ? "border-primary text-primary"
-                : "border-transparent text-slate-400 hover:text-slate-200"
+                ? "border-emerald-500 text-emerald-400"
+                : "border-transparent text-zinc-400 hover:text-zinc-200"
             }`}
           >
             Executive Dossier
@@ -114,8 +114,8 @@ export function EvidenceDrawer({ companyId, onClose }: EvidenceDrawerProps) {
             onClick={() => setActiveTab("evidence")}
             className={`py-3 border-b-2 transition-all ${
               activeTab === "evidence"
-                ? "border-primary text-primary"
-                : "border-transparent text-slate-400 hover:text-slate-200"
+                ? "border-emerald-500 text-emerald-400"
+                : "border-transparent text-zinc-400 hover:text-zinc-200"
             }`}
           >
             Verbatim Evidence & Quotes
@@ -124,8 +124,8 @@ export function EvidenceDrawer({ companyId, onClose }: EvidenceDrawerProps) {
             onClick={() => setActiveTab("pages")}
             className={`py-3 border-b-2 transition-all ${
               activeTab === "pages"
-                ? "border-primary text-primary"
-                : "border-transparent text-slate-400 hover:text-slate-200"
+                ? "border-emerald-500 text-emerald-400"
+                : "border-transparent text-zinc-400 hover:text-zinc-200"
             }`}
           >
             Crawled Pages ({pages.length})
@@ -135,7 +135,7 @@ export function EvidenceDrawer({ companyId, onClose }: EvidenceDrawerProps) {
         {/* Drawer Body */}
         <div className="flex-1 p-6 overflow-y-auto space-y-6">
           {loading ? (
-            <div className="h-64 flex items-center justify-center text-xs text-slate-400 font-mono">
+            <div className="h-64 flex items-center justify-center text-xs text-zinc-400 font-mono">
               Loading verified dossier...
             </div>
           ) : (
@@ -143,65 +143,65 @@ export function EvidenceDrawer({ companyId, onClose }: EvidenceDrawerProps) {
               {activeTab === "dossier" && (
                 <div className="space-y-6">
                   {/* Scorecard Pillar Breakdown */}
-                  <div className="glass-card p-4 rounded-xl space-y-3">
-                    <h3 className="text-xs font-bold text-white uppercase tracking-wider text-slate-400">
+                  <div className="p-4 rounded-xl bg-[#141418] border border-zinc-800/80 shadow-matteCard space-y-3">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400">
                       5-Pillar Scorecard Breakdown
                     </h3>
                     <div className="grid grid-cols-5 gap-2 text-center font-mono">
-                      <div className="p-2 rounded-lg bg-slate-900/80 border border-slate-800">
-                        <span className="text-[10px] text-slate-400 block">Scale</span>
-                        <strong className="text-primary text-sm">{scorecard?.scale_pts}/35</strong>
+                      <div className="p-2 rounded-lg bg-zinc-900 border border-zinc-800">
+                        <span className="text-[10px] text-zinc-400 block">Scale</span>
+                        <strong className="text-emerald-400 text-sm">{scorecard?.scale_pts}/35</strong>
                       </div>
-                      <div className="p-2 rounded-lg bg-slate-900/80 border border-slate-800">
-                        <span className="text-[10px] text-slate-400 block">Focus</span>
-                        <strong className="text-primary text-sm">{scorecard?.focus_pts}/25</strong>
+                      <div className="p-2 rounded-lg bg-zinc-900 border border-zinc-800">
+                        <span className="text-[10px] text-zinc-400 block">Focus</span>
+                        <strong className="text-emerald-400 text-sm">{scorecard?.focus_pts}/25</strong>
                       </div>
-                      <div className="p-2 rounded-lg bg-slate-900/80 border border-slate-800">
-                        <span className="text-[10px] text-slate-400 block">Digital</span>
-                        <strong className="text-primary text-sm">{scorecard?.digital_pts}/20</strong>
+                      <div className="p-2 rounded-lg bg-zinc-900 border border-zinc-800">
+                        <span className="text-[10px] text-zinc-400 block">Digital</span>
+                        <strong className="text-emerald-400 text-sm">{scorecard?.digital_pts}/20</strong>
                       </div>
-                      <div className="p-2 rounded-lg bg-slate-900/80 border border-slate-800">
-                        <span className="text-[10px] text-slate-400 block">Trust</span>
-                        <strong className="text-primary text-sm">{scorecard?.trust_pts}/10</strong>
+                      <div className="p-2 rounded-lg bg-zinc-900 border border-zinc-800">
+                        <span className="text-[10px] text-zinc-400 block">Trust</span>
+                        <strong className="text-emerald-400 text-sm">{scorecard?.trust_pts}/10</strong>
                       </div>
-                      <div className="p-2 rounded-lg bg-slate-900/80 border border-slate-800">
-                        <span className="text-[10px] text-slate-400 block">Contact</span>
-                        <strong className="text-primary text-sm">{scorecard?.contact_pts}/10</strong>
+                      <div className="p-2 rounded-lg bg-zinc-900 border border-zinc-800">
+                        <span className="text-[10px] text-zinc-400 block">Contact</span>
+                        <strong className="text-emerald-400 text-sm">{scorecard?.contact_pts}/10</strong>
                       </div>
                     </div>
                   </div>
 
                   {/* Decision-Maker Dossier */}
-                  <div className="glass-card p-4 rounded-xl space-y-3">
-                    <h3 className="text-xs font-bold text-white uppercase tracking-wider text-slate-400 flex items-center justify-between">
+                  <div className="p-4 rounded-xl bg-[#141418] border border-zinc-800/80 shadow-matteCard space-y-3">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center justify-between">
                       <span>Decision-Maker Contacts</span>
                       <span className="text-emerald-400 text-[11px] font-mono">§ 5 DDG Impressum</span>
                     </h3>
 
                     {dms.length === 0 ? (
-                      <p className="text-xs text-slate-500 italic">No named Geschäftsführer found on website.</p>
+                      <p className="text-xs text-zinc-500 italic">No named Geschäftsführer found on website.</p>
                     ) : (
                       <div className="space-y-3">
                         {dms.map((dm: any, i: number) => (
-                          <div key={i} className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
+                          <div key={i} className="p-3.5 rounded-xl bg-zinc-900 border border-zinc-800 space-y-2">
                             <div className="flex items-center justify-between">
                               <div>
-                                <span className="font-bold text-sm text-white block">{dm.full_name}</span>
-                                <span className="text-xs text-primary font-medium">{dm.role || "Geschäftsführer"}</span>
+                                <span className="font-bold text-sm text-zinc-100 block">{dm.full_name}</span>
+                                <span className="text-xs text-emerald-400 font-medium">{dm.role || "Geschäftsführer"}</span>
                               </div>
                               {dm.email_status && (
-                                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
                                   {dm.email_status}
                                 </span>
                               )}
                             </div>
 
                             {dm.personal_email && (
-                              <div className="flex items-center justify-between pt-2 border-t border-slate-800/80 text-xs font-mono">
-                                <span className="text-slate-300">{dm.personal_email}</span>
+                              <div className="flex items-center justify-between pt-2 border-t border-zinc-800 text-xs font-mono">
+                                <span className="text-zinc-300">{dm.personal_email}</span>
                                 <button
                                   onClick={() => copyEmail(dm.personal_email)}
-                                  className="flex items-center gap-1 text-[11px] text-primary hover:underline"
+                                  className="flex items-center gap-1 text-[11px] text-emerald-400 hover:underline"
                                 >
                                   {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
                                   <span>{copied ? "Copied" : "Copy Email"}</span>
@@ -210,8 +210,8 @@ export function EvidenceDrawer({ companyId, onClose }: EvidenceDrawerProps) {
                             )}
 
                             {dm.mx_host && (
-                              <p className="text-[10px] text-slate-500 font-mono">
-                                DNS MX Server: <strong className="text-slate-400">{dm.mx_host}</strong>
+                              <p className="text-[10px] text-zinc-500 font-mono">
+                                DNS MX Server: <strong className="text-zinc-400">{dm.mx_host}</strong>
                               </p>
                             )}
                           </div>
@@ -221,28 +221,28 @@ export function EvidenceDrawer({ companyId, onClose }: EvidenceDrawerProps) {
                   </div>
 
                   {/* Technical & Commercial Footprint */}
-                  <div className="glass-card p-4 rounded-xl space-y-3">
-                    <h3 className="text-xs font-bold text-white uppercase tracking-wider text-slate-400">
+                  <div className="p-4 rounded-xl bg-[#141418] border border-zinc-800/80 shadow-matteCard space-y-3">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400">
                       Commercial & PropTech Profile
                     </h3>
                     <div className="grid grid-cols-2 gap-3 text-xs">
                       <div>
-                        <span className="text-slate-400 block text-[11px]">Reported Units:</span>
-                        <strong className="text-white font-mono">
+                        <span className="text-zinc-400 block text-[11px]">Reported Units:</span>
+                        <strong className="text-zinc-100 font-mono">
                           {kpi?.exact_units_managed ? `${formatNumber(kpi.exact_units_managed)} Units` : kpi?.estimated_units_tier || "<250"}
                         </strong>
                       </div>
                       <div>
-                        <span className="text-slate-400 block text-[11px]">ERP Stack:</span>
-                        <strong className="text-primary font-mono">{kpi?.detected_erp_proptech || "None detected"}</strong>
+                        <span className="text-zinc-400 block text-[11px]">ERP Stack:</span>
+                        <strong className="text-emerald-400 font-mono">{kpi?.detected_erp_proptech || "None detected"}</strong>
                       </div>
                       <div>
-                        <span className="text-slate-400 block text-[11px]">Commercial Register:</span>
-                        <strong className="text-slate-200 font-mono">{comp?.commercial_register_id || "Amtsgericht Charlottenburg"}</strong>
+                        <span className="text-zinc-400 block text-[11px]">Commercial Register:</span>
+                        <strong className="text-zinc-200 font-mono">{comp?.commercial_register_id || "Amtsgericht Charlottenburg"}</strong>
                       </div>
                       <div>
-                        <span className="text-slate-400 block text-[11px]">VDIV Certified:</span>
-                        <strong className={comp?.is_vdiv_member ? "text-emerald-400" : "text-slate-400"}>
+                        <span className="text-zinc-400 block text-[11px]">VDIV Certified:</span>
+                        <strong className={comp?.is_vdiv_member ? "text-emerald-400" : "text-zinc-400"}>
                           {comp?.is_vdiv_member ? "Yes (Association Member)" : "No"}
                         </strong>
                       </div>
@@ -253,32 +253,32 @@ export function EvidenceDrawer({ companyId, onClose }: EvidenceDrawerProps) {
 
               {activeTab === "evidence" && (
                 <div className="space-y-4">
-                  <div className="glass-card p-4 rounded-xl space-y-2 border-emerald-500/20 bg-emerald-950/10">
+                  <div className="p-4 rounded-xl bg-[#141418] border border-emerald-500/30 space-y-2">
                     <span className="text-xs font-semibold text-emerald-400 flex items-center gap-1.5">
                       <ShieldCheck className="w-4 h-4" />
                       Verbatim Impressum / Team Evidence Quote
                     </span>
-                    <blockquote className="text-xs font-mono text-slate-200 p-3 rounded-lg bg-slate-950/80 border border-slate-900 leading-relaxed">
+                    <blockquote className="text-xs font-mono text-zinc-200 p-3 rounded-lg bg-zinc-950 border border-zinc-850 leading-relaxed">
                       {dms[0]?.evidence_quote || "Extracted from German legal notice (§ 5 DDG)."}
                     </blockquote>
                   </div>
 
                   {kpi?.units_evidence_quote && (
-                    <div className="glass-card p-4 rounded-xl space-y-2">
-                      <span className="text-xs font-semibold text-primary">
+                    <div className="p-4 rounded-xl bg-[#141418] border border-zinc-800/80 space-y-2">
+                      <span className="text-xs font-semibold text-emerald-400">
                         Verbatim Unit Count Evidence Quote
                       </span>
-                      <blockquote className="text-xs font-mono text-slate-200 p-3 rounded-lg bg-slate-950/80 border border-slate-900 leading-relaxed">
+                      <blockquote className="text-xs font-mono text-zinc-200 p-3 rounded-lg bg-zinc-950 border border-zinc-850 leading-relaxed">
                         "{kpi.units_evidence_quote}"
                       </blockquote>
                     </div>
                   )}
 
-                  <div className="glass-card p-4 rounded-xl space-y-2">
-                    <span className="text-xs font-semibold text-slate-300">
+                  <div className="p-4 rounded-xl bg-[#141418] border border-zinc-800/80 space-y-2">
+                    <span className="text-xs font-semibold text-zinc-300">
                       AI Qualification Summary Reasoning
                     </span>
-                    <p className="text-xs text-slate-400 leading-relaxed">
+                    <p className="text-xs text-zinc-400 leading-relaxed">
                       {kpi?.qualification_reasoning || "Active Berlin Hausverwaltung meeting residential submetering qualification criteria."}
                     </p>
                   </div>
@@ -288,16 +288,16 @@ export function EvidenceDrawer({ companyId, onClose }: EvidenceDrawerProps) {
               {activeTab === "pages" && (
                 <div className="space-y-3">
                   {pages.map((p: any, idx: number) => (
-                    <div key={idx} className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2">
+                    <div key={idx} className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 space-y-2">
                       <div className="flex items-center justify-between text-xs">
-                        <span className="font-bold text-white uppercase font-mono">{p.page_type}</span>
+                        <span className="font-bold text-zinc-100 uppercase font-mono">{p.page_type}</span>
                         <span className="text-emerald-400 font-mono text-[10px]">HTTP {p.http_status}</span>
                       </div>
                       <a
                         href={p.url}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-[11px] text-primary hover:underline truncate block"
+                        className="text-[11px] text-emerald-400 hover:underline truncate block"
                       >
                         {p.url}
                       </a>
@@ -312,4 +312,3 @@ export function EvidenceDrawer({ companyId, onClose }: EvidenceDrawerProps) {
     </div>
   );
 }
-

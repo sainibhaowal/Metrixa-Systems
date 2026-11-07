@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { SidebarNav } from "@/components/layout/SidebarNav";
 import { StickyTopbar } from "@/components/layout/StickyTopbar";
+import { SidebarProvider } from "@/components/layout/SidebarContext";
 
 export const metadata: Metadata = {
   title: "Heidi Cockpit — Autonomous LeadOps & Metering Intelligence",
@@ -15,16 +16,17 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark">
-      <body className="bg-background text-slate-100 flex min-h-screen">
-        <SidebarNav />
-        <div className="flex-1 flex flex-col min-w-0">
-          <StickyTopbar />
-          <main className="flex-1 p-6 lg:p-8 overflow-y-auto">
-            {children}
-          </main>
-        </div>
+      <body className="bg-background text-zinc-100 flex min-h-screen">
+        <SidebarProvider>
+          <SidebarNav />
+          <div className="flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out">
+            <StickyTopbar />
+            <main className="flex-1 p-6 lg:p-8 overflow-y-auto">
+              {children}
+            </main>
+          </div>
+        </SidebarProvider>
       </body>
     </html>
   );
 }
-

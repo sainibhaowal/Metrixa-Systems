@@ -7,48 +7,51 @@
 }
 
 body {
-  background-color: #050811;
-  color: #f1f5f9;
+  background-color: #09090b;
+  color: #f4f4f5;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   overflow-x: hidden;
 }
 
-/* Custom Scrollbars */
+/* Custom Scrollbars - Crisp Matte Charcoal */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.6);
+  background: #09090b;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.25);
+  background: #27272a;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(56, 189, 248, 0.4);
+  background: #3f3f46;
 }
 
-/* Glassmorphism Surface Utility */
-.glass-panel {
-  background: rgba(15, 23, 42, 0.65);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+/* Premium Matte Frost Surface Utilities (NO BLUR, Crisp Hairline Borders) */
+.matte-panel, .glass-panel {
+  background: #111114;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.65);
+  box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.85);
 }
 
-.glass-card {
-  background: rgba(15, 23, 42, 0.5);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
+.matte-card, .glass-card {
+  background: #141418;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: 0 2px 12px -2px rgba(0, 0, 0, 0.6);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.glass-card:hover {
-  background: rgba(30, 41, 59, 0.6);
-  border-color: rgba(56, 189, 248, 0.3);
-  box-shadow: 0 12px 36px -10px rgba(0, 0, 0, 0.8), 0 0 20px -5px rgba(56, 189, 248, 0.15);
+.matte-card:hover, .glass-card:hover {
+  background: #18181f;
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow: 0 8px 28px -4px rgba(0, 0, 0, 0.9);
 }
 
+/* Subtle Matte Frost Gradient Surface */
+.matte-frost-card {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(20, 20, 24, 0.95) 100%), #121215;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.7);
+}

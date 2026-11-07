@@ -23,9 +23,7 @@ import {
   YAxis, 
   Tooltip, 
   ResponsiveContainer, 
-  Cell, 
-  PieChart, 
-  Pie 
+  Cell
 } from "recharts";
 
 export default function DashboardPage() {
@@ -68,34 +66,34 @@ export default function DashboardPage() {
     { district: "Marzahn-Hellersdorf", count: 32 },
   ]).slice(0, 8);
 
-  const COLORS = ["#38bdf8", "#10b981", "#f59e0b", "#ec4899", "#8b5cf6", "#64748b"];
+  const COLORS = ["#10b981", "#34d399", "#f59e0b", "#a1a1aa", "#71717a"];
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
       {/* Page Title & Vision Callout */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-100 flex items-center gap-2.5">
             <span>Executive Cockpit</span>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono">
+            <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono">
               Berlin Submetering TAM
             </span>
           </h1>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-zinc-400 mt-1">
             Real-time market intelligence, lead tiers, PropTech ERP penetration, and decision-maker coverage.
           </p>
         </div>
         <div className="flex items-center gap-2.5">
           <Link
             href="/mission-control"
-            className="flex items-center gap-2 px-3 py-2 rounded-xl glass-card text-xs font-medium text-slate-300 hover:text-white"
+            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-medium text-zinc-300 hover:text-white hover:border-zinc-700 transition-all shadow-sm"
           >
-            <Zap className="w-3.5 h-3.5 text-primary" />
+            <Zap className="w-3.5 h-3.5 text-emerald-400" />
             <span>Mission Control (DAG)</span>
           </Link>
           <Link
             href="/leads"
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-primary/20 text-primary border border-primary/30 text-xs font-semibold hover:bg-primary/30 transition-all shadow-glowCyan"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-500 text-zinc-950 font-semibold text-xs hover:bg-emerald-400 transition-all shadow-glowEmerald"
           >
             <span>Explore 1,199 Leads</span>
             <ArrowUpRight className="w-3.5 h-3.5" />
@@ -106,91 +104,86 @@ export default function DashboardPage() {
       {/* 5 KPI Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {/* Card 1: Total Market */}
-        <div className="glass-card p-5 rounded-2xl relative overflow-hidden group">
-          <div className="flex items-center justify-between text-slate-400 mb-3">
-            <span className="text-xs font-medium uppercase tracking-wider text-slate-400">Total Market TAM</span>
-            <Building2 className="w-4 h-4 text-primary" />
+        <div className="p-5 rounded-2xl bg-[#141418] border border-zinc-800/80 shadow-matteCard hover:border-zinc-700/80 transition-all">
+          <div className="flex items-center justify-between text-zinc-400 mb-3">
+            <span className="text-xs font-medium uppercase tracking-wider text-zinc-400">Total Market TAM</span>
+            <Building2 className="w-4 h-4 text-emerald-400" />
           </div>
-          <div className="text-3xl font-bold text-white tracking-tight font-mono">
+          <div className="text-3xl font-bold text-zinc-100 tracking-tight font-mono">
             {formatNumber(metrics?.golden_total || 1199)}
           </div>
-          <p className="text-[11px] text-slate-400 mt-2 flex items-center gap-1">
-            <span className="text-emerald-400 font-medium">1,371</span> scraped → <span className="text-slate-300">1,199</span> unique
+          <p className="text-[11px] text-zinc-400 mt-2 flex items-center gap-1">
+            <span className="text-emerald-400 font-medium">1,371</span> scraped → <span className="text-zinc-300">1,199</span> unique
           </p>
-          <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-all pointer-events-none" />
         </div>
 
         {/* Card 2: Tier A Leads */}
-        <div className="glass-card p-5 rounded-2xl relative overflow-hidden group border-emerald-500/20 bg-emerald-950/10">
-          <div className="flex items-center justify-between text-slate-400 mb-3">
+        <div className="p-5 rounded-2xl bg-[#141418] border border-emerald-500/30 shadow-matteCard hover:border-emerald-500/50 transition-all">
+          <div className="flex items-center justify-between text-zinc-400 mb-3">
             <span className="text-xs font-medium uppercase tracking-wider text-emerald-400">🟢 Tier A (Priority)</span>
             <Sparkles className="w-4 h-4 text-emerald-400" />
           </div>
           <div className="text-3xl font-bold text-emerald-400 tracking-tight font-mono">
             {formatNumber(tiers["Tier A (High Priority)"] || 33)}
           </div>
-          <p className="text-[11px] text-slate-400 mt-2">
-            Managing <strong className="text-slate-200">1,000–53,300+</strong> units
+          <p className="text-[11px] text-zinc-400 mt-2">
+            Managing <strong className="text-zinc-200">1,000–53,300+</strong> units
           </p>
-          <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
         </div>
 
         {/* Card 3: Decision Makers */}
-        <div className="glass-card p-5 rounded-2xl relative overflow-hidden group">
-          <div className="flex items-center justify-between text-slate-400 mb-3">
-            <span className="text-xs font-medium uppercase tracking-wider text-slate-400">Decision Makers</span>
-            <UserCheck className="w-4 h-4 text-cyan-400" />
+        <div className="p-5 rounded-2xl bg-[#141418] border border-zinc-800/80 shadow-matteCard hover:border-zinc-700/80 transition-all">
+          <div className="flex items-center justify-between text-zinc-400 mb-3">
+            <span className="text-xs font-medium uppercase tracking-wider text-zinc-400">Decision Makers</span>
+            <UserCheck className="w-4 h-4 text-zinc-200" />
           </div>
-          <div className="text-3xl font-bold text-white tracking-tight font-mono">
+          <div className="text-3xl font-bold text-zinc-100 tracking-tight font-mono">
             {formatNumber(metrics?.coverage?.with_decision_maker || 101)}
           </div>
-          <p className="text-[11px] text-slate-400 mt-2">
-            <strong className="text-cyan-400">118</strong> named Geschäftsführer
+          <p className="text-[11px] text-zinc-400 mt-2">
+            <strong className="text-zinc-200">118</strong> named Geschäftsführer
           </p>
-          <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/5 rounded-full blur-2xl pointer-events-none" />
         </div>
 
         {/* Card 4: Personal Emails */}
-        <div className="glass-card p-5 rounded-2xl relative overflow-hidden group">
-          <div className="flex items-center justify-between text-slate-400 mb-3">
-            <span className="text-xs font-medium uppercase tracking-wider text-slate-400">Personal Emails</span>
+        <div className="p-5 rounded-2xl bg-[#141418] border border-zinc-800/80 shadow-matteCard hover:border-zinc-700/80 transition-all">
+          <div className="flex items-center justify-between text-zinc-400 mb-3">
+            <span className="text-xs font-medium uppercase tracking-wider text-zinc-400">Personal Emails</span>
             <MailCheck className="w-4 h-4 text-amber-400" />
           </div>
-          <div className="text-3xl font-bold text-white tracking-tight font-mono">
+          <div className="text-3xl font-bold text-zinc-100 tracking-tight font-mono">
             {formatNumber(metrics?.coverage?.with_personal_email || 99)}
           </div>
-          <p className="text-[11px] text-slate-400 mt-2">
+          <p className="text-[11px] text-zinc-400 mt-2">
             <strong className="text-amber-400">216</strong> live DNS MX verified
           </p>
-          <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl pointer-events-none" />
         </div>
 
         {/* Card 5: PropTech ERP */}
-        <div className="glass-card p-5 rounded-2xl relative overflow-hidden group">
-          <div className="flex items-center justify-between text-slate-400 mb-3">
-            <span className="text-xs font-medium uppercase tracking-wider text-slate-400">PropTech / ERPs</span>
-            <Layers className="w-4 h-4 text-fuchsia-400" />
+        <div className="p-5 rounded-2xl bg-[#141418] border border-zinc-800/80 shadow-matteCard hover:border-zinc-700/80 transition-all">
+          <div className="flex items-center justify-between text-zinc-400 mb-3">
+            <span className="text-xs font-medium uppercase tracking-wider text-zinc-400">PropTech / ERPs</span>
+            <Layers className="w-4 h-4 text-emerald-400" />
           </div>
-          <div className="text-3xl font-bold text-white tracking-tight font-mono">
+          <div className="text-3xl font-bold text-zinc-100 tracking-tight font-mono">
             {formatNumber(metrics?.coverage?.with_customer_portal || 38)}
           </div>
-          <p className="text-[11px] text-slate-400 mt-2">
+          <p className="text-[11px] text-zinc-400 mt-2">
             Casavi, Domus, Haufe, Immoware
           </p>
-          <div className="absolute top-0 right-0 w-24 h-24 bg-fuchsia-500/5 rounded-full blur-2xl pointer-events-none" />
         </div>
       </div>
 
       {/* Visual Analytics Grid (2 Columns) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* District Penetration Bar Chart (7 Cols) */}
-        <div className="lg:col-span-7 glass-panel p-6 rounded-2xl">
+        <div className="lg:col-span-7 p-6 rounded-2xl bg-[#111114] border border-zinc-800/80 shadow-matte">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-sm font-bold text-white tracking-tight">Berlin District Market Penetration</h2>
-              <p className="text-[11px] text-slate-400">Verified property managers across top Berlin Bezirke</p>
+              <h2 className="text-sm font-bold text-zinc-100 tracking-tight">Berlin District Market Penetration</h2>
+              <p className="text-[11px] text-zinc-400">Verified property managers across top Berlin Bezirke</p>
             </div>
-            <span className="text-xs font-mono text-primary bg-primary/10 px-2.5 py-1 rounded-lg border border-primary/20">
+            <span className="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
               12 Bezirke Active
             </span>
           </div>
@@ -198,20 +191,20 @@ export default function DashboardPage() {
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={districtData} layout="vertical" margin={{ top: 5, right: 20, left: 50, bottom: 5 }}>
-                <XAxis type="number" stroke="#64748b" fontSize={11} tickLine={false} />
-                <YAxis dataKey="district" type="category" stroke="#94a3b8" fontSize={11} tickLine={false} width={120} />
+                <XAxis type="number" stroke="#52525b" fontSize={11} tickLine={false} />
+                <YAxis dataKey="district" type="category" stroke="#a1a1aa" fontSize={11} tickLine={false} width={130} />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: "#0f172a",
+                    backgroundColor: "#18181b",
                     borderColor: "rgba(255,255,255,0.1)",
                     borderRadius: "12px",
-                    color: "#f8fafc",
+                    color: "#f4f4f5",
                     fontSize: "12px",
                   }}
                 />
-                <Bar dataKey="count" fill="#38bdf8" radius={[0, 6, 6, 0]}>
+                <Bar dataKey="count" fill="#27272a" radius={[0, 6, 6, 0]}>
                   {districtData.map((_: any, index: number) => (
-                    <Cell key={`cell-${index}`} fill={index === 0 ? "#10b981" : "#38bdf8"} />
+                    <Cell key={`cell-${index}`} fill={index === 0 ? "#10b981" : "#3f3f46"} />
                   ))}
                 </Bar>
               </BarChart>
@@ -220,12 +213,12 @@ export default function DashboardPage() {
         </div>
 
         {/* ERP & Portal Share (5 Cols) */}
-        <div className="lg:col-span-5 glass-panel p-6 rounded-2xl flex flex-col justify-between">
+        <div className="lg:col-span-5 p-6 rounded-2xl bg-[#111114] border border-zinc-800/80 shadow-matte flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="text-sm font-bold text-white tracking-tight">PropTech ERP Adoption</h2>
-                <p className="text-[11px] text-slate-400">Buying signals for smart metering integration</p>
+                <h2 className="text-sm font-bold text-zinc-100 tracking-tight">PropTech ERP Adoption</h2>
+                <p className="text-[11px] text-zinc-400">Buying signals for smart metering integration</p>
               </div>
               <span className="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
                 Tech Forward
@@ -239,10 +232,10 @@ export default function DashboardPage() {
                 return (
                   <div key={item.name} className="space-y-1">
                     <div className="flex justify-between text-xs font-medium">
-                      <span className="text-slate-300">{item.name}</span>
-                      <span className="font-mono text-slate-400">{numVal} firms ({pct}%)</span>
+                      <span className="text-zinc-300">{item.name}</span>
+                      <span className="font-mono text-zinc-400">{numVal} firms ({pct}%)</span>
                     </div>
-                    <div className="w-full h-2 rounded-full bg-slate-800/80 overflow-hidden">
+                    <div className="w-full h-2 rounded-full bg-zinc-800 overflow-hidden">
                       <div
                         className="h-full rounded-full transition-all duration-500"
                         style={{
@@ -257,41 +250,41 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="pt-4 border-t border-slate-800/80 mt-6 flex items-center justify-between text-xs text-slate-400">
+          <div className="pt-4 border-t border-zinc-800/80 mt-6 flex items-center justify-between text-xs text-zinc-400">
             <span>Customer Portals Detected:</span>
-            <strong className="text-white font-mono">38 Companies</strong>
+            <strong className="text-zinc-100 font-mono">38 Companies</strong>
           </div>
         </div>
       </div>
 
       {/* Strategic Qualification Pillars Callout */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="glass-card p-5 rounded-2xl">
+        <div className="p-5 rounded-2xl bg-[#141418] border border-zinc-800/80 shadow-matteCard">
           <div className="flex items-center gap-2.5 text-emerald-400 mb-2 font-semibold text-xs">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="w-2 h-2 rounded-full bg-emerald-400" />
             <span>Tier A Target Strategy</span>
           </div>
-          <p className="text-xs text-slate-300 leading-relaxed">
+          <p className="text-xs text-zinc-300 leading-relaxed">
             33 companies managing up to 53,300 units with confirmed residential WEG/Miet focus and verified Geschäftsführer. Prime for Heidi Systems Account Executives.
           </p>
         </div>
 
-        <div className="glass-card p-5 rounded-2xl">
+        <div className="p-5 rounded-2xl bg-[#141418] border border-zinc-800/80 shadow-matteCard">
           <div className="flex items-center gap-2.5 text-amber-400 mb-2 font-semibold text-xs">
             <span className="w-2 h-2 rounded-full bg-amber-400" />
             <span>Tier B Outbound Sequencer</span>
           </div>
-          <p className="text-xs text-slate-300 leading-relaxed">
+          <p className="text-xs text-zinc-300 leading-relaxed">
             409 solid mid-market property managers with verified commercial register (HRB) and phone numbers ready for structured email & call cadences.
           </p>
         </div>
 
-        <div className="glass-card p-5 rounded-2xl">
-          <div className="flex items-center gap-2.5 text-primary mb-2 font-semibold text-xs">
-            <span className="w-2 h-2 rounded-full bg-primary" />
+        <div className="p-5 rounded-2xl bg-[#141418] border border-zinc-800/80 shadow-matteCard">
+          <div className="flex items-center gap-2.5 text-zinc-200 mb-2 font-semibold text-xs">
+            <span className="w-2 h-2 rounded-full bg-zinc-400" />
             <span>Audit & Evidence Proof</span>
           </div>
-          <p className="text-xs text-slate-300 leading-relaxed">
+          <p className="text-xs text-zinc-300 leading-relaxed">
             Every KPI is backed by verbatim German Impressum quotes and HTTP 200 URLs. Zero unverified claims or LLM hallucinations.
           </p>
         </div>

@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { 
   Play, 
-  Square, 
   Terminal as TerminalIcon, 
   CheckCircle2, 
   AlertCircle, 
@@ -113,13 +112,13 @@ export default function MissionControlPage() {
       {/* Title */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-100 flex items-center gap-2.5">
             <span>Pipeline Mission Control</span>
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-primary font-mono">
+            <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono">
               Live DAG & SSE Console
             </span>
           </h1>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-zinc-400 mt-1">
             Trigger deterministic scrapers, async crawlers, LLM extraction and DNS MX verifiers in real-time.
           </p>
         </div>
@@ -127,9 +126,9 @@ export default function MissionControlPage() {
         <button
           onClick={() => handleRun("full")}
           disabled={running}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-primary to-cyan-500 text-slate-950 font-bold text-xs shadow-glowCyan hover:opacity-95 transition-all disabled:opacity-50"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs shadow-glowEmerald transition-all disabled:opacity-50"
         >
-          <Play className="w-4 h-4 fill-slate-950" />
+          <Play className="w-4 h-4 fill-zinc-950" />
           <span>{running ? "Execution in Progress..." : "Execute Full Pipeline (End-to-End)"}</span>
         </button>
       </div>
@@ -141,24 +140,26 @@ export default function MissionControlPage() {
           return (
             <div
               key={s.id}
-              className={`glass-card p-5 rounded-2xl relative overflow-hidden transition-all ${
-                isCurrent ? "border-primary/50 bg-primary/5 shadow-glowCyan" : ""
+              className={`p-5 rounded-2xl bg-[#141418] border transition-all ${
+                isCurrent 
+                  ? "border-emerald-500/60 shadow-[0_0_20px_-3px_rgba(16,185,129,0.3)] bg-zinc-900" 
+                  : "border-zinc-800/80 shadow-matteCard hover:border-zinc-700/80"
               }`}
             >
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] font-mono text-slate-400">Step 0{idx + 1}</span>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400">
+                <span className="text-[11px] font-mono text-zinc-400">Step 0{idx + 1}</span>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700/50">
                   {s.time}
                 </span>
               </div>
 
-              <h2 className="text-sm font-bold text-white mb-1">{s.name}</h2>
-              <p className="text-xs text-slate-400 mb-4 h-8">{s.desc}</p>
+              <h2 className="text-sm font-bold text-zinc-100 mb-1">{s.name}</h2>
+              <p className="text-xs text-zinc-400 mb-4 h-8">{s.desc}</p>
 
               <button
                 onClick={() => handleRun(s.id)}
                 disabled={running}
-                className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-white/[0.05] hover:bg-primary/20 text-xs font-semibold text-slate-200 hover:text-primary border border-white/10 hover:border-primary/30 transition-all disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-zinc-900 hover:bg-emerald-500 hover:text-zinc-950 text-xs font-semibold text-zinc-200 border border-zinc-800 hover:border-emerald-500 transition-all disabled:opacity-50"
               >
                 <Play className="w-3 h-3" />
                 <span>Run Stage</span>
@@ -170,14 +171,14 @@ export default function MissionControlPage() {
 
       {/* Progress Bar (when running) */}
       {running && (
-        <div className="glass-panel p-4 rounded-2xl space-y-2 border-primary/30">
+        <div className="p-4 rounded-2xl bg-[#111114] border border-emerald-500/40 shadow-matte space-y-2">
           <div className="flex justify-between text-xs font-mono">
-            <span className="text-primary font-bold">Active Stage: {activeStage?.toUpperCase()}</span>
-            <span className="text-slate-300">{progress}%</span>
+            <span className="text-emerald-400 font-bold">Active Stage: {activeStage?.toUpperCase()}</span>
+            <span className="text-zinc-300">{progress}%</span>
           </div>
-          <div className="w-full h-2 rounded-full bg-slate-900 overflow-hidden">
+          <div className="w-full h-2 rounded-full bg-zinc-900 overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-primary to-cyan-400 rounded-full transition-all duration-300 shadow-glowCyan"
+              className="h-full bg-emerald-500 rounded-full transition-all duration-300"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -185,40 +186,40 @@ export default function MissionControlPage() {
       )}
 
       {/* Live SSE Streaming Terminal Console */}
-      <div className="glass-panel p-6 rounded-2xl space-y-3">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+      <div className="p-6 rounded-2xl bg-[#111114] border border-zinc-800/80 shadow-matte space-y-3">
+        <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
           <div className="flex items-center gap-2.5">
-            <TerminalIcon className="w-4 h-4 text-primary" />
-            <h2 className="text-sm font-bold text-white tracking-wide">Live Cockpit Telemetry Stream</h2>
+            <TerminalIcon className="w-4 h-4 text-emerald-400" />
+            <h2 className="text-sm font-bold text-zinc-100 tracking-wide">Live Cockpit Telemetry Stream</h2>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-[11px] font-mono text-slate-400">
+            <span className="text-[11px] font-mono text-zinc-400">
               {logs.length} events logged
             </span>
             <button
               onClick={() => setLogs([])}
-              className="text-[11px] text-slate-400 hover:text-white transition-colors"
+              className="text-[11px] text-zinc-400 hover:text-zinc-100 transition-colors"
             >
               Clear
             </button>
           </div>
         </div>
 
-        <div className="h-80 overflow-y-auto font-mono text-[11px] space-y-1.5 p-3 rounded-xl bg-slate-950/80 border border-slate-900">
+        <div className="h-80 overflow-y-auto font-mono text-[11px] space-y-1.5 p-3 rounded-xl bg-[#09090b] border border-zinc-850">
           {logs.map((log, i) => {
-            let color = "text-slate-300";
+            let color = "text-zinc-300";
             if (log.level === "SUCCESS") color = "text-emerald-400";
             if (log.level === "ERROR") color = "text-rose-400";
             if (log.level === "WARN") color = "text-amber-400";
-            if (log.level === "INFO") color = "text-cyan-400";
+            if (log.level === "INFO") color = "text-zinc-200";
 
             return (
               <div key={i} className="flex gap-2.5 leading-relaxed">
-                <span className="text-slate-600 select-none">[{log.time}]</span>
+                <span className="text-zinc-600 select-none">[{log.time}]</span>
                 <span className={`font-semibold shrink-0 w-16 select-none ${color}`}>
                   {log.level}
                 </span>
-                <span className="text-slate-200 break-all">{log.msg}</span>
+                <span className="text-zinc-200 break-all">{log.msg}</span>
               </div>
             );
           })}
@@ -228,4 +229,3 @@ export default function MissionControlPage() {
     </div>
   );
 }
-
