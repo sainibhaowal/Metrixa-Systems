@@ -6,10 +6,9 @@ Anti-Hallucination verification statistics, and writes the Task 3 Evaluation & A
 
 from __future__ import annotations
 
-import json
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from heidi_engine.config import settings
 from heidi_engine.db import Database
@@ -196,8 +195,8 @@ class PipelineEvaluator:
 
         report_md = f"""# Metrixa Engine — Task 3 Evaluation, Data Validation & Ablation Report
 
-**Generated At:** `{now_str}`  
-**Database:** `data/metrixa_leads.db`  
+**Generated At:** `{now_str}`
+**Database:** `data/metrixa_leads.db`
 **Primary Excel Deliverable:** `data/exports/metrixa_berlin_hausverwaltungen.xlsx`
 
 ---
@@ -244,4 +243,3 @@ This ablation table demonstrates why a single scraper is insufficient and quanti
 """
         out_file.write_text(report_md, encoding="utf-8")
         return out_file
-

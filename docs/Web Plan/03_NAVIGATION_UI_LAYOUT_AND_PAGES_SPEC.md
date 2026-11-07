@@ -1,14 +1,14 @@
-# 03 — Navigation Layout, UI Blueprint & Page Specifications: Heidi Cockpit
+# 03 — Navigation Layout, UI Blueprint & Page Specifications: Metrixa Cockpit
 
-**Project Name:** Heidi Cockpit — Autonomous LeadOps & Metering Intelligence Suite  
-**Document Order:** `03 of 06` in `docs/Web Plan/`  
-**Location:** `C:\Users\Ravin\Projects\Projetcs Alpha\Heidi Systems\docs\Web Plan\03_NAVIGATION_UI_LAYOUT_AND_PAGES_SPEC.md`
+**Project Name:** Metrixa Cockpit — Autonomous LeadOps & Metering Intelligence Suite
+**Document Order:** `03 of 06` in `docs/Web Plan/`
+**Location:** `C:\Users\Ravin\Projects\Projetcs Alpha\Metrixa Systems\docs\Web Plan\03_NAVIGATION_UI_LAYOUT_AND_PAGES_SPEC.md`
 
 ---
 
 ## 1. Global Navigation & Layout Architecture
 
-Heidi Cockpit uses a modern **Fixed Sidebar + Sticky Topbar + Dynamic Viewport Layout**. The interface is optimized for high information density, rapid switching between operational views, and persistent system status.
+Metrixa Cockpit uses a modern **Fixed Sidebar + Sticky Topbar + Dynamic Viewport Layout**. The interface is optimized for high information density, rapid switching between operational views, and persistent system status.
 
 ```text
 +----------------------------------------------------------------------------------------------------+
@@ -28,7 +28,7 @@ Heidi Cockpit uses a modern **Fixed Sidebar + Sticky Topbar + Dynamic Viewport L
 ```
 
 ### 1.1 Sticky Topbar Elements
-- **Brand Identity:** Heidi Systems minimalist submetering badge + "Heidi Cockpit" wordmark.
+- **Brand Identity:** Metrixa Systems minimalist submetering badge + "Metrixa Cockpit" wordmark.
 - **System Heartbeat:** Live pill indicator (`ONLINE` green pulse, `RUNNING` cyan animation, or `IDLE` slate).
 - **Target Counter:** Live metric showing `1,199 Deduplicated Berlin Companies`.
 - **Quick Action Bar:** Direct 1-click button: `[Download Excel]` and `[Sync Pipeline]`.
@@ -130,7 +130,7 @@ The primary workhorse for sales reps and researchers. Allows instantaneous searc
 ### View 4: Agentic Tools & Scraper Catalog (`/tools`)
 
 #### Purpose
-Demonstrates the engineering breadth of Heidi Engine by presenting each scraper, parser, and verifier as an independent, testable tool.
+Demonstrates the engineering breadth of Metrixa Engine by presenting each scraper, parser, and verifier as an independent, testable tool.
 
 #### Key Components
 1. **Tool Grid (6 Category Cards):**
@@ -156,12 +156,12 @@ Demonstrates the engineering breadth of Heidi Engine by presenting each scraper,
 ### View 5: Artifacts & Export Vault (`/artifacts`)
 
 #### Purpose
-Provides one-click access to all generated deliverables for Heidi Systems' hiring team and internal sales reps.
+Provides one-click access to all generated deliverables for Metrixa Systems' hiring team and internal sales reps.
 
 #### Key Components
 1. **Deliverable Cards:**
-   - **Master Excel File (`.xlsx`):** Direct download of `heidi_berlin_hausverwaltungen.xlsx` (`271 KB`, 4 styled tabs).
-   - **Master CSV File (`.csv`):** Direct download of `heidi_berlin_leads_master.csv` (`355 KB`, 31 columns).
+   - **Master Excel File (`.xlsx`):** Direct download of `metrixa_berlin_hausverwaltungen.xlsx` (`271 KB`, 4 styled tabs).
+   - **Master CSV File (`.csv`):** Direct download of `metrixa_berlin_leads_master.csv` (`355 KB`, 31 columns).
    - **Evaluation & Ablation Report (`.md`):** Direct download of `evaluation_ablation_report.md`.
    - **Executive Presentation Deck (`.md`):** Direct download of `07_TASK3_EXECUTIVE_PRESENTATION.md`.
 2. **Live Google Sheets Integration Card:**
@@ -196,4 +196,3 @@ Allows the operator to switch LLM backends (Local vs. Cloud) and configure searc
    - HTTP Timeout slider (`5s` to `30s`)
    - `[Database Vacuum & Re-Index]` maintenance button
    - `[Save Configuration]` button that automatically updates `.env` and runtime settings.
-

@@ -172,4 +172,3 @@ class CrawledPageRecord(BaseModel):
     has_portal_link: bool = False
     social_linkedin_urls: List[str] = Field(default_factory=list)
     extracted_emails_raw: List[str] = Field(default_factory=list)
-

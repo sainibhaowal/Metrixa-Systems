@@ -93,4 +93,3 @@ class SearchDiscoveryScraper(BaseAsyncScraper):
                 )
 
         return listings
-

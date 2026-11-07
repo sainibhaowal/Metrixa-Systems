@@ -9,7 +9,6 @@ from __future__ import annotations
 import asyncio
 import json
 from contextlib import asynccontextmanager
-from pathlib import Path
 from typing import Any, AsyncGenerator, Dict, List, Optional
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,7 +17,6 @@ from pydantic import BaseModel, Field
 from sse_starlette.sse import EventSourceResponse
 
 from heidi_engine.config import settings
-from heidi_engine.crawler.url_resolver import MissingURLResolver
 from heidi_engine.crawler.web_crawler import AsyncWebsiteCrawler
 from heidi_engine.db import Database
 from heidi_engine.enrichment.contact_finder import ContactEnricher
@@ -462,7 +460,7 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                     "LOG",
                     {
                         "level": "SUCCESS",
-                        "message": f"Scoring complete: Tier A={tier_counts.get('Tier A (High Priority)', 0)}, Tier B={tier_counts.get('Tier B (Qualified Mid-Market)', 0)}, Tier C={tier_counts.get('Tier C (Long-Tail / Small)', 0)}",
+                        "message": f"Scoring complete: {en_res.get('personal_emails_ready', 0)} personal emails verified. Tier A={tier_counts.get('Tier A (High Priority)', 0)}, Tier B={tier_counts.get('Tier B (Qualified Mid-Market)', 0)}, Tier C={tier_counts.get('Tier C (Long-Tail / Small)', 0)}",
                     },
                 )
 
@@ -472,7 +470,7 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                 await event_bus.emit("LOG", {"level": "INFO", "message": "Generating 4-Tab Excel workbook & evaluation report..."})
                 exp_res = exporter.export_all()
                 eval_path = evaluator.generate_markdown_report()
-                await event_bus.emit("LOG", {"level": "SUCCESS", "message": f"Exported: {exp_res['xlsx_path']}"})
+                await event_bus.emit("LOG", {"level": "SUCCESS", "message": f"Exported: {exp_res['xlsx_path']} | Evaluation report: {eval_path}"})
 
             await event_bus.emit("COMPLETE", {"run_id": run_id, "stage": req.stage})
             await event_bus.emit("LOG", {"level": "SUCCESS", "message": "Pipeline execution completed successfully."})
@@ -1026,4 +1024,3 @@ async def ping_search_provider(req: SearchPingRequest):
         "engines_active": 1,
         "privacy": "Verified",
     }
-

@@ -20,4 +20,3 @@ export function getTierColorClasses(tier: string | null | undefined) {
   }
   return "bg-zinc-800/60 border-zinc-700/60 text-zinc-400";
 }
-

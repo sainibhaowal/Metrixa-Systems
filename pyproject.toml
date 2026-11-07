@@ -3,13 +3,13 @@ requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "heidi-engine"
+name = "metrixa-engine"
 version = "1.0.0"
-description = "Autonomous B2B Lead Discovery, Website/Impressum Crawler, Multi-LLM KPI Extractor & Qualification Engine for Heidi Systems (Berlin Hausverwaltungen)"
+description = "Autonomous B2B Lead Discovery, Website/Impressum Crawler, Multi-LLM KPI Extractor & Qualification Engine for Metrixa Systems (Berlin Hausverwaltungen)"
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [
-    { name = "Ravinder", email = "ravinder@heidi-case-study.de" }
+    { name = "Saini Bhaowal", email = "sainibhaowal@users.noreply.github.com" }
 ]
 dependencies = [
     "httpx[http2]>=0.27.0",
@@ -38,6 +38,7 @@ dev = [
 ]
 
 [project.scripts]
+metrixa = "heidi_engine.cli:app"
 heidi = "heidi_engine.cli:app"
 
 [tool.setuptools.packages.find]
@@ -46,4 +47,3 @@ where = ["src"]
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 asyncio_mode = "auto"
-

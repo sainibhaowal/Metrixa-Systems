@@ -1,7 +1,7 @@
 # 03 — Task 1 Specification: Multi-Source Berlin Scrapers & Entity Deduplication
 
-**Project Name:** Heidi Engine — Autonomous B2B Lead Discovery, Enrichment & Qualification System  
-**Document Order:** `03 of 06`  
+**Project Name:** Metrixa Engine — Autonomous B2B Lead Discovery, Enrichment & Qualification System
+**Document Order:** `03 of 06`
 **Purpose:** Complete technical specification for **Task 1** (*"Create an overview of as many property management companies (Hausverwaltungen) in Berlin as possible"*), detailing our 5 ingestion sources, Berlin geographic sharding strategy, noise filtering rules, and the Entity Resolution & Deduplication algorithm.
 
 ---
@@ -72,7 +72,7 @@ flowchart TD
 
 ### 2.3 Scraper 3: VDIV Berlin-Brandenburg (`vdiv.de` / Regional Member Directory)
 * **File:** `src/heidi_engine/scrapers/vdiv.py`
-* **Why we include it:** The *Verband der Immobilienverwalter (VDIV)* is the premier German industry association for professional property managers. VDIV members are **Tier-A targets** for Heidi Systems because membership requires professional certification, insurance, and typically indicates an established portfolio (`500–20,000+` units).
+* **Why we include it:** The *Verband der Immobilienverwalter (VDIV)* is the premier German industry association for professional property managers. VDIV members are **Tier-A targets** for Metrixa Systems because membership requires professional certification, insurance, and typically indicates an established portfolio (`500–20,000+` units).
 * **How it works:**
   1. Queries the VDIV / VDIV Berlin-Brandenburg member directory (`verwaltersuche` filtered to `Berlin` / PLZ `10...–14...`).
   2. Uses `httpx` (with `playwright` fallback if dynamic JS filtering is active) to extract member company names, addresses, phone numbers, websites, and stated management specialties (*WEG-Verwaltung*, *Mietverwaltung*, *Gewerbeverwaltung*).
@@ -161,4 +161,3 @@ If Record A matches Record B (via phone), and Record B matches Record C (via web
   * **Website URL:** Prefer valid non-redirect corporate domain.
   * **Address & Phone:** Prefer complete address with valid 5-digit Berlin PLZ (`10115–14199`) and valid E.164 phone.
   * **Provenance Tracking:** Populate `source_list` (e.g., `"gelbe_seiten, 11880, vdiv"`) and `source_count` (e.g., `3`).
-

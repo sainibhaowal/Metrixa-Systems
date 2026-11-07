@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { 
-  Building2, 
-  Sparkles, 
-  UserCheck, 
-  MailCheck, 
-  Layers, 
+import {
+  Building2,
+  Sparkles,
+  UserCheck,
+  MailCheck,
+  Layers,
   Globe2,
   TrendingUp,
   FileCheck2,
@@ -16,13 +16,13 @@ import {
 import { fetchMetrics } from "@/lib/api";
 import { formatNumber } from "@/lib/utils";
 import Link from "next/link";
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  Tooltip, 
-  ResponsiveContainer, 
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
   Cell
 } from "recharts";
 

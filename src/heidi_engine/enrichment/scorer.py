@@ -12,7 +12,7 @@ Implements the 5-Pillar Mathematical Qualification Formula specified in
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple
 
 from heidi_engine.db import Database
 from heidi_engine.models import LeadTier, UnitsSizeTier
@@ -209,4 +209,3 @@ class LeadScorer:
 
 # Rebranded alias
 calculate_metrixa_lead_score = calculate_heidi_lead_score
-

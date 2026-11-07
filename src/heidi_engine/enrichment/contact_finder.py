@@ -9,7 +9,7 @@ from __future__ import annotations
 import asyncio
 import re
 from datetime import datetime, timezone
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, Optional, Tuple
 
 from heidi_engine.db import Database
 from heidi_engine.enrichment.email_verifier import email_verifier
@@ -259,4 +259,3 @@ class ContactEnricher:
             "mx_valid_domains": mx_valid_cnt,
             "personal_emails_ready": pers_email_cnt,
         }
-

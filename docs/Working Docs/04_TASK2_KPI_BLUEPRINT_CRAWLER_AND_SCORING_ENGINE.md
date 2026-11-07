@@ -1,20 +1,20 @@
 # 04 — Task 2 & Bonus Specification: Qualifying KPIs, Website/Impressum Crawler, LLM Extraction & Lead Scoring
 
-**Project Name:** Heidi Engine — Autonomous B2B Lead Discovery, Enrichment & Qualification System  
-**Document Order:** `04 of 06`  
+**Project Name:** Metrixa Engine — Autonomous B2B Lead Discovery, Enrichment & Qualification System
+**Document Order:** `04 of 06`
 **Purpose:** Complete specification for **Task 2** (*"Define and fill in qualifying KPIs"*) and the **Bonus Task** (*"Find the right contact person including their personal email address and LinkedIn profile"*).
 
 ---
 
-## 1. Business Logic: Why These Qualifying KPIs Matter to Heidi Systems
+## 1. Business Logic: Why These Qualifying KPIs Matter to Metrixa Systems
 
 Task 2 explicitly states: *"Think about which criteria are relevant for us to qualify a property management company as a potential customer (e.g. is this a good lead for us or not?). Which KPIs you choose, and why, is part of the task."*
 
-As a **metering service provider (*Messdienstleister*)**, Heidi Systems installs remotely readable submetering hardware (heat cost allocators, water meters, heat meters) and performs annual heating & operating cost billing (*Heizkostenabrechnung*). Therefore, an ideal *Hausverwaltung* customer is defined by **5 Strategic Qualification Pillars**:
+As a **metering service provider (*Messdienstleister*)**, Metrixa Systems installs remotely readable submetering hardware (heat cost allocators, water meters, heat meters) and performs annual heating & operating cost billing (*Heizkostenabrechnung*). Therefore, an ideal *Hausverwaltung* customer is defined by **5 Strategic Qualification Pillars**:
 
 ```mermaid
 flowchart TD
-    subgraph Pillars["5 Qualifying KPI Pillars for Heidi Systems"]
+    subgraph Pillars["5 Qualifying KPI Pillars for Metrixa Systems"]
         P1["Pillar 1: Portfolio Scale & Revenue Potential\n• Exact Managed Units (Wohneinheiten)\n• Estimated Unit Tier (<500, 500-2.5k, 2.5k-10k, 10k+)\n• Team Headcount & Legal Form (GmbH/AG vs e.K.)"]
         P2["Pillar 2: Asset & Management Focus (HeizkV Fit)\n• WEG-Verwaltung (Condo Associations)\n• Miet-/Zinshausverwaltung (Multi-Family Rentals)\n• Gewerbe (Commercial) vs. Sondereigentum (SEV)"]
         P3["Pillar 3: Digital Maturity & Switching Readiness\n• Online Owner/Tenant Portal (Kundenportal)\n• PropTech / ERP Software (Casavi, etg24, Domus, Wodis)\n• Digital Maturity Score (1-5)"]
@@ -28,7 +28,7 @@ flowchart TD
 
 ### 1.1 Complete Qualifying KPI Blueprint Table
 
-| Pillar | Column / KPI Name | Data Type | Why This KPI Qualifies a Lead for Heidi Systems | Extraction Method |
+| Pillar | Column / KPI Name | Data Type | Why This KPI Qualifies a Lead for Metrixa Systems | Extraction Method |
 | :--- | :--- | :--- | :--- | :--- |
 | **1. Scale** | `exact_units_managed` | `Integer \| Null` | Submetering revenue scales directly per apartment unit (*Wohneinheit*). Many proud *Hausverwaltungen* state on their site: *"Wir verwalten über 3.500 Wohneinheiten"*. | Website Crawler (`/`, `/ueber-uns`, `/referenzen`) + LLM Extractor |
 | **1. Scale** | `estimated_units_tier` | `Enum` (`<250`, `250-1,000`, `1,000-5,000`, `5,000+`) | When exact units aren't stated, sales still needs a reliable size bracket inferred from employee count, reference buildings, and legal structure. | Deterministic Heuristic + LLM Evidence Inference |
@@ -39,8 +39,8 @@ flowchart TD
 | **2. Focus** | `manages_gewerbe` | `Boolean` | Commercial multi-tenant buildings require complex thermal/electricity submetering. | Website `/leistungen` analysis |
 | **2. Focus** | `manages_sev` | `Boolean` | *Sondereigentumsverwaltung* (single apartments inside a WEG managed by someone else). Note: A company doing *only* SEV cannot switch the whole building's metering provider! | Website `/leistungen` analysis |
 | **3. Digital** | `has_customer_portal` | `Boolean` | If a *Hausverwaltung* offers a digital tenant/owner portal (*Kundenportal / Eigentümerportal*), they value digital automation and EED monthly consumption apps. | DOM Link Scanner + Website Text |
-| **3. Digital** | `detected_erp_proptech` | `String (CSV)` | Detecting **Casavi, etg24, Facilioo, Domus, Wodis Sigma, Haufe PowerHaus, Immoware24, Karthago** proves tech adoption and allows Heidi Systems to pitch seamless billing data integration! | Raw HTML/Script/Subdomain Regex Scanner + LLM |
-| **3. Digital** | `incumbent_metering_signal` | `String \| Null` | Mentions of legacy providers (*Techem, Ista, Brunata, Kalorimeta, Minol*) in tenant downloads/service pages reveal who Heidi Systems is displacing. | DOM/PDF link & text scanner |
+| **3. Digital** | `detected_erp_proptech` | `String (CSV)` | Detecting **Casavi, etg24, Facilioo, Domus, Wodis Sigma, Haufe PowerHaus, Immoware24, Karthago** proves tech adoption and allows Metrixa Systems to pitch seamless billing data integration! | Raw HTML/Script/Subdomain Regex Scanner + LLM |
+| **3. Digital** | `incumbent_metering_signal` | `String \| Null` | Mentions of legacy providers (*Techem, Ista, Brunata, Kalorimeta, Minol*) in tenant downloads/service pages reveal who Metrixa Systems is displacing. | DOM/PDF link & text scanner |
 | **3. Digital** | `digital_maturity_score` | `Integer (1–5)` | Composite score of website modernity, SSL, portal presence, PropTech stack, and online service forms. | Deterministic Formula |
 | **4. Trust** | `is_vdiv_member` | `Boolean` | VDIV Berlin-Brandenburg members are vetted, professional property managers with high compliance needs. | VDIV Scraper + Website Badge Detection |
 | **4. Trust** | `founding_year` | `Integer \| Null` | Established companies (e.g., founded 1995) have large legacy building stocks due for submetering hardware replacement (every 5–6 years under *Eichfrist*). | Website `/ueber-uns` + LLM Extractor |
@@ -176,7 +176,7 @@ We maintain **two separate columns** in the database and final Excel/Google Shee
 
 ## 5. Mathematical Lead Scoring & Tiering Algorithm (`scorer.py`)
 
-To make the spreadsheet immediately actionable for Heidi Systems' sales team, every company is scored from **`0` to `100` points** using a transparent, deterministic formula across our 5 pillars:
+To make the spreadsheet immediately actionable for Metrixa Systems' sales team, every company is scored from **`0` to `100` points** using a transparent, deterministic formula across our 5 pillars:
 
 $$\text{HeidiLeadScore} = S_{\text{scale}} (35) + S_{\text{focus}} (25) + S_{\text{digital}} (20) + S_{\text{trust}} (10) + S_{\text{contact}} (10)$$
 
@@ -191,8 +191,7 @@ $$\text{HeidiLeadScore} = S_{\text{scale}} (35) + S_{\text{focus}} (25) + S_{\te
 | **5. Contact Reachability ($S_{\text{contact}}$)** | **10 pts** | • Named Decision Maker (*Geschäftsführer* / *Inhaber*) extracted → **+4 pts**<br>• Personal email (`PUBLIC_DIRECT_VERIFIED` or `PATTERN_MX_VERIFIED`) → **+4 pts**<br>• Decision-maker or Company LinkedIn URL found → **+2 pts** |
 
 ### 5.2 Qualification Tiers
-* **🟢 `Tier A — High-Priority Target` (`Score 70 – 100`):** Mid-to-large Berlin *Hausverwaltung* (`GmbH`/`AG`), manages multi-family *WEG* + *Mietverwaltung*, digitally mature (or VDIV member), with named decision-maker & direct contact. **Action:** Immediate personalized sales outreach by Heidi Systems Account Executives.
+* **🟢 `Tier A — High-Priority Target` (`Score 70 – 100`):** Mid-to-large Berlin *Hausverwaltung* (`GmbH`/`AG`), manages multi-family *WEG* + *Mietverwaltung*, digitally mature (or VDIV member), with named decision-maker & direct contact. **Action:** Immediate personalized sales outreach by Metrixa Systems Account Executives.
 * **🟡 `Tier B — Qualified Mid-Market` (`Score 45 – 69`):** Solid residential property manager in Berlin with verified operations and decision-maker name, moderate size or moderate digital footprint. **Action:** Automated outbound sequence + LinkedIn outreach.
 * **⚪ `Tier C — Long-Tail / Small Portfolio` (`Score 20 – 44`):** Very small local manager, missing website, or limited portfolio data. **Action:** Low-touch marketing nurture.
 * **🔴 `Disqualified` (`Score < 20` or `is_actual_hausverwaltung == False`):** Pure real estate broker, facility cleaner, or non-Berlin entity. Excluded from main sales sheet.
-

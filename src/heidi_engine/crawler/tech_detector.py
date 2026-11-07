@@ -126,4 +126,3 @@ def scan_html_for_tech_and_contacts(raw_html: str) -> Dict[str, any]:
         "linkedin_urls": sorted(linkedin_set),
         "emails": sorted(email_set),
     }
-

@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Set, Tuple
 from rapidfuzz import fuzz
 
 from heidi_engine.config import map_berlin_plz_to_district
@@ -342,4 +342,3 @@ class EntityDeduplicator:
             "golden_clusters": len(clusters),
             "duplicates_merged": duplicates_merged,
         }
-

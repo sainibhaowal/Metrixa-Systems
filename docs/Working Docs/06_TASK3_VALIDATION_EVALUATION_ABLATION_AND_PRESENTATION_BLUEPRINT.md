@@ -1,17 +1,17 @@
 # 06 — Task 3 Specification: Data Validation, Evaluation, Ablation Study & Presentation Blueprint
 
-**Project Name:** Heidi Engine — Autonomous B2B Lead Discovery, Enrichment & Qualification System  
-**Document Order:** `06 of 06`  
+**Project Name:** Metrixa Engine — Autonomous B2B Lead Discovery, Enrichment & Qualification System
+**Document Order:** `06 of 06`
 **Purpose:** Complete specification for **Task 3** (*"Share your approach: Which sources, tools and automations did you use, and how did you validate the data? Please create a short presentation or doc for this"*), plus native local environment setup (SearXNG without Docker, local LLMs, cloud APIs).
 
 ---
 
 ## 1. 4-Layer Data Validation & Anti-Hallucination Architecture
 
-One of the explicit questions in Task 3 is: **"How did you validate the data?"**  
+One of the explicit questions in Task 3 is: **"How did you validate the data?"**
 When using LLMs and web scrapers for B2B lead generation, unvalidated pipelines suffer from three fatal flaws: (1) duplicate companies, (2) non-target businesses (cleaners/brokers mixed in), and (3) LLM hallucinations (invented unit counts or fake emails).
 
-Heidi Engine prevents these errors via a **4-Layer Deterministic Validation Gate**:
+Metrixa Engine prevents these errors via a **4-Layer Deterministic Validation Gate**:
 
 ```mermaid
 flowchart LR
@@ -46,7 +46,7 @@ flowchart LR
 | **1. Geographic Boundary Validation** | Directories return Brandenburg/Potsdam/Munich companies for `"Hausverwaltung Berlin"`. | Verify `10115 <= int(postal_code) <= 14199` OR verify explicit Berlin address inside the crawled *Impressum*. |
 | **2. Business Model Validation** | Directories list *Immobilienmakler* (brokers who only sell apartments) or *Hausmeisterservice* (janitors). | Dual check: (a) Regex exclusion list on raw categories, and (b) LLM boolean check `is_actual_hausverwaltung` verifying the site offers *WEG-Verwaltung*, *Mietverwaltung*, or *Gewerbeverwaltung*. |
 | **3. Anti-Hallucination Substring Check** | An LLM might guess `exact_units_managed = 2000` or invent a *Geschäftsführer* name when none is on the page. | **Hard Programmatic Check:** For every extracted `exact_units_managed` and `DecisionMakerExtracted.full_name`, Python verifies that the extracted number or surname literally appears in the crawled page text (`clean_markdown`). If absent, the value is rejected (`hallucination_blocked = True`). |
-| **4. Email & Domain DNS `MX` Validation** | Dead domains or typos in emails cause hard bounces for Heidi Systems' sales reps. | Every company domain and email domain is queried via `dns.resolver.resolve(domain, 'MX')`. Only domains with active Mail Exchange records pass (`mx_valid = True`). |
+| **4. Email & Domain DNS `MX` Validation** | Dead domains or typos in emails cause hard bounces for Metrixa Systems' sales reps. | Every company domain and email domain is queried via `dns.resolver.resolve(domain, 'MX')`. Only domains with active Mail Exchange records pass (`mx_valid = True`). |
 
 ---
 
@@ -70,9 +70,9 @@ Our evaluation report (`data/exports/evaluation_ablation_report.md`) automatical
 | **Stage 1 + 2:** Multi-Source Scrapers (*GS + 11880 + VDIV + OSM*) + Entity Deduplication | ~950+ | ~76% | ~12% *(VDIV flags only)* | 0% | ~5% |
 | **Stage 3:** + Async Website & *Impressum* Crawler + DOM ERP Scanner (*No LLM*) | ~950+ | ~84% | ~35% *(DOM ERP + Regex)* | ~25% *(Regex only)* | ~18% |
 | **Stage 4:** + Multi-LLM Structured *Impressum* & KPI Extractor (*With Evidence Gate*) | ~950+ | ~84% | **~88%** | **~86%** | ~48% |
-| **Stage 5 (Full Heidi Engine):** + SearXNG / Tavily LinkedIn & Contact Agent + DNS MX Pattern Verifier | **~950+ Verified** | **~91%** | **~92%** | **~91%** | **~82% Verified / MX-Valid** |
+| **Stage 5 (Full Metrixa Engine):** + SearXNG / Tavily LinkedIn & Contact Agent + DNS MX Pattern Verifier | **~950+ Verified** | **~91%** | **~92%** | **~91%** | **~82% Verified / MX-Valid** |
 
-*(Note: The exact numbers in this table are dynamically computed from `heidi_leads.db` when `python -m heidi_engine evaluate` runs!)*
+*(Note: The exact numbers in this table are dynamically computed from `metrixa_leads.db` when `python -m heidi_engine evaluate` runs!)*
 
 ### 2.3 Multi-Provider LLM Benchmark Table (Optional 30-Lead Comparison)
 Because our `LLMRouter` supports local models (`llama.cpp` / `LM Studio`), `NVIDIA NIM`, `DeepSeek API`, and `Gemini API`, running `python -m heidi_engine benchmark-llms` on the 30-company Gold Set generates a real engineering comparison table of **JSON Schema Pass Rate, Extraction F1, Latency (ms/company), and Cost per 1,000 Leads**.
@@ -126,7 +126,7 @@ TAVILY_MAX_CALLS_PER_RUN=400
 
 ## 4. Blueprint for the Task 3 Presentation / Document Deliverable
 
-When submitting to Heidi Systems, we will generate a polished, executive-ready **Methodology & Architecture Document / Presentation (`docs/Task3_Heidi_Systems_Case_Study_Presentation.md` + PDF/HTML export)** structured into **7 crisp sections**:
+When submitting to Metrixa Systems, we will generate a polished, executive-ready **Methodology & Architecture Document / Presentation (`docs/Task3_Heidi_Systems_Case_Study_Presentation.md` + PDF/HTML export)** structured into **7 crisp sections**:
 
 1. **Slide 1 — Executive Summary & Results at a Glance:**
    * Total Berlin *Hausverwaltungen* discovered, deduplicated count, number of `Tier A` priority leads, decision-makers identified, and link to the Google Sheet + GitHub Repository.
@@ -135,11 +135,10 @@ When submitting to Heidi Systems, we will generate a polished, executive-ready *
 3. **Slide 3 — Task 1: Multi-Source Berlin Discovery & Entity Resolution:**
    * Why combining *Gelbe Seiten, 11880, VDIV Berlin-Brandenburg, OpenStreetMap,* and *SearXNG/Tavily* beat single-source scraping, and how our Union-Find + RapidFuzz deduplicator merged duplicate listings.
 4. **Slide 4 — Task 2: Qualifying KPI Framework & Lead Scoring for Metering:**
-   * Why **Portfolio Units (*Wohneinheiten*)**, **WEG/Miet Focus**, and **Digital Maturity / ERP Stack (*Casavi, Domus, Wodis, etg24*)** are the strongest buying signals for Heidi Systems, plus the `0–100` scoring formula.
+   * Why **Portfolio Units (*Wohneinheiten*)**, **WEG/Miet Focus**, and **Digital Maturity / ERP Stack (*Casavi, Domus, Wodis, etg24*)** are the strongest buying signals for Metrixa Systems, plus the `0–100` scoring formula.
 5. **Slide 5 — Bonus Task: Decision-Maker & Personal Email Resolution:**
    * Leveraging German § 5 DDG *Impressum* law to extract *Geschäftsführer* names, combined with LinkedIn dorking and DNS `MX` verification to separate personal emails from generic `info@` addresses.
 6. **Slide 6 — Data Validation & Anti-Hallucination Engineering:**
    * How the 4-layer validation gate guarantees 0% hallucinated unit counts or fake contacts via mandatory verbatim evidence quotes.
 7. **Slide 7 — Quantitative Evaluation, Ablation Study & Unit Economics:**
    * Real Precision/Recall/F1 numbers on the 30-company Gold Set, the Stage 1–5 Ablation table, and total compute/API cost per 1,000 leads (`<$1.50`).
-

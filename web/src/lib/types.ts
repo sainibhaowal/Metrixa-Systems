@@ -126,4 +126,3 @@ export interface ToolItem {
   description: string;
   records_extracted: number;
 }
-

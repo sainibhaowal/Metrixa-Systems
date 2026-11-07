@@ -87,4 +87,3 @@ def test_api_provider_ping(client: TestClient) -> None:
     assert data["status"] == "ok"
     assert "PONG" in data["reply"]
     assert data["latency_ms"] >= 0
-

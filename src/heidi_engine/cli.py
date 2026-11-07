@@ -7,7 +7,6 @@ and full end-to-end pipeline orchestration via Typer & Rich.
 from __future__ import annotations
 
 import asyncio
-from pathlib import Path
 from typing import Optional
 import typer
 from rich.console import Console
@@ -23,7 +22,6 @@ from rich.progress import (
 from rich.table import Table
 from rich.text import Text
 
-from heidi_engine.config import settings
 from heidi_engine.crawler.url_resolver import MissingURLResolver
 from heidi_engine.crawler.web_crawler import AsyncWebsiteCrawler
 from heidi_engine.db import Database
@@ -477,4 +475,3 @@ def cmd_run_all(
 
 if __name__ == "__main__":
     app()
-

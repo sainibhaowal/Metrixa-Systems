@@ -1,14 +1,14 @@
 # 05 — Database Schema, Pipeline State Machine & Excel/Google Sheets Deliverable Spec
 
-**Project Name:** Heidi Engine — Autonomous B2B Lead Discovery, Enrichment & Qualification System  
-**Document Order:** `05 of 06`  
+**Project Name:** Metrixa Engine — Autonomous B2B Lead Discovery, Enrichment & Qualification System
+**Document Order:** `05 of 06`
 **Purpose:** Complete relational database design (`SQLite WAL`), pipeline state transitions, and the exact column-by-column structure of the final multi-tab Excel (`.xlsx`) / Google Sheets deliverable.
 
 ---
 
-## 1. Entity-Relationship (ER) Diagram (`data/heidi_leads.db`)
+## 1. Entity-Relationship (ER) Diagram (`data/metrixa_leads.db`)
 
-All data across every stage of Heidi Engine is persisted in a single, portable SQLite database (`data/heidi_leads.db`) configured with `PRAGMA journal_mode=WAL;` and `PRAGMA foreign_keys=ON;`.
+All data across every stage of Metrixa Engine is persisted in a single, portable SQLite database (`data/metrixa_leads.db`) configured with `PRAGMA journal_mode=WAL;` and `PRAGMA foreign_keys=ON;`.
 
 ```mermaid
 erDiagram
@@ -143,7 +143,7 @@ stateDiagram-v2
     CRAWLED --> EXTRACTED: Stage 4 (Multi-LLM KPI & Impressum Extraction)
     EXTRACTED --> DISQUALIFIED: LLM confirms not a Hausverwaltung
     EXTRACTED --> ENRICHED: Stage 5 (SearXNG/Tavily LinkedIn + DNS MX Email Verifier)
-    ENRICHED --> SCORED: Stage 5b (Deterministic 0-100 Heidi Lead Scorer)
+    ENRICHED --> SCORED: Stage 5b (Deterministic 0-100 Metrixa Lead Scorer)
     SCORED --> [*]: Stage 6 (Export to Multi-Tab .xlsx & Evaluation Report)
 ```
 
@@ -151,18 +151,18 @@ stateDiagram-v2
 
 ## 3. Exact Specification of the Final Excel (`.xlsx`) & Google Sheets Deliverable
 
-Since we have no web frontend, the **Excel / Google Sheet workbook (`data/exports/heidi_berlin_hausverwaltungen.xlsx`)** is the centerpiece visual deliverable that Heidi Systems will inspect.
+Since we have no web frontend, the **Excel / Google Sheet workbook (`data/exports/metrixa_berlin_hausverwaltungen.xlsx`)** is the centerpiece visual deliverable that Metrixa Systems will inspect.
 
 Our `ExcelExporter` (`src/heidi_engine/telemetry/excel_exporter.py`) automatically builds a **4-Tab Workbook** with corporate styling (dark navy headers `#1B365D`, frozen top row, auto-fitted column widths, color-coded `Tier A/B/C` badges, and clickable URLs):
 
 ### 3.1 Tab 1: `Qualified_Berlin_Leads` (Primary Master Table)
-Sorted by `Heidi Lead Score (0–100)` descending so the very best leads appear at the top.
+Sorted by `Metrixa Lead Score (0–100)` descending so the very best leads appear at the top.
 
 | Col # | Column Header in Sheet | Source / Calculation | Example Value |
 | :---: | :--- | :--- | :--- |
 | **A** | `Lead ID` | Formatted Golden ID | `HEIDI-BER-0001` |
 | **B** | `Lead Tier` | Color-coded badge (`Tier A`, `Tier B`, `Tier C`) | `Tier A (High Priority)` |
-| **C** | `Heidi Lead Score (0-100)` | Deterministic formula (`scorer.py`) | `88` |
+| **C** | `Metrixa Lead Score (0-100)` | Deterministic formula (`scorer.py`) | `88` |
 | **D** | `Company Name` | Official display/legal name | `BVBI Berliner Vereinigung für Immobilienmanagement GmbH` |
 | **E** | `Legal Form` | Extracted legal entity type | `GmbH` |
 | **F** | `District (Bezirk)` | Mapped from Berlin PLZ | `Charlottenburg-Wilmersdorf` |
@@ -201,6 +201,5 @@ Shows the exact URLs crawled (`impressum_url`, `team_url`, `services_url`), HTTP
 
 ### 3.4 Tab 4: `KPI_Methodology_And_Summary` (Executive Dashboard inside the Sheet)
 Automatically populated summary table right inside Excel/Google Sheets explaining:
-1. Why each KPI was chosen for Heidi Systems and how the `0–100` Lead Score is weighted.
+1. Why each KPI was chosen for Metrixa Systems and how the `0–100` Lead Score is weighted.
 2. Live dataset statistics (Total Raw Scraped → Total Deduplicated Berlin Companies → Tier A / B / C counts → % with Verified Website → % with Named Decision Maker → % with Personal Email / LinkedIn).
-

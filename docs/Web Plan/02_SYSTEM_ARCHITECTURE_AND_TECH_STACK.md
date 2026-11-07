@@ -1,17 +1,17 @@
-# 02 — System Architecture & Full-Stack Tech Stack: Heidi Cockpit
+# 02 — System Architecture & Full-Stack Tech Stack: Metrixa Cockpit
 
-**Project Name:** Heidi Cockpit — Autonomous LeadOps & Metering Intelligence Suite  
-**Document Order:** `02 of 06` in `docs/Web Plan/`  
-**Location:** `C:\Users\Ravin\Projects\Projetcs Alpha\Heidi Systems\docs\Web Plan\02_SYSTEM_ARCHITECTURE_AND_TECH_STACK.md`
+**Project Name:** Metrixa Cockpit — Autonomous LeadOps & Metering Intelligence Suite
+**Document Order:** `02 of 06` in `docs/Web Plan/`
+**Location:** `C:\Users\Ravin\Projects\Projetcs Alpha\Metrixa Systems\docs\Web Plan\02_SYSTEM_ARCHITECTURE_AND_TECH_STACK.md`
 
 ---
 
 ## 1. High-Level Full-Stack System Architecture
 
-Heidi Cockpit utilizes a **Decoupled Modern Full-Stack Architecture**:
+Metrixa Cockpit utilizes a **Decoupled Modern Full-Stack Architecture**:
 - **Frontend Layer:** **Next.js 14+ (App Router)** with **TypeScript**, **Tailwind CSS**, and **shadcn/ui** components. Designed for maximum responsiveness, visual elegance, and accessibility.
 - **Backend API Gateway & Process Bridge:** High-performance **FastAPI (Python 3.12)** service that exposes REST endpoints and a **Server-Sent Events (SSE)** event bus. This bridge directly imports and orchestrates the existing `heidi_engine` modules without subprocess overhead.
-- **Data Persistence:** Shared **SQLite 3 (WAL Mode)** database (`data/heidi_leads.db`), ensuring atomic concurrent reads and writes between the web API and pipeline workers.
+- **Data Persistence:** Shared **SQLite 3 (WAL Mode)** database (`data/metrixa_leads.db`), ensuring atomic concurrent reads and writes between the web API and pipeline workers.
 
 ```mermaid
 flowchart TB
@@ -28,7 +28,7 @@ flowchart TB
         ORCH["Pipeline Orchestrator\n(Threadpool / Async Workers for heidi_engine)"]
     end
 
-    subgraph Core_Engine["Heidi Engine Backend (Existing Core Modules)"]
+    subgraph Core_Engine["Metrixa Engine Backend (Existing Core Modules)"]
         SCRAPERS["Stage 1 Scrapers (Gelbe Seiten, 11880, VDIV, OSM, Search)"]
         DEDUPE["Stage 2 Deduplicator (RapidFuzz + Union-Find)"]
         CRAWLER["Stage 3 Async Crawler & DOM Tech Detector"]
@@ -38,7 +38,7 @@ flowchart TB
     end
 
     subgraph Storage["Persistence & Artifacts"]
-        DB[("data/heidi_leads.db (SQLite WAL)")]
+        DB[("data/metrixa_leads.db (SQLite WAL)")]
         EXPORTS["data/exports/ (*.xlsx, *.csv, *.md)"]
     end
 
@@ -83,7 +83,7 @@ flowchart TB
 The web application is structured cleanly inside `web/` alongside the existing `src/heidi_engine/`:
 
 ```text
-Heidi Systems/
+Metrixa Systems/
 ├── src/
 │   └── heidi_engine/                          # Existing Python Core Engine
 │       ├── scrapers/                          # Stage 1 Scrapers
@@ -164,13 +164,13 @@ sequenceDiagram
     actor User as Sales Operator
     participant UI as Next.js Web Cockpit
     participant API as FastAPI Gateway
-    participant Engine as Heidi Engine Worker
-    participant DB as SQLite (heidi_leads.db)
+    participant Engine as Metrixa Engine Worker
+    participant DB as SQLite (metrixa_leads.db)
 
     User->>UI: Clicks "Run Pipeline: Stage 4 (Extract)"
     UI->>API: POST /api/pipeline/run { stage: "extract", provider: "deepseek" }
     API-->>UI: 202 Accepted { run_id: "run-20261107-01" }
-    
+
     UI->>API: GET /api/pipeline/stream?run_id=run-20261107-01 (SSE)
     activate API
     API-->>UI: Event: "RUN_STARTED" (0% complete)
@@ -193,4 +193,3 @@ sequenceDiagram
     UI->>UI: Toast notification "Stage 4 Finished Successfully"
     UI->>API: Invalidate /api/metrics & refresh dashboard
 ```
-

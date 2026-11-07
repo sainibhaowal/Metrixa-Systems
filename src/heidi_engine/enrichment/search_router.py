@@ -10,7 +10,7 @@ from __future__ import annotations
 import asyncio
 import random
 import urllib.parse
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 import httpx
 from selectolax.lexbor import LexborHTMLParser as HTMLParser
 

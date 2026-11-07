@@ -11,7 +11,7 @@ import sqlite3
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Generator, List, Optional, Tuple
+from typing import Any, Dict, Generator, List, Optional
 
 from heidi_engine.config import settings
 from heidi_engine.models import RawListing
@@ -380,4 +380,3 @@ class Database:
                 "companies_with_linkedin": linkedin_cnt,
                 "llm_stats": dict(llm_stats) if llm_stats else {},
             }
-

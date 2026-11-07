@@ -1,17 +1,17 @@
-# 01 — Web PRD & Requirements Engineering: Heidi Cockpit
+# 01 — Web PRD & Requirements Engineering: Metrixa Cockpit
 
-**Project Name:** Heidi Cockpit — Autonomous LeadOps & Metering Intelligence Suite  
-**Target Organization:** Heidi Systems GmbH (Berlin, Germany)  
-**Parent Pipeline:** `heidi-engine` (Python 3.12, SQLite WAL, Multi-LLM, Async Crawler)  
-**Document Order:** `01 of 06` in `docs/Web Plan/`  
-**Location:** `C:\Users\Ravin\Projects\Projetcs Alpha\Heidi Systems\docs\Web Plan\01_WEB_PRD_AND_REQUIREMENTS_ENGINEERING.md`
+**Project Name:** Metrixa Cockpit — Autonomous LeadOps & Metering Intelligence Suite
+**Target Organization:** Metrixa Systems GmbH (Berlin, Germany)
+**Parent Pipeline:** `heidi-engine` (Python 3.12, SQLite WAL, Multi-LLM, Async Crawler)
+**Document Order:** `01 of 06` in `docs/Web Plan/`
+**Location:** `C:\Users\Ravin\Projects\Projetcs Alpha\Metrixa Systems\docs\Web Plan\01_WEB_PRD_AND_REQUIREMENTS_ENGINEERING.md`
 
 ---
 
 ## 1. Executive Summary & Product Vision
 
 ### 1.1 The Problem
-While the backend CLI (`heidi.bat`) successfully discovered, deduplicated, enriched, and scored **1,199 Berlin property management companies (*Hausverwaltungen*)**, terminal commands are unsuited for non-technical sales leaders, GTM operators, and executive hiring panels at Heidi Systems. 
+While the backend CLI (`metrixa.bat`) successfully discovered, deduplicated, enriched, and scored **1,199 Berlin property management companies (*Hausverwaltungen*)**, terminal commands are unsuited for non-technical sales leaders, GTM operators, and executive hiring panels at Metrixa Systems.
 
 A production B2B intelligence system demands an **interactive, intuitive Web Cockpit** that allows stakeholders to:
 1. Visually monitor lead health, tier distribution, district penetration, and PropTech ERP adoption.
@@ -22,7 +22,7 @@ A production B2B intelligence system demands an **interactive, intuitive Web Coc
 
 ### 1.2 Core Product Philosophy: Enterprise Software, NOT an AI Chatbot
 > [!IMPORTANT]
-> **Heidi Cockpit is a high-performance B2B Operations Software Application, NOT a generic conversational chatbot.**
+> **Metrixa Cockpit is a high-performance B2B Operations Software Application, NOT a generic conversational chatbot.**
 > - **NO Chat Bubbles:** Operators do not "chat" with their CRM. They manipulate filters, trigger idempotent workflows, drill down into evidence, and export datasets.
 > - **Deterministic Controls with AI Enrichment:** AI models (DeepSeek, Gemini, NIM, local models) work behind the scenes to parse complex German *Impressum* structures and synthesize qualification reasoning. The user interface exposes actionable toggles, data grids, metrics, and audit logs.
 > - **Complete Grounding & Evidence Traceability:** Every decision-maker name, personal email, and portfolio metric displayed in the UI is tied to an auditable source URL, HTTP status code, and verbatim text quote.
@@ -31,7 +31,7 @@ A production B2B intelligence system demands an **interactive, intuitive Web Coc
 
 ## 2. Brand Identity & Design System
 
-### 2.1 Brand Concept: "Heidi Cockpit"
+### 2.1 Brand Concept: "Metrixa Cockpit"
 - **Identity:** Smart Metering Intelligence & Autonomous GTM Command Center.
 - **Tone:** Professional, Scandinavian/German minimalism, high information density, precise typography, zero fluff.
 
@@ -51,7 +51,7 @@ A production B2B intelligence system demands an **interactive, intuitive Web Coc
 
 ```mermaid
 flowchart TD
-    subgraph Personas["Key Users at Heidi Systems"]
+    subgraph Personas["Key Users at Metrixa Systems"]
         AE["Account Executive / Sales Rep\n'Needs verified Geschäftsführer emails & phone numbers'"]
         REV["Head of Revenue / Sales Ops\n'Needs market TAM in Berlin, district penetration & ERP counts'"]
         AIE["AI Agent Engineer / Hiring Panel\n'Needs to inspect pipeline latency, LLM extraction & zero hallucination'"]
@@ -128,7 +128,7 @@ flowchart TD
   - `[Download Excel (.xlsx)]` (Formatted 4-tab workbook with corporate styling)
   - `[Download Master CSV]` (Raw RFC-compliant CSV)
   - `[Download Evaluation Report (.md)]` (Ablation study & precision/recall report)
-- **FR-W6.2:** Display a **Google Sheets 1-Click Link** with timestamp and direct instructions for sharing with Heidi Systems' hiring team.
+- **FR-W6.2:** Display a **Google Sheets 1-Click Link** with timestamp and direct instructions for sharing with Metrixa Systems' hiring team.
 
 ### FR-W7: Settings & Provider Configuration Hub
 - **FR-W7.1:** Manage active LLM providers via interactive cards:
@@ -154,4 +154,3 @@ flowchart TD
 | **NFR-W4: State Persistence** | User settings, provider keys, active filters | Persisted automatically to `localStorage` & `.env` bridge |
 | **NFR-W5: Reliability & Resumability** | Network disconnection during long pipeline run | Pipeline execution runs independently in backend; UI reconnects seamlessly to current state |
 | **NFR-W6: Security & Privacy** | Handling of API keys and B2B emails | Keys stored locally; personal contact details strictly tied to public § 5 DDG Impressum sources |
-

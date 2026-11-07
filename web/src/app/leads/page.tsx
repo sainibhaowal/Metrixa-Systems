@@ -1,16 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { 
-  Search, 
-  Filter, 
-  ExternalLink, 
-  Building2, 
-  User, 
-  Mail, 
-  Sparkles, 
-  Eye, 
-  Copy, 
+import {
+  Search,
+  Filter,
+  ExternalLink,
+  Building2,
+  User,
+  Mail,
+  Sparkles,
+  Eye,
+  Copy,
   Check,
   ChevronLeft,
   ChevronRight,

@@ -1,19 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { 
-  X, 
-  ShieldCheck, 
-  ExternalLink, 
-  Copy, 
-  Check, 
-  Building2, 
-  User, 
-  Mail, 
-  Phone, 
-  MapPin, 
-  FileText, 
-  Layers, 
+import {
+  X,
+  ShieldCheck,
+  ExternalLink,
+  Copy,
+  Check,
+  Building2,
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  FileText,
+  Layers,
   CheckCircle2,
   AlertTriangle
 } from "lucide-react";

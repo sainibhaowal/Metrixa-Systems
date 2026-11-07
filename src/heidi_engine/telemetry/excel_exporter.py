@@ -468,4 +468,3 @@ class ExcelExporter:
             "total_exported_leads": len(master_rows),
             "total_exported_contacts": len(dm_rows),
         }
-

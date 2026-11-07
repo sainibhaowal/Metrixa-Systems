@@ -75,4 +75,3 @@ export async function pingSearchProvider(data: { provider: string; base_url?: st
   if (!res.ok) throw new Error("Failed to ping search provider");
   return res.json();
 }
-

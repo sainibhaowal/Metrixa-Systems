@@ -1,18 +1,18 @@
-# 05 — Phased Implementation Plan & Execution Roadmap: Heidi Cockpit
+# 05 — Phased Implementation Plan & Execution Roadmap: Metrixa Cockpit
 
-**Project Name:** Heidi Cockpit — Autonomous LeadOps & Metering Intelligence Suite  
-**Document Order:** `05 of 06` in `docs/Web Plan/`  
-**Location:** `C:\Users\Ravin\Projects\Projetcs Alpha\Heidi Systems\docs\Web Plan\05_PHASED_IMPLEMENTATION_PLAN_AND_ROADMAP.md`
+**Project Name:** Metrixa Cockpit — Autonomous LeadOps & Metering Intelligence Suite
+**Document Order:** `05 of 06` in `docs/Web Plan/`
+**Location:** `C:\Users\Ravin\Projects\Projetcs Alpha\Metrixa Systems\docs\Web Plan\05_PHASED_IMPLEMENTATION_PLAN_AND_ROADMAP.md`
 
 ---
 
 ## 1. Implementation Philosophy
 
-To ensure zero downtime, robust code quality, and predictable progress, the implementation of **Heidi Cockpit** is partitioned into **5 sequential phases**. Each phase produces a testable, independently verifiable artifact.
+To ensure zero downtime, robust code quality, and predictable progress, the implementation of **Metrixa Cockpit** is partitioned into **5 sequential phases**. Each phase produces a testable, independently verifiable artifact.
 
 ```mermaid
 gantt
-    title Heidi Cockpit Implementation Roadmap
+    title Metrixa Cockpit Implementation Roadmap
     dateFormat  YYYY-MM-DD
     section Phase 1: Bridge & Setup
     FastAPI Bridge & SSE Bus       :p1_1, 2026-11-08, 1d
@@ -99,11 +99,10 @@ gantt
 - **Goal:** Finalize export deliverables, documentation, and automated tests.
 - **Tasks:**
   - **Artifacts Vault (`/artifacts`):**
-    - Connect download buttons to stream `heidi_berlin_hausverwaltungen.xlsx` and `heidi_berlin_leads_master.csv`.
+    - Connect download buttons to stream `metrixa_berlin_hausverwaltungen.xlsx` and `metrixa_berlin_leads_master.csv`.
     - Render formatted Markdown preview of `evaluation_ablation_report.md`.
     - Provide 1-click Google Sheets export URL.
   - **Testing & QA:**
     - Run Vitest component tests on table filtering and evidence drawer.
     - Run Playwright E2E test verifying end-to-end navigation from Dashboard $\to$ Leads $\to$ Drawer $\to$ Export.
 - **Exit Criteria:** All 6 views fully functional, 100% test pass rate, and zero console errors.
-

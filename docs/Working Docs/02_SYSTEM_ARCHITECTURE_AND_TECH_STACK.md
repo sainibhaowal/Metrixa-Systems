@@ -1,14 +1,14 @@
 # 02 — System Architecture, Tech Stack & Codebase Blueprint
 
-**Project Name:** Heidi Engine — Autonomous B2B Lead Discovery, Enrichment & Qualification System  
-**Document Order:** `02 of 06`  
+**Project Name:** Metrixa Engine — Autonomous B2B Lead Discovery, Enrichment & Qualification System
+**Document Order:** `02 of 06`
 **Purpose:** Complete end-to-end production system design, multi-provider LLM & search harness architecture, technology stack justification (*what* each tool is and *why* we use it), and exact repository directory layout.
 
 ---
 
 ## 1. High-Level End-to-End System Architecture
 
-Heidi Engine is designed as a **6-Stage Stateful Agentic Pipeline** backed by a local **SQLite Database (`heidi_leads.db`)**. Every stage reads from and writes to SQLite so that the pipeline is 100% resumable, deterministic where possible, and auditable at every step.
+Metrixa Engine is designed as a **6-Stage Stateful Agentic Pipeline** backed by a local **SQLite Database (`metrixa_leads.db`)**. Every stage reads from and writes to SQLite so that the pipeline is 100% resumable, deterministic where possible, and auditable at every step.
 
 ```mermaid
 flowchart TB
@@ -42,7 +42,7 @@ flowchart TB
     subgraph Stage5["Stage 5: Contact Enrichment, Email Verification & Scoring (Task 2 & Bonus)"]
         LI_AGENT["Decision-Maker LinkedIn & Email Agent\n(SearXNG / Tavily Dorks)"]
         MX_VER["DNS MX & Email Pattern Verifier\n(Personal vs. info@ Separation)"]
-        SCORER["Deterministic Heidi Lead Scorer\n(0-100 Score & Tier A / B / C)"]
+        SCORER["Deterministic Metrixa Lead Scorer\n(0-100 Score & Tier A / B / C)"]
     end
 
     subgraph Stage6["Stage 6: Outputs, Evaluation & Deliverables (Task 3)"]
@@ -146,7 +146,7 @@ Every library in this stack has a specific engineering purpose. We include **no 
 
 ### 3.4 Storage, CLI, Reporting & Export Stack (Deliverables without a Frontend)
 * **`sqlite3` (Built-in Python with WAL Mode enabled)**
-  * **What it is:** Embedded relational SQL database (`data/heidi_leads.db`) running in Write-Ahead Logging (`WAL`) mode for concurrent reads/writes.
+  * **What it is:** Embedded relational SQL database (`data/metrixa_leads.db`) running in Write-Ahead Logging (`WAL`) mode for concurrent reads/writes.
   * **Why we use it:** Zero server setup, single portable file, full SQL query power, complete audit logging, and instant resuming if interrupted.
 * **`typer` & `rich`**
   * **What it is:** Modern CLI framework and terminal dashboard renderer.
@@ -159,10 +159,10 @@ Every library in this stack has a specific engineering purpose. We include **no 
 
 ## 4. Production Codebase Directory Structure
 
-Below is the exact folder structure we will build inside `c:\Users\Ravin\Projects\Projetcs Alpha\Heidi Systems`. Every file has a single, clear responsibility:
+Below is the exact folder structure we will build inside `c:\Users\Ravin\Projects\Projetcs Alpha\Metrixa Systems`. Every file has a single, clear responsibility:
 
 ```text
-Heidi Systems/
+Metrixa Systems/
 ├── README.md                                  # Quickstart, CLI commands & Architecture overview
 ├── pyproject.toml                             # Dependencies & project configuration
 ├── .env.example                               # Template for API keys & local endpoints
@@ -176,11 +176,11 @@ Heidi Systems/
 │   └── 06_TASK3_VALIDATION_EVALUATION_ABLATION_AND_PRESENTATION_BLUEPRINT.md
 │
 ├── data/                                      # Runtime Persistence (Git-ignored except gold set)
-│   ├── heidi_leads.db                         # Central SQLite database (all stages & audit logs)
+│   ├── metrixa_leads.db                         # Central SQLite database (all stages & audit logs)
 │   ├── gold_set_berlin_30.json                # 30 hand-verified Berlin companies for Task 3 evaluation
 │   └── exports/                               # Generated deliverables
-│       ├── heidi_berlin_hausverwaltungen.xlsx # Main multi-tab Excel / Google Sheets deliverable
-│       ├── heidi_berlin_leads_master.csv      # Clean CSV export
+│       ├── metrixa_berlin_hausverwaltungen.xlsx # Main multi-tab Excel / Google Sheets deliverable
+│       ├── metrixa_berlin_leads_master.csv      # Clean CSV export
 │       └── evaluation_ablation_report.md      # Auto-generated Task 3 metrics & ablation tables
 │
 ├── src/
@@ -217,7 +217,7 @@ Heidi Systems/
 │       │   ├── search_router.py               # Local SearXNG primary + Tavily API fallback client
 │       │   ├── contact_finder.py              # LinkedIn profile & decision-maker personal email enricher
 │       │   ├── email_verifier.py              # DNS MX record lookup, info@ filter & pattern generator
-│       │   └── scorer.py                      # Deterministic 0-100 Heidi Lead Score & Tier A/B/C calculator
+│       │   └── scorer.py                      # Deterministic 0-100 Metrixa Lead Score & Tier A/B/C calculator
 │       │
 │       └── telemetry/                         # STAGE 6: Task 3 Export, Evaluation & Ablation
 │           ├── excel_exporter.py              # Formatted multi-tab .xlsx & CSV builder
@@ -238,12 +238,11 @@ Because there is no web frontend to maintain, the entire system is operated via 
 
 | Step | CLI Command | What Happens Under the Hood |
 | :--- | :--- | :--- |
-| **1. Initialize DB** | `python -m heidi_engine init` | Creates `data/heidi_leads.db` with all SQLite tables and indexes. |
+| **1. Initialize DB** | `python -m heidi_engine init` | Creates `data/metrixa_leads.db` with all SQLite tables and indexes. |
 | **2. Scrape Berlin** | `python -m heidi_engine ingest --all` | Runs `Gelbe Seiten`, `11880`, `VDIV`, `OSM Overpass`, and `SearXNG` discovery in Berlin; saves to `raw_listings`. |
 | **3. Deduplicate** | `python -m heidi_engine deduplicate` | Normalizes names/domains/phones, filters out non-Berlin or non-Hausverwaltung noise, clusters duplicates into `companies_golden`. |
 | **4. Crawl Websites** | `python -m heidi_engine crawl` | Resolves missing URLs via SearXNG, crawls homepage + `/impressum` + `/team` + `/leistungen`, detects ERP/portal signatures (`Casavi`, `Domus`, etc.). |
 | **5. Extract KPIs** | `python -m heidi_engine extract --provider deepseek` *(or `local`, `nim`, `gemini`)* | Runs the LLM extraction harness over crawled pages to populate portfolio units, WEG/Miet focus, and *Geschäftsführer* names with evidence quotes. |
 | **6. Enrich Contacts** | `python -m heidi_engine enrich-contacts` | Searches SearXNG/Tavily for decision-maker LinkedIn URLs and personal emails; verifies DNS `MX` records. |
-| **7. Score & Export** | `python -m heidi_engine export` | Computes the `0–100` Heidi Lead Score, assigns Tiers (`A`, `B`, `C`), and generates `data/exports/heidi_berlin_hausverwaltungen.xlsx`. |
+| **7. Score & Export** | `python -m heidi_engine export` | Computes the `0–100` Metrixa Lead Score, assigns Tiers (`A`, `B`, `C`), and generates `data/exports/metrixa_berlin_hausverwaltungen.xlsx`. |
 | **8. Evaluate (Task 3)** | `python -m heidi_engine evaluate` | Runs precision/recall evaluation and stage ablation metrics, writing `data/exports/evaluation_ablation_report.md`. |
-

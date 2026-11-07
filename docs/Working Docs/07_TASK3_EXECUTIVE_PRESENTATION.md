@@ -1,18 +1,18 @@
 # 07 — Task 3 Deliverable: Executive Methodology, Architecture & Validation Presentation
 
-**Candidate:** Ravinder  
-**Role Applied For:** AI Agent Builder @ **Heidi Systems GmbH**  
-**Case Study Deliverables:**  
-1. **Master Excel / Google Sheets Workbook:** [`data/exports/heidi_berlin_hausverwaltungen.xlsx`](../data/exports/heidi_berlin_hausverwaltungen.xlsx) *(4 Tabs: `Qualified_Berlin_Leads`, `All_Decision_Makers_Contacts`, `Evidence_And_Audit_Trail`, `KPI_Methodology_And_Summary`)*  
-2. **Master CSV Export:** [`data/exports/heidi_berlin_leads_master.csv`](../data/exports/heidi_berlin_leads_master.csv)  
-3. **Quantitative Evaluation & Ablation Report:** [`data/exports/evaluation_ablation_report.md`](../data/exports/evaluation_ablation_report.md)  
+**Candidate:** Ravinder
+**Role Applied For:** AI Agent Builder @ **Metrixa Systems GmbH**
+**Case Study Deliverables:**
+1. **Master Excel / Google Sheets Workbook:** [`data/exports/metrixa_berlin_hausverwaltungen.xlsx`](../data/exports/metrixa_berlin_hausverwaltungen.xlsx) *(4 Tabs: `Qualified_Berlin_Leads`, `All_Decision_Makers_Contacts`, `Evidence_And_Audit_Trail`, `KPI_Methodology_And_Summary`)*
+2. **Master CSV Export:** [`data/exports/metrixa_berlin_leads_master.csv`](../data/exports/metrixa_berlin_leads_master.csv)
+3. **Quantitative Evaluation & Ablation Report:** [`data/exports/evaluation_ablation_report.md`](../data/exports/evaluation_ablation_report.md)
 4. **Production Software Repository:** `heidi-engine` (`src/heidi_engine/` + `docs/01`–`07` + `tests/`)
 
 ---
 
 ## Slide 1 — Executive Summary & Results at a Glance
 
-Instead of manually copying companies into a spreadsheet or building a fragile one-off script, I engineered **Heidi Engine v1.0**: a production-grade, stateful 6-stage Python AI Agent & Lead-Enrichment Pipeline backed by **SQLite (WAL mode)**.
+Instead of manually copying companies into a spreadsheet or building a fragile one-off script, I engineered **Metrixa Engine v1.0**: a production-grade, stateful 6-stage Python AI Agent & Lead-Enrichment Pipeline backed by **SQLite (WAL mode)**.
 
 | Pipeline Metric | Live Result | Engineering Highlight |
 | :--- | :---: | :--- |
@@ -57,7 +57,7 @@ flowchart LR
 
     subgraph S5["Stage 5: Contact & Scoring Engine"]
         E1["DNS MX Verifier + Personal Email Resolver"]
-        E2["0-100 Heidi Lead Scorer (Tier A/B/C)"]
+        E2["0-100 Metrixa Lead Scorer (Tier A/B/C)"]
     end
 
     subgraph S6["Stage 6: Auditable Deliverables"]
@@ -86,9 +86,9 @@ Any single directory caps pagination or misses specialized *WEG-Verwaltung* and 
 
 ---
 
-## Slide 4 — Task 2: Qualifying KPI Framework & Lead Scoring for Heidi Systems
+## Slide 4 — Task 2: Qualifying KPI Framework & Lead Scoring for Metrixa Systems
 
-As a **metering service provider (*Messdienstleister*)**, Heidi Systems' contract value and sales velocity depend on **5 Qualification Pillars**:
+As a **metering service provider (*Messdienstleister*)**, Metrixa Systems' contract value and sales velocity depend on **5 Qualification Pillars**:
 
 1. **Portfolio Scale (`Max 35 pts`):**
    * Extracted explicit managed unit counts (*Wohneinheiten*) where published (e.g., *Stadt und Land*: `53,300` units; *Velero Immobilien*: `24,000` units; *Kremer Hausverwaltung*: `11,500` units; *dydo Immobilien*: `5,000` units; *Wohnungsbaugenossenschaft Humboldt-Universität*: `3,400` units; *Zenveo*: `1,000` units).
@@ -132,5 +132,4 @@ To find the right contact person with a **personal email address (not `info@`)**
 | **Stage 1+2:** 5 Scrapers + Union-Find Deduplication | **1,199 Unique** | 20.2% | 2.5% | 0.0% | 0.0% |
 | **Stage 3:** + Async Website/*Impressum* Crawler + DOM ERP Scanner | 1,199 Unique | 20.2% | 3.2% | ~18.0% | 1.0% |
 | **Stage 4:** + Multi-LLM & German *Impressum* Extractor | 1,199 Unique | 20.2% | **100.0%** | **8.4% (101 Firms)** | 1.0% |
-| **Stage 5 (Full Heidi Engine):** + DNS `MX` & Contact Enricher + Scorer | **1,199 Scored** | **20.2% (242)** | **100.0%** | **101 Firms (118 Contacts)** | **99 Firms (`MX` Verified)** |
-
+| **Stage 5 (Full Metrixa Engine):** + DNS `MX` & Contact Enricher + Scorer | **1,199 Scored** | **20.2% (242)** | **100.0%** | **101 Firms (118 Contacts)** | **99 Firms (`MX` Verified)** |

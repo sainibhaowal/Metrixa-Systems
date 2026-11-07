@@ -67,4 +67,3 @@ CRAWLED WEBSITE & IMPRESSUM TEXT:
 ---
 
 Extract all KPIs and decision makers into the required JSON format now."""
-

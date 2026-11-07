@@ -109,4 +109,3 @@ class BaseAsyncScraper:
 
     async def scrape_berlin(self, max_pages: int = 10) -> List[RawListing]:
         raise NotImplementedError
-

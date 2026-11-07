@@ -1,17 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { 
-  Cpu, 
-  Globe, 
-  CheckCircle2, 
-  AlertCircle, 
-  Zap, 
-  Sliders, 
-  Save, 
-  Eye, 
-  EyeOff, 
-  Lock, 
+import {
+  Cpu,
+  Globe,
+  CheckCircle2,
+  AlertCircle,
+  Zap,
+  Sliders,
+  Save,
+  Eye,
+  EyeOff,
+  Lock,
   Wifi,
   Search,
   Server,
@@ -188,7 +188,7 @@ const SEARCH_PROVIDERS: SearchProviderDef[] = [
 
 export default function SettingsHubPage() {
   const [cfg, setCfg] = useState<any>(null);
-  
+
   // Tab Switcher with Slide Motion: "llm" vs "search"
   const [activeTab, setActiveTab] = useState<"llm" | "search">("llm");
 

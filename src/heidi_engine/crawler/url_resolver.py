@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import urllib.parse
 from datetime import datetime, timezone
-from typing import Dict, List, Optional
+from typing import Optional
 from rapidfuzz import fuzz
 
 from heidi_engine.db import Database
@@ -93,4 +93,3 @@ class MissingURLResolver:
                     )
                 resolved_count += 1
         return resolved_count
-

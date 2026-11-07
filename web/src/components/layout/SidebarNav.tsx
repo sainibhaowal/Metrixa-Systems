@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { 
-  BarChart3, 
-  Terminal, 
-  Users2, 
-  Wrench, 
-  Archive, 
-  Settings, 
+import {
+  BarChart3,
+  Terminal,
+  Users2,
+  Wrench,
+  Archive,
+  Settings,
   ShieldCheck,
   Zap
 } from "lucide-react";
@@ -29,7 +29,7 @@ export function SidebarNav() {
   const { isCollapsed } = useSidebar();
 
   return (
-    <aside 
+    <aside
       className={cn(
         "flex flex-col bg-[#111114] border border-zinc-800/90 rounded-2xl h-[calc(100vh-24px)] sticky top-3 z-40 select-none shadow-matte transition-all duration-300 ease-in-out m-3 mr-0 overflow-hidden shrink-0",
         isCollapsed ? "w-[72px]" : "w-64"
@@ -84,7 +84,7 @@ export function SidebarNav() {
             >
               <div className={cn("flex items-center gap-3", isCollapsed && "justify-center")}>
                 <Icon className={cn(
-                  "w-4 h-4 transition-transform group-hover:scale-110 shrink-0", 
+                  "w-4 h-4 transition-transform group-hover:scale-110 shrink-0",
                   isActive ? "text-emerald-400" : "text-zinc-400 group-hover:text-zinc-200"
                 )} />
                 {!isCollapsed && <span className="truncate">{item.label}</span>}

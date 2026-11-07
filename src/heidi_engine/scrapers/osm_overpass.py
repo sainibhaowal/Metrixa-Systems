@@ -6,7 +6,6 @@ office=property_management and Hausverwaltung/Immobilienverwaltung nodes & ways.
 
 from __future__ import annotations
 
-import json
 from typing import List, Set
 import httpx
 
@@ -111,4 +110,3 @@ class OSMOverpassScraper(BaseAsyncScraper):
                     continue
 
         return listings
-

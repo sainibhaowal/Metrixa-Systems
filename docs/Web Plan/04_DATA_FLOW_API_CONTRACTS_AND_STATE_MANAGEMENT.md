@@ -1,8 +1,8 @@
-# 04 — Data Flow, API Contracts & State Management: Heidi Cockpit
+# 04 — Data Flow, API Contracts & State Management: Metrixa Cockpit
 
-**Project Name:** Heidi Cockpit — Autonomous LeadOps & Metering Intelligence Suite  
-**Document Order:** `04 of 06` in `docs/Web Plan/`  
-**Location:** `C:\Users\Ravin\Projects\Projetcs Alpha\Heidi Systems\docs\Web Plan\04_DATA_FLOW_API_CONTRACTS_AND_STATE_MANAGEMENT.md`
+**Project Name:** Metrixa Cockpit — Autonomous LeadOps & Metering Intelligence Suite
+**Document Order:** `04 of 06` in `docs/Web Plan/`
+**Location:** `C:\Users\Ravin\Projects\Projetcs Alpha\Metrixa Systems\docs\Web Plan\04_DATA_FLOW_API_CONTRACTS_AND_STATE_MANAGEMENT.md`
 
 ---
 
@@ -15,7 +15,7 @@ sequenceDiagram
     participant Store as Zustand (Global State)
     participant API as FastAPI Server (:8000)
     participant Engine as Heidi Pipeline Engine
-    participant DB as SQLite WAL (heidi_leads.db)
+    participant DB as SQLite WAL (metrixa_leads.db)
 
     Note over UI,API: App Initialization
     UI->>API: GET /api/metrics (Overview KPI stats)
@@ -35,7 +35,7 @@ sequenceDiagram
     API->>Engine: Spawn async crawl worker
     API-->>UI: 202 Accepted { run_id: "run-abc-123" }
     UI->>API: GET /api/pipeline/stream?run_id=run-abc-123 (SSE)
-    
+
     loop Stream Progress
         Engine-->>API: Progress event (crawled company)
         API-->>UI: SSE event: {"type": "PROGRESS", "stage": "CRAWL", "pct": 45}
@@ -205,8 +205,8 @@ All endpoints are hosted at `http://127.0.0.1:8000` with CORS enabled for `http:
   - Cancels current running task.
 
 ### 2.4 Artifacts & Exports
-- **`GET /api/artifacts/download/excel`** — Streams `heidi_berlin_hausverwaltungen.xlsx`.
-- **`GET /api/artifacts/download/csv`** — Streams `heidi_berlin_leads_master.csv`.
+- **`GET /api/artifacts/download/excel`** — Streams `metrixa_berlin_hausverwaltungen.xlsx`.
+- **`GET /api/artifacts/download/csv`** — Streams `metrixa_berlin_leads_master.csv`.
 - **`GET /api/artifacts/evaluation-report`** — Returns Markdown text of `evaluation_ablation_report.md`.
 
 ### 2.5 Settings & Provider Hub
@@ -219,16 +219,16 @@ All endpoints are hosted at `http://127.0.0.1:8000` with CORS enabled for `http:
 ## 3. TypeScript Type Definitions (`web/src/lib/types.ts`)
 
 ```typescript
-export type LeadTier = 
-  | 'Tier A (High Priority)' 
-  | 'Tier B (Qualified Mid-Market)' 
-  | 'Tier C (Long-Tail / Small)' 
+export type LeadTier =
+  | 'Tier A (High Priority)'
+  | 'Tier B (Qualified Mid-Market)'
+  | 'Tier C (Long-Tail / Small)'
   | 'Disqualified';
 
-export type EmailStatus = 
-  | 'PUBLIC_DIRECT_VERIFIED' 
-  | 'PATTERN_MX_VERIFIED' 
-  | 'GENERIC_ONLY' 
+export type EmailStatus =
+  | 'PUBLIC_DIRECT_VERIFIED'
+  | 'PATTERN_MX_VERIFIED'
+  | 'GENERIC_ONLY'
   | 'NONE';
 
 export interface LeadItem {
@@ -307,4 +307,3 @@ export interface PipelineEvent {
   timestamp: string;
 }
 ```
-

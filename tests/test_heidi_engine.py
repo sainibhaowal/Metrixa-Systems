@@ -155,4 +155,3 @@ def test_union_find_deduplication_and_scoring(tmp_path: Path) -> None:
     )
     assert score >= 90
     assert "Tier A" in tier
-

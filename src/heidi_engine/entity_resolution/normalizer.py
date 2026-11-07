@@ -306,4 +306,3 @@ def check_listing_eligibility(
                 return False, f"Excluded non-Hausverwaltung category ({excl})"
 
     return True, None
-

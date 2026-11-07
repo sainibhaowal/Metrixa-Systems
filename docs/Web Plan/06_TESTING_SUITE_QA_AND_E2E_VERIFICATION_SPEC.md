@@ -1,14 +1,14 @@
-# 06 — Testing Suite, QA & E2E Verification Specification: Heidi Cockpit
+# 06 — Testing Suite, QA & E2E Verification Specification: Metrixa Cockpit
 
-**Project Name:** Heidi Cockpit — Autonomous LeadOps & Metering Intelligence Suite  
-**Document Order:** `06 of 06` in `docs/Web Plan/`  
-**Location:** `C:\Users\Ravin\Projects\Projetcs Alpha\Heidi Systems\docs\Web Plan\06_TESTING_SUITE_QA_AND_E2E_VERIFICATION_SPEC.md`
+**Project Name:** Metrixa Cockpit — Autonomous LeadOps & Metering Intelligence Suite
+**Document Order:** `06 of 06` in `docs/Web Plan/`
+**Location:** `C:\Users\Ravin\Projects\Projetcs Alpha\Metrixa Systems\docs\Web Plan\06_TESTING_SUITE_QA_AND_E2E_VERIFICATION_SPEC.md`
 
 ---
 
 ## 1. Quality Assurance Strategy & Test Pyramid
 
-To guarantee enterprise-grade stability, Heidi Cockpit employs a **4-Tier Testing Pyramid**:
+To guarantee enterprise-grade stability, Metrixa Cockpit employs a **4-Tier Testing Pyramid**:
 
 ```mermaid
 flowchart BT
@@ -56,7 +56,7 @@ Run using pytest in the Python environment: `.\.venv\Scripts\pytest.exe tests/te
 
 5. **`test_api_artifacts_download`:**
    - Request `GET /api/artifacts/download/excel`.
-   - Assert header `Content-Disposition` contains `filename="heidi_berlin_hausverwaltungen.xlsx"`.
+   - Assert header `Content-Disposition` contains `filename="metrixa_berlin_hausverwaltungen.xlsx"`.
    - Assert response body starts with Excel file signature (`PK\x03\x04`).
 
 ---
@@ -95,7 +95,7 @@ Run via Playwright: `npx playwright test`.
 ```typescript
 import { test, expect } from '@playwright/test';
 
-test.describe('Heidi Cockpit E2E Mission Flow', () => {
+test.describe('Metrixa Cockpit E2E Mission Flow', () => {
   test('Executive overview to lead inspection and Excel download', async ({ page }) => {
     // 1. Visit Executive Cockpit
     await page.goto('http://localhost:3000');
@@ -124,7 +124,7 @@ test.describe('Heidi Cockpit E2E Mission Flow', () => {
     const downloadPromise = page.waitForEvent('download');
     await page.click('button:has-text("Download Master Excel")');
     const download = await downloadPromise;
-    expect(download.suggestedFilename()).toBe('heidi_berlin_hausverwaltungen.xlsx');
+    expect(download.suggestedFilename()).toBe('metrixa_berlin_hausverwaltungen.xlsx');
   });
 
   test('Mission Control real-time SSE execution', async ({ page }) => {
@@ -133,7 +133,7 @@ test.describe('Heidi Cockpit E2E Mission Flow', () => {
 
     // Click "Run Scoring & Verification"
     await page.click('button:has-text("Run Verification & Scoring")');
-    
+
     // Expect live terminal output to stream events
     const terminal = page.locator('[data-testid="sse-terminal"]');
     await expect(terminal).toContainText('Starting verification run', { timeout: 10000 });
@@ -153,4 +153,3 @@ test.describe('Heidi Cockpit E2E Mission Flow', () => {
 | **DNS Resolution Timeout** | `dnspython` times out after 3.5s | Domain tagged as `mx_valid = false`, email status set to `GENERIC_ONLY`, logged in audit trail |
 | **Missing Website or Empty Page** | Crawler receives HTTP 404 / 500 or timeout | Company recorded as `unreachable`; legal form extracted from directory listings; Lead Tier capped at Tier C |
 | **Empty Search Results on Lead Grid** | Filter combinations yield 0 matching rows | "No leads found matching your active filters" empty state with a single `[Reset All Filters]` button |
-

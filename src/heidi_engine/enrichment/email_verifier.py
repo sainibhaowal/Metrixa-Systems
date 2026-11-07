@@ -106,4 +106,3 @@ class EmailVerifier:
 
 
 email_verifier = EmailVerifier()
-

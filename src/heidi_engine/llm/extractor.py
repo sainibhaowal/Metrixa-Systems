@@ -10,7 +10,6 @@ import asyncio
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict, List, Optional
 
-from heidi_engine.config import settings
 from heidi_engine.db import Database
 from heidi_engine.llm.router import llm_router
 from heidi_engine.models import UnitsSizeTier
@@ -383,4 +382,3 @@ class KPIExtractionPipeline:
             "with_decision_maker": with_dm,
             "with_erp": with_erp,
         }
-

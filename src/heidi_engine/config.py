@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import List, Optional
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 
@@ -244,4 +244,3 @@ def map_berlin_plz_to_district(plz: Optional[str], fallback_district: Optional[s
         return "Spandau"
 
     return "Mitte"
-

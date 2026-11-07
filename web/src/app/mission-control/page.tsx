@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { 
-  Play, 
-  Terminal as TerminalIcon, 
-  CheckCircle2, 
-  AlertCircle, 
-  Clock, 
-  Layers, 
+import {
+  Play,
+  Terminal as TerminalIcon,
+  CheckCircle2,
+  AlertCircle,
+  Clock,
+  Layers,
   Sparkles,
   ShieldAlert,
   ArrowRight
@@ -40,7 +40,7 @@ export default function MissionControlPage() {
   // Connect to SSE stream
   useEffect(() => {
     const sse = new EventSource("http://127.0.0.1:8000/api/pipeline/stream");
-    
+
     sse.addEventListener("HEARTBEAT", (e: any) => {
       try {
         const data = JSON.parse(e.data);
@@ -141,8 +141,8 @@ export default function MissionControlPage() {
             <div
               key={s.id}
               className={`p-5 rounded-2xl bg-[#141418] border transition-all ${
-                isCurrent 
-                  ? "border-emerald-500/60 shadow-[0_0_20px_-3px_rgba(16,185,129,0.3)] bg-zinc-900" 
+                isCurrent
+                  ? "border-emerald-500/60 shadow-[0_0_20px_-3px_rgba(16,185,129,0.3)] bg-zinc-900"
                   : "border-zinc-800/80 shadow-matteCard hover:border-zinc-700/80"
               }`}
             >
