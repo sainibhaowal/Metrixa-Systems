@@ -93,6 +93,24 @@ class Settings(BaseModel):
         default_factory=lambda: os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
     )
 
+    # 3. OpenAI & Ollama
+    openai_api_key: str = Field(
+        default_factory=lambda: os.getenv("OPENAI_API_KEY", "").strip()
+    )
+    openai_base_url: str = Field(
+        default_factory=lambda: os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
+    )
+    openai_model: str = Field(
+        default_factory=lambda: os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+    )
+
+    ollama_base_url: str = Field(
+        default_factory=lambda: os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1")
+    )
+    ollama_model: str = Field(
+        default_factory=lambda: os.getenv("OLLAMA_MODEL", "llama3.2")
+    )
+
     # 3. Search Harness (Local SearXNG + Native Meta-Search + Tavily Fallback)
     searxng_base_url: str = Field(
         default_factory=lambda: os.getenv("SEARXNG_BASE_URL", "http://127.0.0.1:8888").rstrip("/")

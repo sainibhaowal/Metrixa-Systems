@@ -616,10 +616,23 @@ async def get_settings():
     return {
         "default_llm_provider": settings.default_llm_provider,
         "deepseek_configured": bool(settings.deepseek_api_key),
+        "deepseek_base_url": settings.deepseek_base_url,
+        "deepseek_model": settings.deepseek_model,
         "gemini_configured": bool(settings.gemini_api_key),
+        "gemini_base_url": settings.gemini_base_url,
+        "gemini_model": settings.gemini_model,
+        "openai_configured": bool(settings.openai_api_key),
+        "openai_base_url": settings.openai_base_url,
+        "openai_model": settings.openai_model,
+        "ollama_base_url": settings.ollama_base_url,
+        "ollama_model": settings.ollama_model,
         "nvidia_nim_configured": bool(settings.nvidia_nim_api_key),
+        "nvidia_nim_base_url": settings.nvidia_nim_base_url,
+        "nvidia_nim_model": settings.nvidia_nim_model,
         "llamacpp_base_url": settings.llamacpp_base_url,
+        "llamacpp_model": settings.llamacpp_model,
         "lmstudio_base_url": settings.lmstudio_base_url,
+        "lmstudio_model": settings.lmstudio_model,
         "searxng_base_url": settings.searxng_base_url,
         "enable_native_metasearch": settings.enable_native_metasearch,
         "tavily_configured": bool(settings.tavily_api_key),
@@ -631,8 +644,23 @@ async def get_settings():
 class SettingsUpdateRequest(BaseModel):
     default_llm_provider: Optional[str] = None
     deepseek_api_key: Optional[str] = None
+    deepseek_base_url: Optional[str] = None
+    deepseek_model: Optional[str] = None
     gemini_api_key: Optional[str] = None
+    gemini_base_url: Optional[str] = None
+    gemini_model: Optional[str] = None
+    openai_api_key: Optional[str] = None
+    openai_base_url: Optional[str] = None
+    openai_model: Optional[str] = None
+    ollama_base_url: Optional[str] = None
+    ollama_model: Optional[str] = None
     nvidia_nim_api_key: Optional[str] = None
+    nvidia_nim_base_url: Optional[str] = None
+    nvidia_nim_model: Optional[str] = None
+    llamacpp_base_url: Optional[str] = None
+    llamacpp_model: Optional[str] = None
+    lmstudio_base_url: Optional[str] = None
+    lmstudio_model: Optional[str] = None
     tavily_api_key: Optional[str] = None
     max_concurrent_crawls: Optional[int] = None
 
@@ -644,14 +672,181 @@ async def update_settings(req: SettingsUpdateRequest):
         settings.default_llm_provider = req.default_llm_provider
     if req.deepseek_api_key is not None:
         settings.deepseek_api_key = req.deepseek_api_key
+    if req.deepseek_base_url is not None:
+        settings.deepseek_base_url = req.deepseek_base_url
+    if req.deepseek_model is not None:
+        settings.deepseek_model = req.deepseek_model
     if req.gemini_api_key is not None:
         settings.gemini_api_key = req.gemini_api_key
+    if req.gemini_base_url is not None:
+        settings.gemini_base_url = req.gemini_base_url
+    if req.gemini_model is not None:
+        settings.gemini_model = req.gemini_model
+    if req.openai_api_key is not None:
+        settings.openai_api_key = req.openai_api_key
+    if req.openai_base_url is not None:
+        settings.openai_base_url = req.openai_base_url
+    if req.openai_model is not None:
+        settings.openai_model = req.openai_model
+    if req.ollama_base_url is not None:
+        settings.ollama_base_url = req.ollama_base_url
+    if req.ollama_model is not None:
+        settings.ollama_model = req.ollama_model
     if req.nvidia_nim_api_key is not None:
         settings.nvidia_nim_api_key = req.nvidia_nim_api_key
+    if req.nvidia_nim_base_url is not None:
+        settings.nvidia_nim_base_url = req.nvidia_nim_base_url
+    if req.nvidia_nim_model is not None:
+        settings.nvidia_nim_model = req.nvidia_nim_model
+    if req.llamacpp_base_url is not None:
+        settings.llamacpp_base_url = req.llamacpp_base_url
+    if req.llamacpp_model is not None:
+        settings.llamacpp_model = req.llamacpp_model
+    if req.lmstudio_base_url is not None:
+        settings.lmstudio_base_url = req.lmstudio_base_url
+    if req.lmstudio_model is not None:
+        settings.lmstudio_model = req.lmstudio_model
     if req.tavily_api_key is not None:
         settings.tavily_api_key = req.tavily_api_key
     if req.max_concurrent_crawls:
         settings.max_concurrent_crawls = req.max_concurrent_crawls
 
-    return {"status": "saved"}
+    return {"status": "saved", "active_provider": settings.default_llm_provider}
+
+
+class ProviderPingRequest(BaseModel):
+    provider: str
+    base_url: Optional[str] = None
+    api_key: Optional[str] = None
+    model: Optional[str] = None
+
+
+@app.post("/api/providers/ping")
+async def ping_provider(req: ProviderPingRequest):
+    """
+    Test connection ping for any LLM provider.
+    Sends a 10-token prompt to verify reachability, auth, and response latency.
+    """
+    import time
+    import httpx
+
+    t0 = time.perf_counter()
+
+    # 1. Deterministic Parser Ping
+    if req.provider in ("deterministic", "regex", "auto_fallback"):
+        await asyncio.sleep(0.01)
+        return {
+            "status": "ok",
+            "latency_ms": 1,
+            "reply": "PONG: German § 5 DDG Legal Parser & Fallback Active ($0/free)",
+            "model": "regex_german_impressum_v2",
+            "tokens": 10,
+        }
+
+    # 2. Map provider to base_url, model, and api_key
+    provider_map = {
+        "deepseek": {
+            "base_url": req.base_url or settings.deepseek_base_url or "https://api.deepseek.com/v1",
+            "model": req.model or settings.deepseek_model or "deepseek-chat",
+            "api_key": req.api_key or settings.deepseek_api_key or "",
+        },
+        "gemini": {
+            "base_url": req.base_url or settings.gemini_base_url or "https://generativelanguage.googleapis.com/v1beta/openai",
+            "model": req.model or settings.gemini_model or "gemini-2.5-flash",
+            "api_key": req.api_key or settings.gemini_api_key or "",
+        },
+        "openai": {
+            "base_url": req.base_url or settings.openai_base_url or "https://api.openai.com/v1",
+            "model": req.model or settings.openai_model or "gpt-4o-mini",
+            "api_key": req.api_key or settings.openai_api_key or "",
+        },
+        "ollama": {
+            "base_url": req.base_url or settings.ollama_base_url or "http://localhost:11434/v1",
+            "model": req.model or settings.ollama_model or "llama3.2",
+            "api_key": req.api_key or "ollama-local",
+        },
+        "lm_studio": {
+            "base_url": req.base_url or settings.lmstudio_base_url or "http://localhost:1234/v1",
+            "model": req.model or settings.lmstudio_model or "local-model",
+            "api_key": req.api_key or settings.lmstudio_api_key or "lm-studio",
+        },
+        "local_llamacpp": {
+            "base_url": req.base_url or settings.llamacpp_base_url or "http://localhost:8080/v1",
+            "model": req.model or settings.llamacpp_model or "qwen2.5-14b-instruct",
+            "api_key": req.api_key or settings.llamacpp_api_key or "local-no-key",
+        },
+        "nvidia_nim": {
+            "base_url": req.base_url or settings.nvidia_nim_base_url or "https://integrate.api.nvidia.com/v1",
+            "model": req.model or settings.nvidia_nim_model or "meta/llama-3.3-70b-instruct",
+            "api_key": req.api_key or settings.nvidia_nim_api_key or "",
+        },
+    }
+
+    target = provider_map.get(req.provider, provider_map["deepseek"])
+    base_url = target["base_url"].rstrip("/")
+    model = target["model"]
+    api_key = target["api_key"]
+
+    endpoint = f"{base_url}/chat/completions"
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {api_key}" if api_key else "Bearer local",
+    }
+    payload = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": "You are a ping test validator. Output only the word: PONG"},
+            {"role": "user", "content": "Ping test."},
+        ],
+        "max_tokens": 10,
+        "temperature": 0.0,
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0, verify=False) as client:
+            res = await client.post(endpoint, headers=headers, json=payload)
+            res.raise_for_status()
+            data = res.json()
+            latency_ms = int((time.perf_counter() - t0) * 1000)
+            reply = (
+                data.get("choices", [{}])[0]
+                .get("message", {})
+                .get("content", "")
+                .strip()
+            )
+            tokens = data.get("usage", {}).get("total_tokens", 8)
+
+            return {
+                "status": "ok",
+                "latency_ms": latency_ms,
+                "reply": reply or "PONG",
+                "model": model,
+                "tokens": tokens,
+            }
+    except httpx.ConnectError:
+        latency_ms = int((time.perf_counter() - t0) * 1000)
+        return {
+            "status": "error",
+            "latency_ms": latency_ms,
+            "error": f"Connection refused to {base_url}. Make sure your local server (Ollama / LM Studio / llama.cpp) is running.",
+        }
+    except httpx.HTTPStatusError as e:
+        latency_ms = int((time.perf_counter() - t0) * 1000)
+        err_msg = f"HTTP {e.response.status_code}: {e.response.text[:150]}"
+        if e.response.status_code == 401:
+            err_msg = "Authentication Failed (401): Invalid or missing API key."
+        elif e.response.status_code == 404:
+            err_msg = f"Model '{model}' not found or endpoint 404 at {base_url}."
+        return {
+            "status": "error",
+            "latency_ms": latency_ms,
+            "error": err_msg,
+        }
+    except Exception as e:
+        latency_ms = int((time.perf_counter() - t0) * 1000)
+        return {
+            "status": "error",
+            "latency_ms": latency_ms,
+            "error": str(e),
+        }
 

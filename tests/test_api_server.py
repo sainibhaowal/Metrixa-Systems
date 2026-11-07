@@ -79,3 +79,12 @@ def test_api_settings(client: TestClient) -> None:
     assert "default_llm_provider" in settings_data
     assert "max_concurrent_crawls" in settings_data
 
+
+def test_api_provider_ping(client: TestClient) -> None:
+    resp = client.post("/api/providers/ping", json={"provider": "deterministic"})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["status"] == "ok"
+    assert "PONG" in data["reply"]
+    assert data["latency_ms"] >= 0
+

@@ -56,3 +56,13 @@ export async function saveSettings(data: Record<string, any>) {
   return res.json();
 }
 
+export async function pingProvider(data: { provider: string; base_url?: string; api_key?: string; model?: string }) {
+  const res = await fetch(`${API_BASE}/api/providers/ping`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to ping provider");
+  return res.json();
+}
+
