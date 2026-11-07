@@ -17,10 +17,11 @@ import {
   Eye,
   EyeOff,
   Server,
-  Cloud,
-  Laptop
+  Lock,
+  Wifi
 } from "lucide-react";
 import { fetchSettings, saveSettings, pingProvider } from "@/lib/api";
+import { ProviderIcon } from "@/components/icons/ProviderLogos";
 
 interface ProviderDefinition {
   id: string;
@@ -42,7 +43,7 @@ const PROVIDERS: ProviderDefinition[] = [
     defaultBaseUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
     defaultModel: "gemini-2.5-flash",
     requiresKey: true,
-    desc: "Google Gemini 2.5 Flash with native JSON mode and huge context window for complex Impressum parsing.",
+    desc: "Google Gemini 2.5 Flash with native JSON schema mode and large context window for complex German Impressum parsing.",
   },
   {
     id: "openai",
@@ -147,7 +148,6 @@ export default function SettingsHubPage() {
 
   // General settings
   const [concurrency, setConcurrency] = useState<number>(20);
-  const [tavilyKey, setTavilyKey] = useState<string>("");
 
   useEffect(() => {
     fetchSettings()
@@ -320,7 +320,7 @@ export default function SettingsHubPage() {
       {/* Two-Panel Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* ======================================================== */}
-        {/* LEFT PANEL: Provider Inventory & Catalog (5 Columns)     */}
+        {/* LEFT PANEL: Provider Inventory with Real Brand Logos     */}
         {/* ======================================================== */}
         <div className="lg:col-span-5 p-5 rounded-2xl bg-[#111114] border border-zinc-800/80 shadow-matte space-y-3">
           <div className="flex items-center justify-between pb-2 border-b border-zinc-800">
@@ -347,14 +347,9 @@ export default function SettingsHubPage() {
                   }`}
                 >
                   <div className="flex items-start gap-3 min-w-0">
-                    <div className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 shrink-0 mt-0.5">
-                      {p.category === "cloud" ? (
-                        <Cloud className="w-4 h-4 text-emerald-400" />
-                      ) : p.category === "local" ? (
-                        <Laptop className="w-4 h-4 text-amber-400" />
-                      ) : (
-                        <Cpu className="w-4 h-4 text-zinc-400" />
-                      )}
+                    {/* Real Authentic Brand Logo Container */}
+                    <div className="w-9 h-9 rounded-xl bg-zinc-950 border border-zinc-800/80 flex items-center justify-center shrink-0 shadow-sm overflow-hidden p-1.5 mt-0.5">
+                      <ProviderIcon providerId={p.id} size={22} />
                     </div>
 
                     <div className="min-w-0">
@@ -382,25 +377,30 @@ export default function SettingsHubPage() {
         </div>
 
         {/* ======================================================== */}
-        {/* RIGHT PANEL: Provider Setup, Ping Test & Apply (7 Cols)  */}
+        {/* RIGHT PANEL: Provider Setup, Real Logo & Ping Test       */}
         {/* ======================================================== */}
         <div className="lg:col-span-7 p-6 rounded-2xl bg-[#111114] border border-zinc-800/80 shadow-matte space-y-6">
-          {/* Header of Selected Provider */}
+          {/* Header of Selected Provider with Real Brand Logo */}
           <div className="flex items-start justify-between pb-4 border-b border-zinc-800">
-            <div>
-              <div className="flex items-center gap-2.5">
-                <h2 className="text-lg font-bold text-zinc-100">{selectedDef.name}</h2>
-                <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-zinc-850 text-zinc-300 border border-zinc-700">
-                  {selectedDef.badge}
-                </span>
-                {activeProvider === selectedDef.id && (
-                  <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3" />
-                    Currently Active
-                  </span>
-                )}
+            <div className="flex items-start gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-zinc-950 border border-zinc-800 flex items-center justify-center shrink-0 shadow-md p-2">
+                <ProviderIcon providerId={selectedDef.id} size={30} />
               </div>
-              <p className="text-xs text-zinc-400 mt-1 leading-relaxed">{selectedDef.desc}</p>
+              <div>
+                <div className="flex items-center gap-2.5">
+                  <h2 className="text-lg font-bold text-zinc-100">{selectedDef.name}</h2>
+                  <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-zinc-850 text-zinc-300 border border-zinc-700">
+                    {selectedDef.badge}
+                  </span>
+                  {activeProvider === selectedDef.id && (
+                    <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" />
+                      Currently Active
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-zinc-400 mt-1 leading-relaxed">{selectedDef.desc}</p>
+              </div>
             </div>
           </div>
 
@@ -420,6 +420,20 @@ export default function SettingsHubPage() {
                 disabled={selectedDef.category === "system"}
                 className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-mono text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-emerald-500 disabled:opacity-50 transition-all"
               />
+
+              {/* Endpoint Metadata Badges */}
+              <div className="flex items-center gap-3 mt-2 text-[10px] font-mono text-zinc-400">
+                <span className="flex items-center gap-1">
+                  {baseUrl.startsWith("https") ? (
+                    <Lock className="w-3 h-3 text-emerald-400" />
+                  ) : (
+                    <Wifi className="w-3 h-3 text-amber-400" />
+                  )}
+                  {baseUrl.startsWith("https") ? "TLS Encrypted (HTTPS)" : "Local Loopback (HTTP)"}
+                </span>
+                <span>•</span>
+                <span>Protocol: OpenAI v1 ChatCompletions</span>
+              </div>
             </div>
 
             {/* Model Name / ID */}
