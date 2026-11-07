@@ -555,8 +555,8 @@ export default function SettingsHubPage() {
                       }`}
                     >
                       <div className="flex items-start gap-3 min-w-0">
-                        <div className="w-9 h-9 rounded-xl bg-zinc-950 border border-zinc-800/80 flex items-center justify-center shrink-0 shadow-sm overflow-hidden p-1.5 mt-0.5">
-                          <ProviderIcon providerId={p.id} size={22} />
+                        <div className="w-8 h-8 flex items-center justify-center shrink-0 mt-0.5">
+                          <ProviderIcon providerId={p.id} size={24} />
                         </div>
 
                         <div className="min-w-0">
@@ -600,8 +600,8 @@ export default function SettingsHubPage() {
                       }`}
                     >
                       <div className="flex items-start gap-3 min-w-0">
-                        <div className="w-9 h-9 rounded-xl bg-zinc-950 border border-zinc-800/80 flex items-center justify-center shrink-0 shadow-sm overflow-hidden p-1.5 mt-0.5">
-                          <ProviderIcon providerId={p.id} size={22} />
+                        <div className="w-8 h-8 flex items-center justify-center shrink-0 mt-0.5">
+                          <ProviderIcon providerId={p.id} size={24} />
                         </div>
 
                         <div className="min-w-0">
@@ -642,8 +642,8 @@ export default function SettingsHubPage() {
               {/* Header */}
               <div className="flex items-start justify-between pb-4 border-b border-zinc-800">
                 <div className="flex items-start gap-3.5">
-                  <div className="w-12 h-12 rounded-2xl bg-zinc-950 border border-zinc-800 flex items-center justify-center shrink-0 shadow-md p-2">
-                    <ProviderIcon providerId={selectedLLMDef.id} size={30} />
+                  <div className="w-9 h-9 flex items-center justify-center shrink-0">
+                    <ProviderIcon providerId={selectedLLMDef.id} size={32} />
                   </div>
                   <div>
                     <div className="flex items-center gap-2.5">
@@ -792,8 +792,8 @@ export default function SettingsHubPage() {
               {/* Header */}
               <div className="flex items-start justify-between pb-4 border-b border-zinc-800">
                 <div className="flex items-start gap-3.5">
-                  <div className="w-12 h-12 rounded-2xl bg-zinc-950 border border-zinc-800 flex items-center justify-center shrink-0 shadow-md p-2">
-                    <ProviderIcon providerId={selectedSearchDef.id} size={30} />
+                  <div className="w-9 h-9 flex items-center justify-center shrink-0">
+                    <ProviderIcon providerId={selectedSearchDef.id} size={32} />
                   </div>
                   <div>
                     <div className="flex items-center gap-2.5">
