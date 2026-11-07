@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "heidi-engine"
+version = "1.0.0"
+description = "Autonomous B2B Lead Discovery, Website/Impressum Crawler, Multi-LLM KPI Extractor & Qualification Engine for Heidi Systems (Berlin Hausverwaltungen)"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+    { name = "Ravinder", email = "ravinder@heidi-case-study.de" }
+]
+dependencies = [
+    "httpx[http2]>=0.27.0",
+    "selectolax>=0.3.21",
+    "beautifulsoup4>=4.12.3",
+    "lxml>=5.2.0",
+    "trafilatura>=1.12.0",
+    "rapidfuzz>=3.9.0",
+    "phonenumbers>=8.13.40",
+    "tldextract>=5.1.2",
+    "dnspython>=2.6.1",
+    "email-validator>=2.2.0",
+    "pydantic>=2.8.0",
+    "pydantic-settings>=2.4.0",
+    "python-dotenv>=1.0.1",
+    "typer>=0.12.3",
+    "rich>=13.7.1",
+    "openpyxl>=3.1.5",
+    "tenacity>=8.5.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.23.8",
+]
+
+[project.scripts]
+heidi = "heidi_engine.cli:app"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+asyncio_mode = "auto"
+

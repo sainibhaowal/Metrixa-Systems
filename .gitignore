@@ -1,0 +1,32 @@
+# Virtual Environment & Python Bytecode
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+
+# Node & Next.js
+node_modules/
+web/node_modules/
+.next/
+web/.next/
+web/out/
+.npm/
+
+# Environment Secrets
+.env
+*.env.local
+
+# Runtime SQLite WAL / Temporary files
+data/*.db-shm
+data/*.db-wal
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

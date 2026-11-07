@@ -1,0 +1,396 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { 
+  Search, 
+  Filter, 
+  ExternalLink, 
+  Building2, 
+  User, 
+  Mail, 
+  Sparkles, 
+  Eye, 
+  Copy, 
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Download
+} from "lucide-react";
+import { fetchLeads } from "@/lib/api";
+import { getTierColorClasses, formatNumber } from "@/lib/utils";
+import { EvidenceDrawer } from "@/components/leads/EvidenceDrawer";
+
+const DISTRICTS = [
+  "All Districts",
+  "Charlottenburg-Wilmersdorf",
+  "Mitte",
+  "Pankow",
+  "Tempelhof-Schöneberg",
+  "Steglitz-Zehlendorf",
+  "Friedrichshain-Kreuzberg",
+  "Neukölln",
+  "Spandau",
+  "Reinickendorf",
+  "Lichtenberg",
+  "Treptow-Köpenick",
+  "Marzahn-Hellersdorf",
+];
+
+export default function LeadsExplorerPage() {
+  const [leads, setLeads] = useState<any[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
+  const [loading, setLoading] = useState(true);
+
+  // Filters
+  const [search, setSearch] = useState("");
+  const [tier, setTier] = useState<string>("");
+  const [district, setDistrict] = useState<string>("");
+  const [hasDm, setHasDm] = useState(false);
+  const [hasEmail, setHasEmail] = useState(false);
+  const [hasErp, setHasErp] = useState(false);
+
+  // Selected lead for evidence drawer
+  const [selectedCompanyId, setSelectedCompanyId] = useState<number | null>(null);
+  const [copiedId, setCopiedId] = useState<number | null>(null);
+
+  const loadLeads = () => {
+    setLoading(true);
+    fetchLeads({
+      q: search || undefined,
+      tier: tier || undefined,
+      district: district && district !== "All Districts" ? district : undefined,
+      has_dm: hasDm ? true : undefined,
+      has_email: hasEmail ? true : undefined,
+      has_erp: hasErp ? true : undefined,
+      page,
+      limit: 25,
+    })
+      .then((data) => {
+        setLeads(data.items || []);
+        setTotal(data.total || 0);
+        setPages(data.pages || 1);
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(loadLeads, 200);
+    return () => clearTimeout(timer);
+  }, [search, tier, district, hasDm, hasEmail, hasErp, page]);
+
+  const copyEmail = (companyId: number, email: string) => {
+    navigator.clipboard.writeText(email);
+    setCopiedId(companyId);
+    setTimeout(() => setCopiedId(null), 1500);
+  };
+
+  return (
+    <div className="space-y-6 max-w-7xl mx-auto">
+      {/* Title & Stats Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
+            <span>Lead Explorer & Data Grid</span>
+            <span className="text-xs px-2.5 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30 font-mono">
+              {formatNumber(total)} Qualified Leads
+            </span>
+          </h1>
+          <p className="text-xs text-slate-400 mt-1">
+            Browse, filter, and inspect verified Berlin Hausverwaltungen with 100% evidence-grounded decision makers.
+          </p>
+        </div>
+
+        <a
+          href="http://127.0.0.1:8000/api/artifacts/download/excel"
+          download
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition-all self-start sm:self-auto"
+        >
+          <Download className="w-3.5 h-3.5 text-primary" />
+          <span>Download Excel (.xlsx)</span>
+        </a>
+      </div>
+
+      {/* Filter Toolbar */}
+      <div className="glass-panel p-4 rounded-2xl space-y-3">
+        <div className="flex flex-col md:flex-row gap-3">
+          {/* Search Input */}
+          <div className="flex-1 relative">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search by Company Name, Geschäftsführer, Address, Domain..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+              className="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-900/90 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-primary transition-all"
+            />
+          </div>
+
+          {/* District Dropdown */}
+          <select
+            value={district}
+            onChange={(e) => {
+              setDistrict(e.target.value);
+              setPage(1);
+            }}
+            className="px-3.5 py-2 rounded-xl bg-slate-900/90 border border-slate-800 text-xs text-slate-300 focus:outline-none focus:border-primary"
+          >
+            {DISTRICTS.map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Tier & Feature Filter Pills */}
+        <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-800/60 text-xs select-none">
+          <span className="text-[11px] text-slate-400 font-medium mr-1">Tiers:</span>
+          <button
+            onClick={() => setTier("")}
+            className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
+              tier === "" ? "bg-primary text-slate-950 font-bold" : "bg-slate-900 text-slate-400 hover:text-white"
+            }`}
+          >
+            All
+          </button>
+          <button
+            onClick={() => setTier("Tier A")}
+            className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
+              tier === "Tier A"
+                ? "bg-emerald-500 text-slate-950 font-bold"
+                : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+            }`}
+          >
+            🟢 Tier A (Priority)
+          </button>
+          <button
+            onClick={() => setTier("Tier B")}
+            className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
+              tier === "Tier B"
+                ? "bg-amber-500 text-slate-950 font-bold"
+                : "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+            }`}
+          >
+            🟡 Tier B (Mid-Market)
+          </button>
+          <button
+            onClick={() => setTier("Tier C")}
+            className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
+              tier === "Tier C"
+                ? "bg-slate-500 text-white font-bold"
+                : "bg-slate-800 text-slate-400"
+            }`}
+          >
+            ⚪ Tier C (Small)
+          </button>
+
+          <span className="text-slate-700 mx-2">|</span>
+
+          {/* Feature toggles */}
+          <button
+            onClick={() => setHasDm(!hasDm)}
+            className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
+              hasDm ? "bg-cyan-500 text-slate-950 font-bold" : "bg-slate-900 text-slate-400 hover:text-white"
+            }`}
+          >
+            Named Decision Maker
+          </button>
+          <button
+            onClick={() => setHasEmail(!hasEmail)}
+            className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
+              hasEmail ? "bg-primary text-slate-950 font-bold" : "bg-slate-900 text-slate-400 hover:text-white"
+            }`}
+          >
+            Personal Email (MX Valid)
+          </button>
+          <button
+            onClick={() => setHasErp(!hasErp)}
+            className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
+              hasErp ? "bg-fuchsia-500 text-white font-bold" : "bg-slate-900 text-slate-400 hover:text-white"
+            }`}
+          >
+            PropTech ERP
+          </button>
+        </div>
+      </div>
+
+      {/* Main Data Table */}
+      <div className="glass-panel rounded-2xl overflow-hidden border border-slate-800">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-slate-900/90 text-[11px] font-mono uppercase text-slate-400 border-b border-slate-800 tracking-wider">
+              <tr>
+                <th className="py-3.5 px-4 w-16">Score</th>
+                <th className="py-3.5 px-4">Company Name</th>
+                <th className="py-3.5 px-4">District (PLZ)</th>
+                <th className="py-3.5 px-4">Scale / Units</th>
+                <th className="py-3.5 px-4">Focus</th>
+                <th className="py-3.5 px-4">ERP / Portal</th>
+                <th className="py-3.5 px-4">Decision Maker</th>
+                <th className="py-3.5 px-4">Personal Email</th>
+                <th className="py-3.5 px-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800/60 font-sans">
+              {loading ? (
+                <tr>
+                  <td colSpan={9} className="py-12 text-center text-slate-400 font-mono">
+                    Loading verified Berlin property managers...
+                  </td>
+                </tr>
+              ) : leads.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="py-12 text-center text-slate-400 font-mono">
+                    No leads match your filter criteria.
+                  </td>
+                </tr>
+              ) : (
+                leads.map((lead) => (
+                  <tr
+                    key={lead.company_id}
+                    className="hover:bg-white/[0.03] transition-colors group cursor-pointer"
+                    onClick={() => setSelectedCompanyId(lead.company_id)}
+                  >
+                    {/* Score */}
+                    <td className="py-3 px-4 font-mono">
+                      <span className={`inline-flex px-2 py-0.5 rounded-md font-bold text-xs border ${getTierColorClasses(lead.lead_tier)}`}>
+                        {lead.heidi_lead_score}
+                      </span>
+                    </td>
+
+                    {/* Company Name */}
+                    <td className="py-3 px-4">
+                      <div className="font-semibold text-white group-hover:text-primary transition-colors flex items-center gap-1.5">
+                        <span className="truncate max-w-[220px]">{lead.display_name}</span>
+                        {lead.is_vdiv_member && (
+                          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-primary/20 text-primary border border-primary/30 shrink-0">
+                            VDIV
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[10px] font-mono text-slate-400">{lead.lead_id} • {lead.legal_form || "GmbH"}</span>
+                    </td>
+
+                    {/* District */}
+                    <td className="py-3 px-4 text-slate-300">
+                      <span>{lead.district || "Berlin"}</span>
+                      <span className="text-[10px] text-slate-400 block font-mono">{lead.postal_code || "-"}</span>
+                    </td>
+
+                    {/* Units */}
+                    <td className="py-3 px-4 font-mono">
+                      {lead.exact_units_managed ? (
+                        <span className="text-emerald-400 font-bold">{formatNumber(lead.exact_units_managed)} Units</span>
+                      ) : (
+                        <span className="text-slate-400">{lead.estimated_units_tier || "<250"}</span>
+                      )}
+                    </td>
+
+                    {/* Focus */}
+                    <td className="py-3 px-4">
+                      <div className="flex gap-1 text-[10px] font-mono">
+                        {lead.manages_weg && <span className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">WEG</span>}
+                        {lead.manages_miet && <span className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">Miet</span>}
+                      </div>
+                    </td>
+
+                    {/* ERP */}
+                    <td className="py-3 px-4 text-xs font-mono">
+                      {lead.detected_erp_proptech ? (
+                        <span className="text-fuchsia-400 font-semibold truncate block max-w-[120px]">
+                          {lead.detected_erp_proptech}
+                        </span>
+                      ) : lead.has_customer_portal ? (
+                        <span className="text-primary">Portal</span>
+                      ) : (
+                        <span className="text-slate-600">-</span>
+                      )}
+                    </td>
+
+                    {/* Decision Maker */}
+                    <td className="py-3 px-4">
+                      {lead.decision_maker_name ? (
+                        <div>
+                          <span className="font-semibold text-white block truncate max-w-[140px]">{lead.decision_maker_name}</span>
+                          <span className="text-[10px] text-primary">{lead.decision_maker_role || "Geschäftsführer"}</span>
+                        </div>
+                      ) : (
+                        <span className="text-slate-600 font-mono text-[11px]">-</span>
+                      )}
+                    </td>
+
+                    {/* Personal Email */}
+                    <td className="py-3 px-4 font-mono text-[11px]" onClick={(e) => e.stopPropagation()}>
+                      {lead.personal_email ? (
+                        <button
+                          onClick={() => copyEmail(lead.company_id, lead.personal_email)}
+                          className="flex items-center gap-1.5 px-2 py-1 rounded bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:border-primary transition-all group/btn"
+                        >
+                          {copiedId === lead.company_id ? (
+                            <Check className="w-3 h-3 text-emerald-400" />
+                          ) : (
+                            <Copy className="w-3 h-3 text-slate-500 group-hover/btn:text-primary" />
+                          )}
+                          <span className="truncate max-w-[130px]">{lead.personal_email}</span>
+                        </button>
+                      ) : (
+                        <span className="text-slate-600">-</span>
+                      )}
+                    </td>
+
+                    {/* Actions */}
+                    <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={() => setSelectedCompanyId(lead.company_id)}
+                        className="p-1.5 rounded-lg bg-slate-800 hover:bg-primary/20 text-slate-400 hover:text-primary transition-colors"
+                        title="Inspect Evidence & Impressum"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination Bar */}
+        <div className="p-4 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400 font-mono">
+          <span>
+            Page {page} of {pages} ({formatNumber(total)} Leads)
+          </span>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page <= 1}
+              className="p-1.5 rounded-lg border border-slate-800 bg-slate-900 disabled:opacity-30 hover:text-white transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setPage((p) => Math.min(pages, p + 1))}
+              disabled={page >= pages}
+              className="p-1.5 rounded-lg border border-slate-800 bg-slate-900 disabled:opacity-30 hover:text-white transition-colors"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Sliding Evidence Drawer */}
+      <EvidenceDrawer
+        companyId={selectedCompanyId}
+        onClose={() => setSelectedCompanyId(null)}
+      />
+    </div>
+  );
+}
+

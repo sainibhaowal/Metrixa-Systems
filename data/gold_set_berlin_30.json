@@ -1,0 +1,103 @@
+[
+  {
+    "company_name": "BVBI Berliner Vereinigung für Immobilienmanagement GmbH",
+    "legal_form": "GmbH",
+    "postal_code": "10719",
+    "district": "Charlottenburg-Wilmersdorf",
+    "website": "https://www.bvbi.de",
+    "manages_weg": true,
+    "manages_miet": true,
+    "is_vdiv_member": true
+  },
+  {
+    "company_name": "alt & kelber Immobilienverwaltung GmbH",
+    "legal_form": "GmbH",
+    "postal_code": "10115",
+    "district": "Mitte",
+    "website": "https://www.altundkelber.de",
+    "manages_weg": true,
+    "manages_miet": true,
+    "is_vdiv_member": true
+  },
+  {
+    "company_name": "Fischbach Hausverwaltung GmbH",
+    "legal_form": "GmbH",
+    "postal_code": "10711",
+    "district": "Charlottenburg-Wilmersdorf",
+    "website": "https://www.fischbach-hausverwaltung.de",
+    "manages_weg": true,
+    "manages_miet": true,
+    "is_vdiv_member": true
+  },
+  {
+    "company_name": "KBV Hausverwaltung GmbH",
+    "legal_form": "GmbH",
+    "postal_code": "10707",
+    "district": "Charlottenburg-Wilmersdorf",
+    "website": "https://www.kbv-berlin.de",
+    "manages_weg": true,
+    "manages_miet": true,
+    "is_vdiv_member": true
+  },
+  {
+    "company_name": "Preußisch-Berlin Immobilienverwaltung GmbH",
+    "legal_form": "GmbH",
+    "postal_code": "12163",
+    "district": "Steglitz-Zehlendorf",
+    "website": "https://www.preussisch-berlin.de",
+    "manages_weg": true,
+    "manages_miet": true,
+    "is_vdiv_member": true
+  },
+  {
+    "company_name": "ADEN Immobilien Hausverwaltung GmbH",
+    "legal_form": "GmbH",
+    "postal_code": "10719",
+    "district": "Charlottenburg-Wilmersdorf",
+    "website": "https://www.aden-immo.com",
+    "manages_weg": true,
+    "manages_miet": true,
+    "is_vdiv_member": true
+  },
+  {
+    "company_name": "Wohngut Hausverwaltung GmbH",
+    "legal_form": "GmbH",
+    "postal_code": "10719",
+    "district": "Charlottenburg-Wilmersdorf",
+    "website": "https://www.wohngut-berlin.de",
+    "manages_weg": true,
+    "manages_miet": true,
+    "is_vdiv_member": true
+  },
+  {
+    "company_name": "GJI Gesellschaft für Juristische Immobilienverwaltung mbH",
+    "legal_form": "GmbH",
+    "postal_code": "10707",
+    "district": "Charlottenburg-Wilmersdorf",
+    "website": "https://www.gji-berlin.de",
+    "manages_weg": true,
+    "manages_miet": true,
+    "is_vdiv_member": true
+  },
+  {
+    "company_name": "HVB Hausverwaltung Berlin GmbH",
+    "legal_form": "GmbH",
+    "postal_code": "10623",
+    "district": "Charlottenburg-Wilmersdorf",
+    "website": "https://www.hausverwaltung-berlin.de",
+    "manages_weg": true,
+    "manages_miet": true,
+    "is_vdiv_member": true
+  },
+  {
+    "company_name": "Domus Hausverwaltung GmbH Berlin",
+    "legal_form": "GmbH",
+    "postal_code": "12161",
+    "district": "Tempelhof-Schöneberg",
+    "website": "https://www.domus-hausverwaltung-berlin.de",
+    "manages_weg": true,
+    "manages_miet": true,
+    "is_vdiv_member": true
+  }
+]
+
