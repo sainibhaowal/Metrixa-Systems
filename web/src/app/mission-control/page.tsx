@@ -109,12 +109,12 @@ export default function MissionControlPage() {
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
-      {/* Title */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Title Header Top Bar */}
+      <div className="p-5 rounded-2xl bg-[#111114] border border-zinc-800/90 shadow-matte flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-zinc-100 flex items-center gap-2.5">
             <span>Pipeline Mission Control</span>
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono">
+            <span className="text-xs px-2.5 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono">
               Live DAG & SSE Console
             </span>
           </h1>
@@ -176,9 +176,9 @@ export default function MissionControlPage() {
             <span className="text-emerald-400 font-bold">Active Stage: {activeStage?.toUpperCase()}</span>
             <span className="text-zinc-300">{progress}%</span>
           </div>
-          <div className="w-full h-2 rounded-full bg-zinc-900 overflow-hidden">
+          <div className="w-full h-2 rounded-md bg-zinc-900 overflow-hidden">
             <div
-              className="h-full bg-emerald-500 rounded-full transition-all duration-300"
+              className="h-full bg-emerald-500 rounded-md transition-all duration-300"
               style={{ width: `${progress}%` }}
             />
           </div>

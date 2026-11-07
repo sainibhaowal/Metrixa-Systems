@@ -15,16 +15,19 @@ export default function ArtifactsVaultPage() {
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-zinc-100 flex items-center gap-2.5">
-          <span>Artifacts & Deliverables Vault</span>
-          <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono">
-            Submission Ready
-          </span>
-        </h1>
-        <p className="text-xs text-zinc-400 mt-1">
-          Download timestamped Excel files, RFC CSV exports, and inspect the Task 3 evaluation and ablation report.
-        </p>
+      {/* Top Header Bar Bento */}
+      <div className="p-5 rounded-2xl bg-[#111114] border border-zinc-800/90 shadow-matte flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-100 flex items-center gap-2.5">
+            <span>Artifacts & Deliverables Vault</span>
+            <span className="text-xs px-2.5 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono">
+              Submission Ready
+            </span>
+          </h1>
+          <p className="text-xs text-zinc-400 mt-1">
+            Download timestamped Excel files, RFC CSV exports, and inspect the Task 3 evaluation and ablation report.
+          </p>
+        </div>
       </div>
 
       {/* Deliverable Download Cards */}

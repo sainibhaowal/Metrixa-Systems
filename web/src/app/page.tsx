@@ -70,12 +70,12 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
-      {/* Page Title & Vision Callout */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Page Title Top Bar Bento */}
+      <div className="p-5 rounded-2xl bg-[#111114] border border-zinc-800/90 shadow-matte flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-zinc-100 flex items-center gap-2.5">
             <span>Executive Cockpit</span>
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono">
+            <span className="text-xs px-2.5 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono">
               Berlin Submetering TAM
             </span>
           </h1>
@@ -86,7 +86,7 @@ export default function DashboardPage() {
         <div className="flex items-center gap-2.5">
           <Link
             href="/mission-control"
-            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-medium text-zinc-300 hover:text-white hover:border-zinc-700 transition-all shadow-sm"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-medium text-zinc-300 hover:text-white hover:border-zinc-700 transition-all shadow-sm"
           >
             <Zap className="w-3.5 h-3.5 text-emerald-400" />
             <span>Mission Control (DAG)</span>
@@ -235,9 +235,9 @@ export default function DashboardPage() {
                       <span className="text-zinc-300">{item.name}</span>
                       <span className="font-mono text-zinc-400">{numVal} firms ({pct}%)</span>
                     </div>
-                    <div className="w-full h-2 rounded-full bg-zinc-800 overflow-hidden">
+                    <div className="w-full h-2 rounded-md bg-zinc-800 overflow-hidden">
                       <div
-                        className="h-full rounded-full transition-all duration-500"
+                        className="h-full rounded-md transition-all duration-500"
                         style={{
                           width: `${pct}%`,
                           backgroundColor: COLORS[idx % COLORS.length],
@@ -261,7 +261,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="p-5 rounded-2xl bg-[#141418] border border-zinc-800/80 shadow-matteCard">
           <div className="flex items-center gap-2.5 text-emerald-400 mb-2 font-semibold text-xs">
-            <span className="w-2 h-2 rounded-full bg-emerald-400" />
+            <span className="w-2 h-2 rounded-sm bg-emerald-400" />
             <span>Tier A Target Strategy</span>
           </div>
           <p className="text-xs text-zinc-300 leading-relaxed">
@@ -271,7 +271,7 @@ export default function DashboardPage() {
 
         <div className="p-5 rounded-2xl bg-[#141418] border border-zinc-800/80 shadow-matteCard">
           <div className="flex items-center gap-2.5 text-amber-400 mb-2 font-semibold text-xs">
-            <span className="w-2 h-2 rounded-full bg-amber-400" />
+            <span className="w-2 h-2 rounded-sm bg-amber-400" />
             <span>Tier B Outbound Sequencer</span>
           </div>
           <p className="text-xs text-zinc-300 leading-relaxed">
@@ -281,7 +281,7 @@ export default function DashboardPage() {
 
         <div className="p-5 rounded-2xl bg-[#141418] border border-zinc-800/80 shadow-matteCard">
           <div className="flex items-center gap-2.5 text-zinc-200 mb-2 font-semibold text-xs">
-            <span className="w-2 h-2 rounded-full bg-zinc-400" />
+            <span className="w-2 h-2 rounded-sm bg-zinc-400" />
             <span>Audit & Evidence Proof</span>
           </div>
           <p className="text-xs text-zinc-300 leading-relaxed">

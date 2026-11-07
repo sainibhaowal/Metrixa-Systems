@@ -31,7 +31,7 @@ export function SidebarNav() {
   return (
     <aside 
       className={cn(
-        "flex flex-col bg-[#111114] border-r border-zinc-800/90 h-screen sticky top-0 z-40 select-none shadow-matte transition-all duration-300 ease-in-out",
+        "flex flex-col bg-[#111114] border border-zinc-800/90 rounded-2xl h-[calc(100vh-24px)] sticky top-3 z-40 select-none shadow-matte transition-all duration-300 ease-in-out m-3 mr-0 overflow-hidden shrink-0",
         isCollapsed ? "w-[72px]" : "w-64"
       )}
     >
@@ -48,7 +48,7 @@ export function SidebarNav() {
             <div className="transition-opacity duration-200">
               <div className="flex items-center gap-1.5">
                 <span className="font-bold text-base tracking-tight text-zinc-100">HEIDI</span>
-                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
                   COCKPIT
                 </span>
               </div>
@@ -59,7 +59,7 @@ export function SidebarNav() {
       </div>
 
       {/* Navigation Links */}
-      <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+      <nav className="flex-1 p-3 space-y-1.5 overflow-y-auto">
         {!isCollapsed && (
           <div className="px-3 py-2 text-[10px] font-semibold tracking-wider text-zinc-500 uppercase">
             Command Center
@@ -94,7 +94,7 @@ export function SidebarNav() {
               {!isCollapsed && item.badge && (
                 <span
                   className={cn(
-                    "text-[10px] px-1.5 py-0.5 rounded font-mono shrink-0 ml-2",
+                    "text-[10px] px-2 py-0.5 rounded-lg font-mono shrink-0 ml-2",
                     isActive
                       ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
                       : "bg-zinc-900 text-zinc-400 border border-zinc-800 group-hover:text-zinc-300"
@@ -106,7 +106,7 @@ export function SidebarNav() {
 
               {/* Indicator dot for active item when collapsed */}
               {isCollapsed && isActive && (
-                <span className="absolute right-1 top-1 w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                <span className="absolute right-1.5 top-1.5 w-1.5 h-1.5 rounded-sm bg-emerald-400"></span>
               )}
             </Link>
           );

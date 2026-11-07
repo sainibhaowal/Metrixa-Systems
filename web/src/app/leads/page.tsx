@@ -89,12 +89,12 @@ export default function LeadsExplorerPage() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      {/* Title & Stats Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Title & Stats Header Top Bar */}
+      <div className="p-5 rounded-2xl bg-[#111114] border border-zinc-800/90 shadow-matte flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-zinc-100 flex items-center gap-2.5">
             <span>Lead Explorer & Data Grid</span>
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-mono">
+            <span className="text-xs px-2.5 py-1 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-mono">
               {formatNumber(total)} Qualified Leads
             </span>
           </h1>

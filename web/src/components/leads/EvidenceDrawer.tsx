@@ -61,10 +61,10 @@ export function EvidenceDrawer({ companyId, onClose }: EvidenceDrawerProps) {
         <div className="p-6 border-b border-zinc-800/90 flex items-start justify-between bg-[#141418]">
           <div className="space-y-1.5 pr-6">
             <div className="flex items-center gap-2.5">
-              <span className={`text-[11px] font-mono font-semibold px-2.5 py-0.5 rounded-full border ${getTierColorClasses(comp?.lead_tier)}`}>
+              <span className={`text-[11px] font-mono font-semibold px-2.5 py-1 rounded-xl border ${getTierColorClasses(comp?.lead_tier)}`}>
                 {comp?.lead_tier || "Tier Loading"}
               </span>
-              <span className="text-xs font-mono px-2 py-0.5 rounded bg-zinc-850 text-zinc-300 border border-zinc-700/60">
+              <span className="text-xs font-mono px-2.5 py-1 rounded-lg bg-zinc-850 text-zinc-300 border border-zinc-700/60">
                 Score: <strong className="text-emerald-400">{comp?.heidi_lead_score ?? "-"}</strong>/100
               </span>
             </div>

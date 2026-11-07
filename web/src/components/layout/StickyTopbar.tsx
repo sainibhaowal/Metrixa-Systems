@@ -29,10 +29,10 @@ export function StickyTopbar() {
   }, []);
 
   return (
-    <header className="h-16 px-6 bg-[#111114] border-b border-zinc-800/90 sticky top-0 z-30 flex items-center justify-between select-none shadow-matte">
+    <header className="h-16 px-5 bg-[#111114] border border-zinc-800/90 rounded-2xl sticky top-3 z-30 flex items-center justify-between select-none shadow-matte m-3 mb-2">
       {/* Left: Single Sidebar Expand/Collapse Toggle & System Status Pulse */}
-      <div className="flex items-center gap-4">
-        {/* The ONLY button to toggle sidebar */}
+      <div className="flex items-center gap-3 sm:gap-4">
+        {/* Rounded-Square Toggle Button */}
         <button
           onClick={toggleSidebar}
           title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
@@ -45,10 +45,11 @@ export function StickyTopbar() {
           )}
         </button>
 
-        <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-zinc-900 border border-zinc-800 shadow-sm">
+        {/* Rounded-Square Status Pill */}
+        <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 shadow-sm">
           <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-sm bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-sm h-2 w-2 bg-emerald-500"></span>
           </span>
           <span className="text-[11px] font-mono font-medium text-zinc-300">
             {metrics?.pipeline_state?.is_running
@@ -66,7 +67,7 @@ export function StickyTopbar() {
       </div>
 
       {/* Right: Quick Action Buttons */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2.5">
         <button
           onClick={loadData}
           disabled={loading}

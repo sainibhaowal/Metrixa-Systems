@@ -425,12 +425,12 @@ export default function SettingsHubPage() {
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
-      {/* Top Header & Active Indicators */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Top Header Bar Bento */}
+      <div className="p-5 rounded-2xl bg-[#111114] border border-zinc-800/90 shadow-matte flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-zinc-100 flex items-center gap-2.5">
             <span>Provider & Harness Hub</span>
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono">
+            <span className="text-xs px-2.5 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono">
               Pluggable
             </span>
           </h1>
@@ -444,7 +444,7 @@ export default function SettingsHubPage() {
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800">
             <span className="text-zinc-500">Active LLM:</span>
             <span className="text-emerald-400 font-bold flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span className="w-1.5 h-1.5 rounded-sm bg-emerald-400 animate-pulse"></span>
               {LLM_PROVIDERS.find((p) => p.id === activeLLM)?.name || activeLLM}
             </span>
           </div>
@@ -452,7 +452,7 @@ export default function SettingsHubPage() {
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800">
             <span className="text-zinc-500">Active Search:</span>
             <span className="text-emerald-400 font-bold flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+              <span className="w-1.5 h-1.5 rounded-sm bg-emerald-400"></span>
               {SEARCH_PROVIDERS.find((p) => p.id === activeSearch)?.name || activeSearch}
             </span>
           </div>
@@ -621,11 +621,11 @@ export default function SettingsHubPage() {
                   <div>
                     <div className="flex items-center gap-2.5">
                       <h2 className="text-lg font-bold text-zinc-100">{selectedLLMDef.name}</h2>
-                      <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-zinc-850 text-zinc-300 border border-zinc-700">
+                      <span className="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-zinc-850 text-zinc-300 border border-zinc-700">
                         {selectedLLMDef.badge}
                       </span>
                       {activeLLM === selectedLLMDef.id && (
-                        <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                        <span className="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
                           <CheckCircle2 className="w-3 h-3" />
                           Currently Active
                         </span>
@@ -745,11 +745,11 @@ export default function SettingsHubPage() {
                   <div>
                     <div className="flex items-center gap-2.5">
                       <h2 className="text-lg font-bold text-zinc-100">{selectedSearchDef.name}</h2>
-                      <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-zinc-850 text-zinc-300 border border-zinc-700">
+                      <span className="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-zinc-850 text-zinc-300 border border-zinc-700">
                         {selectedSearchDef.badge}
                       </span>
                       {activeSearch === selectedSearchDef.id && (
-                        <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                        <span className="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
                           <CheckCircle2 className="w-3 h-3" />
                           Default Active Search
                         </span>

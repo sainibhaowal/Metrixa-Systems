@@ -35,16 +35,19 @@ export default function ToolsCatalogPage() {
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-zinc-100 flex items-center gap-2.5">
-          <span>Agentic Tools Catalog</span>
-          <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono">
-            {tools.length} Operational Modules
-          </span>
-        </h1>
-        <p className="text-xs text-zinc-400 mt-1">
-          Inspect, test and verify scrapers, legal parsers, and DNS network verifiers powering Heidi Engine.
-        </p>
+      {/* Top Header Bar Bento */}
+      <div className="p-5 rounded-2xl bg-[#111114] border border-zinc-800/90 shadow-matte flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-100 flex items-center gap-2.5">
+            <span>Agentic Tools Catalog</span>
+            <span className="text-xs px-2.5 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono">
+              {tools.length} Operational Modules
+            </span>
+          </h1>
+          <p className="text-xs text-zinc-400 mt-1">
+            Inspect, test and verify scrapers, legal parsers, and DNS network verifiers powering Heidi Engine.
+          </p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
