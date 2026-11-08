@@ -18,11 +18,13 @@ import {
   CheckCircle2,
   Table,
   X,
+  RefreshCw,
 } from "lucide-react";
 import {
   fetchArtifactFiles,
   fetchArtifactPreview,
   executeArtifactAction,
+  syncArtifactDeliverables,
 } from "@/lib/api";
 
 interface ArtifactFile {
@@ -38,19 +40,55 @@ interface ArtifactFile {
   size_bytes: number;
   size_formatted: string;
   updated_at: string;
+  created_at?: string;
+  mtime_epoch?: number;
+  sha256_short?: string;
+  records_count?: number;
   tags: string[];
   download_url: string;
 }
 
+function formatExactDateTime(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(
+    d.getHours(),
+  )}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+function formatRelativeTime(
+  iso: string | null | undefined,
+  nowMs: number,
+): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  const diffSec = Math.max(0, Math.floor((nowMs - d.getTime()) / 1000));
+  if (diffSec < 5) return "just now";
+  if (diffSec < 60) return `${diffSec}s ago`;
+  const mins = Math.floor(diffSec / 60);
+  const secs = diffSec % 60;
+  if (mins < 60) return `${mins}m ${secs}s ago`;
+  const hrs = Math.floor(mins / 60);
+  const remMins = mins % 60;
+  if (hrs < 24) return `${hrs}h ${remMins}m ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ${hrs % 24}h ago`;
+}
+
 export default function ArtifactsLibraryPage() {
   const [files, setFiles] = useState<ArtifactFile[]>([]);
-  const [summary, setSummary] = useState({
+  const [summary, setSummary] = useState<any>({
     total: 0,
     active: 0,
     archived: 0,
     trash: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const [nowTick, setNowTick] = useState<number>(() => Date.now());
 
   // Active View Tab: "active" | "archived" | "trash"
   const [currentTab, setCurrentTab] = useState<"active" | "archived" | "trash">(
@@ -76,10 +114,10 @@ export default function ArtifactsLibraryPage() {
   const [trashCheckedIds, setTrashCheckedIds] = useState<string[]>([]);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
 
-  // 1. Load Files List
-  const loadFiles = async (preserveSelected = true) => {
+  // 1. Load Files List (supports silent background refresh)
+  const loadFiles = async (preserveSelected = true, silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const res = await fetchArtifactFiles();
       setFiles(res.items || []);
       setSummary(res.summary || { total: 0, active: 0, archived: 0, trash: 0 });
@@ -95,14 +133,47 @@ export default function ArtifactsLibraryPage() {
     } catch (err) {
       console.error("Failed to load artifacts:", err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
+  // Initial load + 5s live background telemetry poll + 1s relative clock ticker
   useEffect(() => {
-    loadFiles(false);
+    loadFiles(false, false);
+    const pollInterval = setInterval(() => {
+      loadFiles(true, true);
+    }, 5000);
+    const clockInterval = setInterval(() => {
+      setNowTick(Date.now());
+    }, 1000);
+    return () => {
+      clearInterval(pollInterval);
+      clearInterval(clockInterval);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Re-Sync Deliverables from Live SQLite DB
+  const handleSyncDeliverables = async () => {
+    try {
+      setSyncing(true);
+      const res = await syncArtifactDeliverables();
+      setFiles(res.items || []);
+      setSummary(res.summary || { total: 0, active: 0, archived: 0, trash: 0 });
+      setNowTick(Date.now());
+      if (selectedFileId) {
+        const freshPreview = await fetchArtifactPreview(selectedFileId);
+        setPreviewData(freshPreview);
+      }
+      setActionSuccess(
+        "Re-synced all deliverables from live SQLite DB with real-time timestamps",
+      );
+    } catch (err) {
+      console.error("Failed to sync deliverables:", err);
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   // 2. Load Preview when selected file changes
   useEffect(() => {
@@ -297,8 +368,31 @@ export default function ArtifactsLibraryPage() {
           </p>
         </div>
 
-        {/* Header Quick Stats & Trash Button */}
+        {/* Header Quick Stats, Live Clock, Re-Sync & Trash Button */}
         <div className="flex flex-wrap items-center gap-2 text-xs font-mono">
+          {/* Live Real-Time Clock & Telemetry Pill */}
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-900 border border-emerald-500/30 text-zinc-300">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+            <span className="text-zinc-500">Live Clock:</span>
+            <strong className="text-emerald-400">
+              {formatExactDateTime(new Date(nowTick).toISOString())}
+            </strong>
+          </div>
+
+          <button
+            onClick={handleSyncDeliverables}
+            disabled={syncing}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-bold transition-all disabled:opacity-50"
+            title="Regenerate Excel, CSV, and Evaluation Report directly from live SQLite DB now"
+          >
+            <RefreshCw
+              className={`w-3.5 h-3.5 text-emerald-400 ${
+                syncing ? "animate-spin" : ""
+              }`}
+            />
+            <span>{syncing ? "Syncing..." : "Re-Sync from Live DB"}</span>
+          </button>
+
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300">
             <span className="text-zinc-500">Active:</span>
             <strong className="text-emerald-400">{summary.active} Files</strong>
@@ -531,7 +625,7 @@ export default function ArtifactsLibraryPage() {
                           {f.title}
                         </p>
 
-                        {/* Badges / Tags */}
+                        {/* Badges / Tags & SHA-256 */}
                         <div className="flex flex-wrap items-center gap-1 mt-1.5">
                           {f.tags.slice(0, 3).map((tag, idx) => (
                             <span
@@ -541,18 +635,30 @@ export default function ArtifactsLibraryPage() {
                               {tag}
                             </span>
                           ))}
+                          {f.sha256_short && f.sha256_short !== "pending" && (
+                            <span
+                              className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"
+                              title={`SHA-256 prefix: ${f.sha256_short}`}
+                            >
+                              SHA256:{f.sha256_short.slice(0, 8)}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
 
-                    {/* Action Bar per Card */}
+                    {/* Action Bar per Card with Exact Real-Time Timestamp */}
                     <div className="flex items-center justify-end gap-1 mt-2 pt-2 border-t border-zinc-800/60 text-xs font-mono">
-                      <span className="text-[10px] text-zinc-500 mr-auto">
-                        Updated:{" "}
-                        {f.updated_at
-                          ? new Date(f.updated_at).toLocaleDateString()
-                          : "Ready"}
-                      </span>
+                      <div className="flex flex-col mr-auto min-w-0">
+                        <span className="text-[10px] text-zinc-300 font-semibold truncate">
+                          Updated: {formatExactDateTime(f.updated_at)}
+                        </span>
+                        <span className="text-[9px] text-emerald-400/90 truncate">
+                          {f.updated_at
+                            ? `${formatRelativeTime(f.updated_at, nowTick)} • ${(f.size_bytes || 0).toLocaleString()} B`
+                            : "Ready"}
+                        </span>
+                      </div>
 
                       {currentTab === "active" && (
                         <>
@@ -681,9 +787,20 @@ export default function ArtifactsLibraryPage() {
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-emerald-400 shrink-0">
                     Office Preview
                   </span>
+                  {currentFile?.sha256_short &&
+                    currentFile.sha256_short !== "pending" && (
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-400 shrink-0">
+                        SHA-256: {currentFile.sha256_short}
+                      </span>
+                    )}
                 </div>
-                <p className="text-[11px] text-zinc-400 truncate">
-                  {currentFile?.title} • {currentFile?.size_formatted}
+                <p className="text-[11px] text-zinc-400 truncate font-mono mt-0.5">
+                  {currentFile?.size_formatted} (
+                  {(currentFile?.size_bytes || 0).toLocaleString()} bytes) •
+                  Modified: {formatExactDateTime(currentFile?.updated_at)}{" "}
+                  <span className="text-emerald-400">
+                    ({formatRelativeTime(currentFile?.updated_at, nowTick)})
+                  </span>
                 </p>
               </div>
             </div>
@@ -1084,17 +1201,25 @@ export default function ArtifactsLibraryPage() {
               {/* ==================== 4. DATABASE EXPLORER PREVIEW ==================== */}
               {previewData.type === "db" && (
                 <div className="flex-1 min-h-0 flex flex-col space-y-3 overflow-auto">
-                  <div className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-between text-xs font-mono shrink-0">
+                  <div className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 flex flex-wrap items-center justify-between gap-2 text-xs font-mono shrink-0">
                     <span className="text-zinc-300">
                       SQLite Relational Engine • Journal Mode:{" "}
-                      {previewData.journal_mode}
+                      {previewData.journal_mode} • Total Rows:{" "}
+                      <strong className="text-emerald-400">
+                        {(previewData.total_db_rows || 0).toLocaleString()}
+                      </strong>
                     </span>
-                    <span className="text-emerald-400 font-bold">
-                      {previewData.tables?.length || 6} Relational Tables
+                    <span className="text-zinc-400">
+                      Latest DB Write:{" "}
+                      <strong className="text-emerald-400">
+                        {formatExactDateTime(
+                          previewData.latest_write_at || previewData.updated_at,
+                        )}
+                      </strong>
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 shrink-0">
                     {previewData.tables?.map((table: any, idx: number) => (
                       <div
                         key={idx}
@@ -1105,7 +1230,7 @@ export default function ArtifactsLibraryPage() {
                             {table.name}
                           </span>
                           <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-900 text-emerald-400 border border-zinc-800">
-                            {table.count} rows
+                            {(table.count || 0).toLocaleString()} rows
                           </span>
                         </div>
                         <div className="flex flex-wrap gap-1">
@@ -1123,6 +1248,128 @@ export default function ArtifactsLibraryPage() {
                       </div>
                     ))}
                   </div>
+
+                  {previewData.recent_records &&
+                    previewData.recent_records.length > 0 && (
+                      <div className="rounded-xl border border-zinc-800 bg-zinc-950 overflow-hidden shrink-0">
+                        <div className="px-3 py-2 bg-[#141418] border-b border-zinc-800 flex items-center justify-between text-xs font-mono">
+                          <span className="font-bold text-zinc-200">
+                            Live SQLite Golden Records (Most Recent Writes)
+                          </span>
+                          <span className="text-[10px] text-emerald-400">
+                            companies_golden (ACID Verified)
+                          </span>
+                        </div>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left border-collapse text-[11px] font-mono">
+                            <thead className="bg-zinc-900/80 text-zinc-400 border-b border-zinc-800">
+                              <tr>
+                                <th className="py-1.5 px-2.5">Canonical ID</th>
+                                <th className="py-1.5 px-2.5">Company Name</th>
+                                <th className="py-1.5 px-2.5">
+                                  PLZ / District
+                                </th>
+                                <th className="py-1.5 px-2.5">Score</th>
+                                <th className="py-1.5 px-2.5">Tier</th>
+                                <th className="py-1.5 px-2.5">
+                                  Updated Timestamp
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-zinc-850">
+                              {previewData.recent_records.map(
+                                (r: any, idx: number) => (
+                                  <tr
+                                    key={idx}
+                                    className="hover:bg-zinc-900/60"
+                                  >
+                                    <td className="py-1.5 px-2.5 text-emerald-400 font-bold whitespace-nowrap">
+                                      {r.canonical_id}
+                                    </td>
+                                    <td className="py-1.5 px-2.5 text-zinc-200 truncate max-w-[220px]">
+                                      {r.company_name}
+                                    </td>
+                                    <td className="py-1.5 px-2.5 text-zinc-400 whitespace-nowrap">
+                                      {r.postal_code} {r.district}
+                                    </td>
+                                    <td className="py-1.5 px-2.5 text-emerald-400 font-bold">
+                                      {r.heidi_Confirm_score}
+                                    </td>
+                                    <td className="py-1.5 px-2.5 text-zinc-300 whitespace-nowrap">
+                                      {r.lead_tier}
+                                    </td>
+                                    <td className="py-1.5 px-2.5 text-zinc-400 whitespace-nowrap">
+                                      {formatExactDateTime(r.updated_at)}
+                                    </td>
+                                  </tr>
+                                ),
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                  {previewData.recent_records &&
+                    previewData.recent_records.length > 0 && (
+                      <div className="rounded-xl border border-zinc-800 bg-zinc-950 overflow-hidden shrink-0">
+                        <div className="px-3 py-2 bg-[#141418] border-b border-zinc-800 flex items-center justify-between text-xs font-mono">
+                          <span className="font-bold text-zinc-200">
+                            Live SQLite Golden Records (Most Recent Writes)
+                          </span>
+                          <span className="text-[10px] text-emerald-400">
+                            companies_golden (ACID Verified)
+                          </span>
+                        </div>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left border-collapse text-[11px] font-mono">
+                            <thead className="bg-zinc-900/80 text-zinc-400 border-b border-zinc-800">
+                              <tr>
+                                <th className="py-1.5 px-2.5">Canonical ID</th>
+                                <th className="py-1.5 px-2.5">Company Name</th>
+                                <th className="py-1.5 px-2.5">
+                                  PLZ / District
+                                </th>
+                                <th className="py-1.5 px-2.5">Score</th>
+                                <th className="py-1.5 px-2.5">Tier</th>
+                                <th className="py-1.5 px-2.5">
+                                  Updated Timestamp
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-zinc-850">
+                              {previewData.recent_records.map(
+                                (r: any, idx: number) => (
+                                  <tr
+                                    key={idx}
+                                    className="hover:bg-zinc-900/60"
+                                  >
+                                    <td className="py-1.5 px-2.5 text-emerald-400 font-bold whitespace-nowrap">
+                                      {r.canonical_id}
+                                    </td>
+                                    <td className="py-1.5 px-2.5 text-zinc-200 truncate max-w-[220px]">
+                                      {r.company_name}
+                                    </td>
+                                    <td className="py-1.5 px-2.5 text-zinc-400 whitespace-nowrap">
+                                      {r.postal_code} {r.district}
+                                    </td>
+                                    <td className="py-1.5 px-2.5 text-emerald-400 font-bold">
+                                      {r.heidi_Confirm_score}
+                                    </td>
+                                    <td className="py-1.5 px-2.5 text-zinc-300 whitespace-nowrap">
+                                      {r.lead_tier}
+                                    </td>
+                                    <td className="py-1.5 px-2.5 text-zinc-400 whitespace-nowrap">
+                                      {formatExactDateTime(r.updated_at)}
+                                    </td>
+                                  </tr>
+                                ),
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
                 </div>
               )}
             </div>

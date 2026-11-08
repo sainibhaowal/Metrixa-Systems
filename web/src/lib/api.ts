@@ -169,3 +169,11 @@ export async function executeArtifactAction(data: {
   if (!res.ok) throw new Error("Failed to execute artifact action");
   return res.json();
 }
+
+export async function syncArtifactDeliverables() {
+  const res = await fetch(`${API_BASE}/api/artifacts/sync`, {
+    method: "POST",
+  });
+  if (!res.ok) throw new Error("Failed to sync deliverables from database");
+  return res.json();
+}

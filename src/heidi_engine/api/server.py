@@ -782,43 +782,126 @@ _artifact_store: dict[str, dict[str, Any]] = {
     },
 }
 
-_preview_cache: dict[str, Any] = {}
+_preview_cache: dict[str, tuple[float, dict[str, Any]]] = {}
+_sha256_cache: dict[str, tuple[float, int, str]] = {}
+
+
+def _compute_sha256_short(file_path: Path, mtime: float, size: int) -> str:
+    """Compute 12-char SHA-256 hex digest of a file, cached by (mtime, size)."""
+    key = str(file_path)
+    cached = _sha256_cache.get(key)
+    if cached and cached[0] == mtime and cached[1] == size:
+        return cached[2]
+    import hashlib
+
+    h = hashlib.sha256()
+    with open(file_path, "rb") as f:
+        for chunk in iter(lambda: f.read(65536), b""):
+            h.update(chunk)
+    digest = h.hexdigest()[:12]
+    _sha256_cache[key] = (mtime, size, digest)
+    return digest
+
+
+def _resolve_artifact_path(art_id: str) -> Path | None:
+    if art_id == "xlsx-master":
+        return settings.export_dir / "metrixa_berlin_hausverwaltungen.xlsx"
+    elif art_id == "csv-master":
+        return settings.export_dir / "metrixa_berlin_leads_master.csv"
+    elif art_id == "eval-report":
+        p = settings.export_dir / "metrixa_evaluation_ablation_report.md"
+        return (
+            p if p.exists() else settings.export_dir / "evaluation_ablation_report.md"
+        )
+    elif art_id == "exec-brief":
+        return settings.export_dir / "metrixa_executive_presentation.md"
+    elif art_id == "db-snapshot":
+        return settings.database_path
+    return None
 
 
 @app.get("/api/artifacts/files")
 async def get_artifact_files():
-    """List all deliverables with metadata, file size, status (active, archived, trash), and retention."""
+    """List all deliverables with real-time disk metadata, SHA-256 checksums, live DB counts, and timestamps."""
+    with db.connect() as conn:
+        golden_cnt = conn.execute(
+            "SELECT COUNT(*) FROM companies_golden WHERE pipeline_stage != 'DISQUALIFIED'"
+        ).fetchone()[0]
+        dm_cnt = conn.execute("SELECT COUNT(*) FROM decision_makers").fetchone()[0]
+        pages_cnt = conn.execute("SELECT COUNT(*) FROM crawled_pages").fetchone()[0]
+        latest_db_row = conn.execute(
+            "SELECT MAX(updated_at) FROM companies_golden"
+        ).fetchone()[0]
+
     items = []
     for art_id, item in _artifact_store.items():
         entry = dict(item)
-        file_path: Path | None = None
+        file_path = _resolve_artifact_path(art_id)
+
+        # Dynamic live descriptions & tags from SQLite
         if art_id == "xlsx-master":
-            file_path = settings.export_dir / "metrixa_berlin_hausverwaltungen.xlsx"
+            entry["desc"] = (
+                f"4-Tab formatted workbook containing all {golden_cnt:,} Berlin Hausverwaltungen "
+                f"ranked by Metrixa Lead Score (0–100), {dm_cnt:,} decision-makers, and {pages_cnt:,} crawled evidence logs."
+            )
+            entry["tags"] = [
+                "Preferred Format",
+                "4 Sheets",
+                f"{golden_cnt:,} Leads",
+                "Salesforce Ready",
+            ]
+            entry["records_count"] = golden_cnt
         elif art_id == "csv-master":
-            file_path = settings.export_dir / "metrixa_berlin_leads_master.csv"
-        elif art_id == "eval-report":
-            file_path = settings.export_dir / "metrixa_evaluation_ablation_report.md"
-            if not file_path.exists():
-                file_path = settings.export_dir / "evaluation_ablation_report.md"
-        elif art_id == "exec-brief":
-            file_path = settings.export_dir / "metrixa_executive_presentation.md"
+            entry["desc"] = (
+                f"Standardized CSV with UTF-8 BOM encoding for seamless import into Salesforce, HubSpot, "
+                f"or Google Sheets. 31 columns, {golden_cnt:,} deduplicated Berlin records."
+            )
+            entry["tags"] = [
+                "UTF-8 BOM",
+                "Salesforce / HubSpot",
+                f"{golden_cnt:,} Leads",
+                "RFC-4180",
+            ]
+            entry["records_count"] = golden_cnt
         elif art_id == "db-snapshot":
-            file_path = settings.database_path
+            entry["records_count"] = golden_cnt
 
         if file_path and file_path.exists():
             stat = file_path.stat()
-            size_kb = round(stat.st_size / 1024, 1)
-            entry["size_bytes"] = stat.st_size
+            total_bytes = stat.st_size
+            latest_mtime = stat.st_mtime
+
+            # Include WAL file size & modification time for SQLite DB
+            if art_id == "db-snapshot":
+                wal_path = Path(f"{file_path}-wal")
+                if wal_path.exists():
+                    wal_stat = wal_path.stat()
+                    total_bytes += wal_stat.st_size
+                    latest_mtime = max(latest_mtime, wal_stat.st_mtime)
+
+            size_kb = round(total_bytes / 1024, 1)
+            entry["size_bytes"] = total_bytes
             entry["size_formatted"] = (
                 f"{size_kb} KB" if size_kb < 1024 else f"{round(size_kb / 1024, 2)} MB"
             )
             entry["updated_at"] = datetime.fromtimestamp(
-                stat.st_mtime, tz=UTC
+                latest_mtime, tz=UTC
             ).isoformat()
+            entry["created_at"] = datetime.fromtimestamp(
+                stat.st_ctime, tz=UTC
+            ).isoformat()
+            entry["mtime_epoch"] = round(latest_mtime, 3)
+            entry["sha256_short"] = _compute_sha256_short(
+                file_path, stat.st_mtime, stat.st_size
+            )
         else:
+            now_dt = datetime.now(UTC)
             entry["size_bytes"] = 0
             entry["size_formatted"] = "Ready to generate"
-            entry["updated_at"] = datetime.now(UTC).isoformat()
+            entry["updated_at"] = now_dt.isoformat()
+            entry["created_at"] = now_dt.isoformat()
+            entry["mtime_epoch"] = round(now_dt.timestamp(), 3)
+            entry["sha256_short"] = "pending"
 
         items.append(entry)
 
@@ -833,15 +916,35 @@ async def get_artifact_files():
             "active": active_cnt,
             "archived": archived_cnt,
             "trash": trash_cnt,
+            "server_time_utc": datetime.now(UTC).isoformat(),
+            "latest_db_write": latest_db_row,
+            "golden_leads_count": golden_cnt,
         },
     }
 
 
+@app.post("/api/artifacts/sync")
+async def sync_artifacts_from_db():
+    """Regenerate Excel, CSV, and Markdown Evaluation deliverables directly from live SQLite DB."""
+    ExcelExporter(db).export_all()
+    PipelineEvaluator(db).generate_markdown_report()
+    _preview_cache.clear()
+    _sha256_cache.clear()
+    return await get_artifact_files()
+
+
 @app.get("/api/artifacts/preview/{artifact_id}")
 async def get_artifact_preview(artifact_id: str):
-    """Return parsed real office preview data for interactive preview pane."""
-    if artifact_id in _preview_cache:
-        return _preview_cache[artifact_id]
+    """Return parsed real office preview data with mtime-aware cache invalidation."""
+    file_path = _resolve_artifact_path(artifact_id)
+    current_mtime = (
+        file_path.stat().st_mtime if (file_path and file_path.exists()) else 0.0
+    )
+
+    if artifact_id != "db-snapshot" and artifact_id in _preview_cache:
+        cached_mtime, cached_res = _preview_cache[artifact_id]
+        if cached_mtime == current_mtime and current_mtime > 0:
+            return cached_res
 
     import openpyxl
 
@@ -849,6 +952,7 @@ async def get_artifact_preview(artifact_id: str):
         xlsx_path = settings.export_dir / "metrixa_berlin_hausverwaltungen.xlsx"
         if not xlsx_path.exists():
             ExcelExporter(db).export_all()
+        stat = xlsx_path.stat()
 
         wb = openpyxl.load_workbook(str(xlsx_path), data_only=True)
         sheets_data: dict[str, Any] = {}
@@ -875,14 +979,20 @@ async def get_artifact_preview(artifact_id: str):
             "sheets": wb.sheetnames,
             "sheet_data": sheets_data,
             "active_sheet": wb.sheetnames[0] if wb.sheetnames else "",
+            "updated_at": datetime.fromtimestamp(stat.st_mtime, tz=UTC).isoformat(),
+            "size_bytes": stat.st_size,
+            "sha256_short": _compute_sha256_short(
+                xlsx_path, stat.st_mtime, stat.st_size
+            ),
         }
-        _preview_cache[artifact_id] = res
+        _preview_cache[artifact_id] = (stat.st_mtime, res)
         return res
 
     elif artifact_id == "csv-master":
         csv_path = settings.export_dir / "metrixa_berlin_leads_master.csv"
         if not csv_path.exists():
             ExcelExporter(db).export_all()
+        stat = csv_path.stat()
 
         with open(csv_path, "r", encoding="utf-8-sig") as f:
             reader = csv.reader(f)
@@ -898,8 +1008,13 @@ async def get_artifact_preview(artifact_id: str):
             "rows": data_rows,
             "total_rows": max(0, len(rows) - 1),
             "encoding": "UTF-8 with BOM",
+            "updated_at": datetime.fromtimestamp(stat.st_mtime, tz=UTC).isoformat(),
+            "size_bytes": stat.st_size,
+            "sha256_short": _compute_sha256_short(
+                csv_path, stat.st_mtime, stat.st_size
+            ),
         }
-        _preview_cache[artifact_id] = res
+        _preview_cache[artifact_id] = (stat.st_mtime, res)
         return res
 
     elif artifact_id in ("eval-report", "exec-brief"):
@@ -929,6 +1044,7 @@ async def get_artifact_preview(artifact_id: str):
             name = "metrixa_executive_presentation.md"
             title = "Executive Presentation & Submetering TAM Brief"
 
+        stat = path.stat()
         res = {
             "id": artifact_id,
             "type": "md" if artifact_id == "eval-report" else "pdf",
@@ -936,19 +1052,25 @@ async def get_artifact_preview(artifact_id: str):
             "title": title,
             "content": text,
             "lines_count": len(text.splitlines()),
+            "updated_at": datetime.fromtimestamp(stat.st_mtime, tz=UTC).isoformat(),
+            "size_bytes": stat.st_size,
+            "sha256_short": _compute_sha256_short(path, stat.st_mtime, stat.st_size),
         }
-        _preview_cache[artifact_id] = res
+        _preview_cache[artifact_id] = (stat.st_mtime, res)
         return res
 
     elif artifact_id == "db-snapshot":
+        db_stat = settings.database_path.stat()
         with db.connect() as conn:
             tbl_rows = conn.execute(
                 "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name ASC"
             ).fetchall()
             tables = []
+            total_db_rows = 0
             for tr in tbl_rows:
                 tname = tr["name"]
                 cnt = conn.execute(f"SELECT COUNT(*) FROM {tname}").fetchone()[0]
+                total_db_rows += cnt
                 cols = [
                     dict(c)
                     for c in conn.execute(f"PRAGMA table_info({tname})").fetchall()
@@ -957,15 +1079,38 @@ async def get_artifact_preview(artifact_id: str):
                     {"name": tname, "count": cnt, "columns": [c["name"] for c in cols]}
                 )
 
+            recent_rows = conn.execute(
+                """
+                SELECT REPLACE(company_id, 'HEIDI-BER-', 'METRIXA-BER-') as canonical_id,
+                       display_name as company_name, postal_code, district,
+                       heidi_lead_score as heidi_Confirm_score, lead_tier, updated_at
+                FROM companies_golden
+                WHERE pipeline_stage != 'DISQUALIFIED'
+                ORDER BY updated_at DESC, heidi_lead_score DESC
+                LIMIT 8
+                """
+            ).fetchall()
+            recent_records = [dict(r) for r in recent_rows]
+            latest_write = conn.execute(
+                "SELECT MAX(updated_at) FROM companies_golden"
+            ).fetchone()[0]
+
         res = {
             "id": artifact_id,
             "type": "db",
             "name": "metrixa_leads.db",
             "tables": tables,
+            "total_db_rows": total_db_rows,
+            "recent_records": recent_records,
+            "latest_write_at": latest_write,
             "journal_mode": "WAL",
             "synchronous": "NORMAL",
+            "updated_at": datetime.fromtimestamp(db_stat.st_mtime, tz=UTC).isoformat(),
+            "size_bytes": db_stat.st_size,
+            "sha256_short": _compute_sha256_short(
+                settings.database_path, db_stat.st_mtime, db_stat.st_size
+            ),
         }
-        _preview_cache[artifact_id] = res
         return res
 
     raise HTTPException(status_code=404, detail="Artifact preview not found")
