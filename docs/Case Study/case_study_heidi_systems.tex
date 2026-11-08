@@ -1,283 +1,220 @@
-\documentclass[10pt,journal,compsoc]{IEEEtran}
+\documentclass[11pt,a4paper]{article}
 
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
-\usepackage{amsmath}
-\usepackage{amssymb}
+\usepackage{mathptmx}
+\usepackage[margin=22mm]{geometry}
+\usepackage{amsmath,amssymb}
 \usepackage{booktabs}
 \usepackage{tabularx}
+\usepackage{array}
 \usepackage{hyperref}
-\usepackage{graphicx}
-\usepackage{xcolor}
-\usepackage{microtype}
-\usepackage{cite}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
 
 \hypersetup{
     colorlinks=true,
-    linkcolor=blue,
-    filecolor=magenta,
-    urlcolor=cyan,
-    citecolor=teal
+    linkcolor=black,
+    citecolor=black,
+    urlcolor=blue
 }
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\footnotesize HEIDI SYSTEMS TECHNICAL CASE STUDY: B2B LEAD INTELLIGENCE ARCHITECTURE}
+\fancyhead[R]{\footnotesize PROJECT SYSTEM ARCHITECTURE REPORT}
+\fancyfoot[C]{\footnotesize \thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\title{\textbf{\Large End-to-End B2B Lead Intelligence, Statutory Impressum Extraction, and Deterministic Qualification for Berlin Property Management Companies}}
+\author{\textbf{Ravin Saini}\\
+\small \textit{Systems Architecture \& Engineering Documentation | Project Repository: Heidi Systems (Metrixa Engine)}}
+\date{\small November 2026}
 
 \begin{document}
 
-\title{Autonomous B2B Lead Intelligence \& Statutory Verification: Market Saturation, Deterministic Qualification, and Decision-Maker Extraction for the German Property Management Ecosystem}
+\maketitle
+\thispagestyle{fancy}
 
-\author{Metrixa Systems GmbH --- Autonomous Systems \& LeadOps Engineering Team%
-\thanks{Technical Whitepaper and Production Case Study prepared for Public Review and Technical Evaluation. Correspondence: \texttt{engineering@metrixa-systems.de}. Date: November 2026.}}
-
-\markboth{Metrixa Technical Reports, Vol.~14, No.~2, November~2026}%
-{Metrixa Systems: Autonomous B2B Lead Intelligence \& Statutory Verification}
-
-\IEEEtitleabstractindextext{%
 \begin{abstract}
-Extracting verified, actionable go-to-market (GTM) sales intelligence within the German small and medium-sized enterprise (\textit{Mittelstand}) ecosystem presents severe structural hurdles for global commercial data vendors. In the property management (\textit{Hausverwaltung}) sector, operational scale, portfolio composition, and enterprise software configurations are rarely publicized on professional social networks such as LinkedIn. However, German statutory disclosure mandates---specifically \S~5 Digitale-Dienste-Gesetz (DDG) and \S~18 Medienstaatsvertrag (MStV)---obligate commercial entities to publish legal identities, commercial register numbers (\textit{Handelsregister}), and managing directors (\textit{Geschäftsführer}) on their website \texttt{/impressum}.
+\noindent Acquiring accurate go-to-market (GTM) sales intelligence within the German property management (\textit{Hausverwaltung}) sector presents structural challenges because small and medium-sized enterprises (\textit{Mittelstand}) rarely publish portfolio unit counts or enterprise resource planning (ERP) software stacks on social networks. However, German statutory transparency law, specifically Section 5 of the Digital Services Act (\textit{Digitale-Dienste-Gesetz}, \S~5 DDG), requires commercial website operators to disclose their legal entity form, commercial register number (\textit{Handelsregister HRB/HRA}), and authorized managing directors (\textit{Gesch\"aftsf\"uhrer}) on an accessible \texttt{/impressum} page. This case study documents the end-to-end architecture, mathematical qualification model, validation gates, and empirical dataset results of the autonomous B2B data pipeline built for Heidi Systems across Berlin. By combining five-source directory ingestion, Disjoint-Set Union-Find entity deduplication, asynchronous website and Impressum crawling, DOM PropTech ERP fingerprinting, verbatim evidence-grounded extraction, and RFC 5321 DNS Mail Exchange (MX) verification, the pipeline ingested \textbf{1,375 raw listings} and resolved \textbf{1,200 unique Berlin property management companies}. Each company is evaluated using a deterministic 5-pillar qualification scorecard (0 to 100 points), segmenting the Berlin market into \textbf{Tier A (35 companies)}, \textbf{Tier B (409 companies)}, and \textbf{Tier C (756 companies)}, with \textbf{0.0\% ungrounded hallucinations}.
 
-This paper presents the end-to-end architecture, mathematical methodology, and empirical findings of an autonomous B2B lead intelligence pipeline deployed across Berlin. By combining five-source parallel ingestion, Union-Find entity deduplication, hybrid deterministic/LLM Impressum parsing with verbatim anti-hallucination verification, DOM PropTech ERP fingerprinting, and RFC 5321 DNS Mail Exchange (MX) validation, the system resolved 1,199 unique, qualified property management companies from an initial raw pool of 1,240 records, achieving an estimated $\sim$95\% total addressable market (TAM) saturation across all 12 Berlin administrative districts.
-
-We formalize a 5-Pillar Mathematical Qualification Scorecard ($S \in [0, 100]$) to categorize leads into Tier A ($N=33$), Tier B ($N=409$), and Tier C ($N=757$). Benchmarking against a manually annotated 30-company Berlin Gold Standard yielded an overall F1 score of 93.3\% (Precision: 96.4\%, Recall: 90.3\%). Furthermore, we evaluate the automated synthesis and verification of personal executive emails (\texttt{firstname.lastname@domain.de}), eliminating the reliance on unmonitored \texttt{info@} addresses. Finally, we provide an architectural blueprint for scaling this system to 25,000+ companies across Munich, Hamburg, Frankfurt, and Cologne.
+\vspace{4pt}
+\noindent \textbf{Keywords:} B2B Lead Intelligence, German Property Management (\textit{Hausverwaltungen}), Statutory Disclosure (\S~5 DDG), Entity Resolution, Disjoint-Set Union-Find, PropTech ERP Detection, DNS MX Verification, Submetering (\textit{HeizkostenV}).
 \end{abstract}
 
-\begin{IEEEkeywords}
-Lead Generation, Statutory Compliance, Entity Resolution, Union-Find, LLM Extraction, PropTech, Submetering, RFC 5321, German Impressum, \S~5 DDG.
-\end{IEEEkeywords}}
+\section{Introduction \& Domain Context}
+The German residential real estate market exhibits high tenancy density, particularly in Berlin, where the majority of housing units are organized within multi-family rental buildings (\textit{Mietverwaltung}) or condominium owner associations (\textit{Wohnungseigent\"umergemeinschaften}, WEG) (Statistisches Bundesamt, 2024). Following the European Energy Efficiency Directive (EED) and the amended German Heating Cost Ordinance (\textit{Heizkostenverordnung}, HeizkostenV), property managers must install remotely readable submetering hardware (\textit{Fernauslesung}) and provide monthly digital consumption transparency to tenants (Bundesministerium f\"ur Wirtschaft und Klimaschutz, 2021).
 
-\maketitle
-\IEEEdisplaynontitleabstractindextext
-\IEEEpeerreviewmaketitle
-
-\section{Introduction \& Problem Definition}
-\IEEEPARstart{T}{he} German residential real estate market is characterized by extreme tenancy density: over 53\% of households nationwide---and approximately 85\% within Berlin---reside in rented multi-family properties (\textit{Mietwohnungen}) or condominium associations (\textit{Wohnungseigentümergemeinschaften}, WEG) \cite{destatis2024}. German heating cost regulations (\textit{Heizkostenverordnung}, HeizkostenV), updated in accordance with the European Energy Efficiency Directive (EED), legally mandate monthly digital consumption reporting and remote submetering (\textit{Fernauslesung}) for multi-tenant buildings \cite{bmwk2021}.
-
-For technology providers delivering submetering infrastructure, IoT gateway hardware, and automated billing software, German property management companies (\textit{Hausverwaltungen}) represent the primary institutional buyer. However, acquiring verified commercial intelligence on these entities is notoriously difficult:
+For submetering hardware and software providers such as Heidi Systems, property management companies (\textit{Hausverwaltungen}) are the primary institutional buyers. Rather than selling to individual apartment owners, signing a single mid-sized property management company brings hundreds or thousands of residential units onto the platform simultaneously. However, building a complete, qualified lead database in Berlin faces three practical obstacles:
 \begin{enumerate}
-    \item \textbf{Extreme SME Fragmentation:} Unlike institutional US asset managers, German property managers are predominantly privately held SMEs (\textit{GmbH, GmbH \& Co. KG, UG}), managing portfolios between 300 and 5,000 residential units \cite{vdiv2023}.
-    \item \textbf{Social Media Invisibility:} Fewer than 18\% of German property management executives actively maintain detailed personal profiles on professional networks like LinkedIn or Xing. Company unit counts and software stacks are virtually never disclosed on social platforms.
-    \item \textbf{Data Attrition in Global B2B Databases:} Commercial vendors (e.g., Apollo, ZoomInfo) exhibit coverage rates below 25\% for German SME property managers, frequently suffering from outdated records, generic catch-all emails (\texttt{info@}), and misclassified sales brokers (\textit{Immobilienmakler}).
+    \item \textbf{Market Fragmentation:} Most Berlin property management firms are private small and medium-sized enterprises (GmbH, UG, GmbH \& Co. KG, or e.K.) managing between 300 and 5,000 residential units across localized districts.
+    \item \textbf{Low Social Media Presence:} Traditional B2B databases that rely on LinkedIn profiles miss the majority of German property managers, whose managing directors rarely maintain active social profiles.
+    \item \textbf{Generic Contact Barriers:} Public directories typically list only generic central mailboxes (such as \texttt{info@}, \texttt{kontakt@}, or \texttt{service@}), which are filtered by administrative staff before reaching executive decision makers.
 \end{enumerate}
 
-Under German public law, commercial telemedia services are governed by strict statutory disclosure requirements. Specifically, \S~5 DDG requires commercial providers to disclose corporate legal identity, authorized representatives (\textit{Geschäftsführer}), commercial register coordinates (\textit{HRB/HRA}), and direct electronic communication channels on an accessible \texttt{/impressum} page \cite{ddg2024, gdpr2016}. This statutory framework creates an opportunity: by systematically ingesting public directory structures, extracting statutory Impressum subpages, and parsing legally certified disclosures, an automated intelligence engine can construct a verified database of market participants with zero reliance on speculative third-party lists.
+To overcome these limitations without relying on paid third-party data brokers, our system leverages German statutory law. Under \textbf{\S~5 Digitale-Dienste-Gesetz (DDG)} (formerly \S~5 TMG), every commercial website operator in Germany is legally required to publish an \texttt{/impressum} page containing the exact company name, legal form, commercial register number (\textit{HRB/HRA}), and full names of authorized representatives (\textit{Gesch\"aftsf\"uhrer} or \textit{Inhaber}) (Deutscher Bundestag, 2024). This paper details how our 6-stage pipeline automates the discovery, deduplication, qualification, decision-maker extraction, and validation of the Berlin property management market.
 
-\section{System Architecture \& Entity Resolution}
+\section{Task 1: Multi-Source Market Ingestion \& Entity Deduplication}
 
-\subsection{Multi-Source Directory Ingestion}
-To maximize coverage, the ingestion engine queries five distinct directories in parallel:
-\begin{enumerate}
-    \item \textbf{Gelbe Seiten:} Queried across 23 distinct Berlin postal shards targeting the industry taxonomy codes for \textit{Hausverwaltung}, \textit{WEG-Verwaltung}, and \textit{Mietverwaltung}.
-    \item \textbf{11880.com:} Harvested using an asynchronous HTTP client equipped with an algorithmic XOR decrypter to decode Cloudflare-obfuscated email strings embedded in DOM hexadecimal tokens.
-    \item \textbf{VDIV Berlin-Brandenburg Registry:} Direct extraction of accredited members of the Association of German Property Managers.
-    \item \textbf{OpenStreetMap Overpass API:} Spatial bounding-box query encompassing greater Berlin ($\text{BBox} = [52.338, 13.088, 52.675, 13.761]$).
-    \item \textbf{Autonomous Meta-Search Discovery:} Algorithmic search queries targeting newly incorporated entities matching Berlin commercial court registrations.
-\end{enumerate}
+\subsection{Five-Source Parallel Ingestion Architecture}
+Relying on a single business directory leaves substantial blind spots in local market coverage. In Stage 1 (implemented in \texttt{src/heidi\_engine/scrapers/}), the pipeline executes five specialized connectors concurrently across Berlin postal codes (\texttt{10115} through \texttt{14199}), covering all 12 Berlin administrative districts (\textit{Bezirke}: Mitte, Friedrichshain-Kreuzberg, Pankow, Charlottenburg-Wilmersdorf, Spandau, Steglitz-Zehlendorf, Tempelhof-Sch\"oneberg, Neuk\"olln, Treptow-K\"openick, Marzahn-Hellersdorf, Lichtenberg, and Reinickendorf).
 
-Initial ingestion yielded 1,240 raw candidate records across all five sources.
+As shown in Table~\ref{tab:ingestion}, the Stage 1 connectors ingested exactly \textbf{1,375 raw records} into the SQLite table \texttt{raw\_listings}. Each raw listing is preserved with an immutable SHA-256 payload hash for auditability before deduplication.
 
-\subsection{Mathematical Entity Resolution via Disjoint-Set Union-Find}
-To eliminate duplicate records resulting from multi-directory listings, we implement a Disjoint-Set Union-Find algorithm augmented with path compression and union by rank \cite{tarjan1975}. Each raw entity $e_i$ is mapped into a normalized feature vector:
-\begin{equation}
-\mathbf{v}(e_i) = \langle k_{\text{domain}}(e_i), k_{\text{phone}}(e_i), k_{\text{addr}}(e_i), k_{\text{name}}(e_i) \rangle
-\end{equation}
-
-Entities are merged into an equivalence class $\text{Union}(e_i, e_j)$ if they satisfy:
-\begin{align}
-\Big(k_{\text{domain}}(e_i) = k_{\text{domain}}(e_j) \land k_{\text{domain}} \neq \emptyset\Big) \lor \nonumber \\
-\Big(k_{\text{phone}}(e_i) = k_{\text{phone}}(e_j) \land k_{\text{phone}} \neq \emptyset\Big) \lor \nonumber \\
-\Big(\text{Sim}_{\text{Lev}}(e_i, e_j) \ge 0.88 \land k_{\text{addr}}(e_i) = k_{\text{addr}}(e_j)\Big)
-\end{align}
-
-From the initial 1,240 raw records, Union-Find clustering resolved exactly 1,199 unique property management entities, achieving $\sim$95\% market saturation across Berlin.
-
-\section{Deterministic Extraction \& Verification}
-
-\subsection{Async HTTP/2 Impressum Crawler}
-The crawler operates an asynchronous HTTP/2 client with a concurrency semaphore ($\kappa = 15$) and polite domain-level rate limits \cite{fette2011}. For each canonical domain, it executes a prioritized breadth-first search for legal subpages:
-\begin{equation}
-\mathcal{P}_{\text{targets}} = \{ \text{/impressum}, \text{/imprint}, \text{/legal}, \text{/team}, \text{/kontakt} \}
-\end{equation}
-
-\subsection{Two-Tier Hybrid Extraction Pipeline}
-\textbf{Layer 1 (Deterministic Legal Parser):} Regular expressions extract statutory disclosures with zero inference cost:
-\begin{itemize}
-    \item \textbf{Commercial Register ID:} \texttt{r'(?:HRB|HRA)\textbackslash{}s*([0-9]\{4,6\}\textbackslash{}s*[A-Z]?)'}
-    \item \textbf{Managing Directors:} \texttt{r'(?:Gesch[aä]ftsf[uü]hrer|Vorstand)\textbackslash{}s*[:\-–]?\textbackslash{}s*([A-ZÄÖÜ][a-zäöüß\-]+\textbackslash{}s+[A-ZÄÖÜ][a-zäöüß\-]+)'}
-\end{itemize}
-
-\textbf{Layer 2 (Hybrid LLM Router):} Unstructured portfolio descriptions are dispatched to a structured output LLM (OpenAI GPT-4o-mini / Gemini 1.5 Flash) constrained by Pydantic JSON schemas. To eliminate hallucinations, the engine enforces a Verbatim Verification Gate:
-\begin{equation}
-\text{Verify}(q, T_{\text{DOM}}) = \begin{cases}
-\text{Valid}, & \text{if } q \subseteq T_{\text{DOM}} \\
-\text{Nullify}, & \text{otherwise}
-\end{cases}
-\end{equation}
-
-\subsection{DOM PropTech \& Submetering Fingerprinting}
-The crawler inspects DOM anchor targets and script tags for ERP portals (Casavi, Domus 4000, Immoware24, Aareon) and incumbent meter providers (Techem, ista, Minol, Brunata). Detecting an existing portal proves digital maturity and guarantees API integration feasibility.
-
-\section{Mathematical Qualification \& Scoring (Task 2)}
-
-\subsection{5-Pillar Scorecard Formulation}
-For each company $i$, the qualification score $S_i \in [0, 100]$ is computed deterministically:
-\begin{equation}
-S_i = \min\Big(100, \; S_{\text{scale}}(i) + S_{\text{focus}}(i) + S_{\text{digital}}(i) + S_{\text{trust}}(i) + S_{\text{contact}}(i)\Big)
-\end{equation}
-
-\textbf{1. Portfolio Scale ($S_{\text{scale}} \in [0, 35]$):}
-\begin{equation}
-S_{\text{scale}}(i) = \begin{cases}
-35, & \text{if } U_i \ge 2,500 \lor T_{\text{units}}(i) = \text{"Enterprise"} \\
-28, & \text{if } 1,000 \le U_i < 2,500 \lor T_{\text{units}}(i) = \text{"Large"} \\
-20, & \text{if } 300 \le U_i < 1,000 \lor E_i \ge 5 \\
-16, & \text{if } \text{LegalForm}_i \in \{\text{GmbH, AG}\} \land \text{HasWeb}_i \\
-6, & \text{otherwise}
-\end{cases}
-\end{equation}
-
-\textbf{2. Asset \& Management Focus ($S_{\text{focus}} \in [0, 25]$):}
-\begin{equation}
-S_{\text{focus}}(i) = \begin{cases}
-25, & \text{if } \text{WEG}_i \land \text{Miet}_i \\
-20, & \text{if } \text{WEG}_i \lor \text{Miet}_i \\
-12, & \text{if } \text{Commercial}_i \\
-15, & \text{otherwise}
-\end{cases}
-\end{equation}
-
-\textbf{3. Digital Maturity \& ERP ($S_{\text{digital}} \in [0, 20]$):}
-\begin{equation}
-S_{\text{digital}}(i) = \min\Big(20, \; 12 \cdot \mathbb{I}(\text{ERP}_i) + 5 \cdot \mathbb{I}(\text{Portal}_i) + 3 \cdot \mathbb{I}(\text{HTTPS}_i)\Big)
-\end{equation}
-
-\textbf{4. Professional Trust ($S_{\text{trust}} \in [0, 10]$):}
-\begin{equation}
-S_{\text{trust}}(i) = \min\Big(10, \; 5 \cdot \mathbb{I}(\text{VDIV}_i) + 3 \cdot \mathbb{I}(\text{HRB}_i) + \min(2, \text{Sources}_i)\Big)
-\end{equation}
-
-\textbf{5. Decision Maker Reachability ($S_{\text{contact}} \in [0, 10]$):}
-\begin{equation}
-S_{\text{contact}}(i) = \min\Big(10, \; 4 \cdot \mathbb{I}(\text{CEO}_i) + 4 \cdot \mathbb{I}(\text{Email}_i) + 2 \cdot \mathbb{I}(\text{LinkedIn}_i)\Big)
-\end{equation}
-
-Leads are stratified into:
-\begin{itemize}
-    \item \textbf{Tier A ($S_i \ge 70$):} 33 Leads (High-volume enterprise targets).
-    \item \textbf{Tier B ($45 \le S_i < 70$):} 409 Leads (Qualified mid-market).
-    \item \textbf{Tier C ($S_i < 45$):} 757 Leads (Small/long-tail).
-\end{itemize}
-
-\section{Executive Email Synthesis \& DNS MX Validation (Bonus)}
-Cold emails sent to generic mailboxes (\texttt{info@}) suffer from high bounce and low read rates. Our engine extracts the statutory Managing Director and synthesizes corporate email patterns:
-\begin{equation}
-\mathcal{P}_{\text{email}} = \{ \text{first.last}@D, \; \text{f.last}@D, \; \text{last}@D, \; \text{flast}@D \}
-\end{equation}
-
-Each domain $D$ is subjected to live DNS RFC 5321 Mail Exchange (MX) validation \cite{rescorla2008}. Validated records are tagged as \texttt{PATTERN\_MX\_VERIFIED} or \texttt{PUBLIC\_DIRECT\_VERIFIED}, eliminating hard bounces and protecting sender domain reputation.
-
-\section{Empirical Results \& Benchmarks}
-
-\subsection{Geographic Distribution Across Berlin}
-Table~\ref{tab:districts} details lead concentration across Berlin's 12 administrative districts.
-
-\begin{table}[h]
-\caption{Lead Distribution Across Berlin Districts ($N=1,199$)}
-\label{tab:districts}
+\begin{table}[htbp]
 \centering
-\begin{tabularx}{\columnwidth}{lrrX}
+\caption{Empirical Stage 1 Raw Ingestion Volume and Stage 2 Deduplication Output (\texttt{data/metrixa\_leads.db})}
+\label{tab:ingestion}
+\footnotesize
+\begin{tabularx}{\textwidth}{l l r r X}
 \toprule
-\textbf{District (Bezirk)} & \textbf{Leads} & \textbf{Share} & \textbf{Primary Typology} \\
+\textbf{Ingestion Connector} & \textbf{Source Type} & \textbf{Raw} & \textbf{Share} & \textbf{Primary Contribution to Golden Record} \\
 \midrule
-Charlottenburg-Wilmersdorf & 218 & 18.2\% & Pre-war Altbau WEG \\
-Mitte                      & 184 & 15.3\% & Commercial \& central \\
-Pankow (incl. P-Berg)      & 142 & 11.8\% & High-density residential \\
-Tempelhof-Schöneberg       & 119 & 9.9\%  & Housing associations \\
-Steglitz-Zehlendorf        & 98  & 8.2\%  & Residential condos \\
-Friedrichshain-Kreuzberg   & 91  & 7.6\%  & Co-ops \& multi-family \\
-Neukölln                   & 76  & 6.3\%  & Rental stock \\
-Spandau                    & 68  & 5.7\%  & Post-war estates \\
-Reinickendorf              & 64  & 5.3\%  & Suburban SME managers \\
-Lichtenberg                & 59  & 4.9\%  & Post-reunification blocks \\
-Treptow-Köpenick           & 48  & 4.0\%  & Mixed residential \\
-Marzahn-Hellersdorf        & 32  & 2.7\%  & Municipal clusters \\
+1. 11880.com (\texttt{11880}) & B2B Directory & 838 & 60.9\% & Broad SME coverage, street addresses, and phone numbers \\
+2. Gelbe Seiten (\texttt{gelbe\_seiten}) & Yellow Pages & 405 & 29.5\% & High corporate website density (35.1\%) and district tags \\
+3. OpenStreetMap (\texttt{osm}) & Overpass API & 100 & 7.3\% & Exact latitude/longitude coordinates and local offices \\
+4. VDIV Roster (\texttt{vdiv}) & Association & 30 & 2.2\% & Verified professional association members (high-trust leads) \\
+5. Search (\texttt{searxng\_discovery}) & Web SERP & 2 & 0.1\% & Digital-first property managers outside legacy directories \\
+\midrule
+\textbf{Total Raw Scraped (Stage 1)} & \textbf{All 5 Sources} & \textbf{1,375} & \textbf{100.0\%} & \textbf{175 cross-source duplicates identified and merged} \\
+\textbf{Canonical Entities (Stage 2)} & \textbf{Golden Table} & \textbf{1,200} & \textbf{87.3\%} & \textbf{100\% unique Berlin property management companies} \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-\subsection{Gold-Set Ablation Evaluation}
-Benchmarked against an expert-annotated 30-Company Berlin Gold Standard, the hybrid architecture achieves superior accuracy over regex-only and LLM-only baselines (Table~\ref{tab:ablation}).
+\subsection{Disjoint-Set Union-Find Entity Resolution}
+Because property management companies frequently appear in multiple directories with slight variations in legal punctuation (for example, \textit{Muster Hausverwaltung GmbH} vs. \textit{Muster Hausverwaltungsgesellschaft mbH}), naive string deduplication fails. Stage 2 (implemented in \texttt{src/heidi\_engine/dedup/resolver.py}) normalizes company names by stripping legal suffixes (\texttt{GmbH}, \texttt{UG}, \texttt{AG}, \texttt{GmbH \& Co. KG}, \texttt{e.K.}) and generic sector terms (\texttt{Hausverwaltung}, \texttt{Immobilienverwaltung}), normalizes URLs to root eTLD+1 domains (excluding shared directory hosts and freemail domains), and parses phone numbers into strict E.164 format (\texttt{+4930...}).
 
-\begin{table}[h]
-\caption{30-Company Gold Standard Ablation Benchmark}
+We model entity deduplication as a graph connected-components problem solved via Tarjan's Disjoint-Set Union-Find algorithm with path compression and union by rank (Tarjan, 1975). Two records $r_i$ and $r_j$ are linked by an edge $E(r_i, r_j) = 1$ if any of three deterministic conditions holds:
+\begin{equation}
+E(r_i, r_j) = 1 \iff \left(d_i = d_j \land d_i \notin D_{\text{excl}}\right) \lor \left(p_i = p_j \land p_i \neq \emptyset\right) \lor \left(\text{Sim}_{\text{JW}}(n_i, n_j) \ge 0.88 \land \text{PLZ}_i = \text{PLZ}_j\right)
+\end{equation}
+where $d_i$ is the registrable corporate domain, $p_i$ is the E.164 phone number, and $\text{Sim}_{\text{JW}}(n_i, n_j)$ is the token-sort Jaro-Winkler similarity (via RapidFuzz) between normalized company names within the same 5-digit Berlin postal code ($\text{PLZ}_i = \text{PLZ}_j$) (Navarro, 2001). Applying Equation~(1) across the 1,375 raw records merged \textbf{175 duplicate listings} and produced \textbf{1,200 canonical companies} in the \texttt{companies\_golden} table.
+
+\section{Task 2: Qualifying KPI Blueprint, DOM Fingerprinting \& Scoring Model}
+
+\subsection{Asynchronous Subpage Crawling \& PropTech DOM Fingerprinting}
+Of the 1,200 unique Berlin companies, \textbf{243 (20.2\%)} maintain a dedicated corporate website domain. In Stage 3 (\texttt{src/heidi\_engine/crawler/async\_crawler.py}), an asynchronous HTTP/2 crawler visits each corporate homepage and automatically prioritizes high-value subpages (\texttt{/impressum}, \texttt{/team}, \texttt{/ueber-uns}, \texttt{/leistungen}, and \texttt{/referenzen}), crawling a total of \textbf{885 web pages} across 196 reachable HTTP 200 domains.
+
+Why is digital maturity a critical qualifying KPI for Heidi Systems? Property managers that already operate specialized German real estate ERP software or online tenant portals have structured digital workflows and can integrate digital submetering data immediately. Before converting HTML to text, our DOM scanner (\texttt{src/heidi\_engine/crawler/dom\_tech\_detector.py}) inspects raw script tags, iframe embeds, and login portal links (\texttt{href}) for eight major German PropTech and ERP signatures: \textbf{Casavi, Domus (DOMUS 4000 / DOMUS Navi), Wodis Sigma (Aareon), Haufe PowerHaus / axera, Immoware24, etg24, Facilioo}, and custom online tenant portals (\textit{Kundenportal / Mieterportal}). Across the crawled Berlin websites, the scanner identified \textbf{41 companies (3.4\% of total, 20.9\% of reachable websites)} actively running a detectable PropTech ERP or customer portal.
+
+\subsection{Hybrid KPI Extraction \& Anti-Hallucination Evidence Gate}
+In Stage 4 (\texttt{src/heidi\_engine/extractor/}), the pipeline extracts structured qualifying KPIs from the crawled \texttt{/impressum} and service pages. First, deterministic regular expressions extract statutory identifiers: legal form (\texttt{GmbH}, \texttt{AG}, \texttt{UG}, \texttt{e.K.}), commercial register court and number (such as \texttt{Amtsgericht Charlottenburg HRB...}), founding year, and explicit unit counts (matching patterns such as \texttt{2.500 Wohneinheiten} or \texttt{Verwaltung von \"uber 1.200 Einheiten}). Second, structured extraction parses management focus flags (\texttt{manages\_weg}, \texttt{manages\_miet}, \texttt{manages\_gewerbe}, \texttt{manages\_sev}) and executive names.
+
+To guarantee zero fabricated metrics when using language models on unstructured website text, every extracted numeric portfolio claim ($\hat{u}_i$, exact units managed) must pass a strict \textbf{Verbatim Substring Evidence Gate}:
+\begin{equation}
+\text{Accept}(\hat{u}_i, q_i) = 1 \iff |q_i| \ge 5 \land \text{Norm}(q_i) \subseteq \text{Norm}(T_i)
+\end{equation}
+where $q_i$ is the supporting verbatim evidence quote (\texttt{units\_evidence\_quote}) and $T_i$ is the raw crawled text of company $i$. If the quote $q_i$ is missing or cannot be verified as an exact substring of the source page, $\hat{u}_i$ is nulled and the company is sized conservatively using structural signals (employee count, legal form, and corporate web presence). Across the dataset, \textbf{36 companies} published explicit unit counts on their websites, and \textbf{100.0\% (36/36)} passed verbatim quote verification with \textbf{0.0\% hallucinated claims}.
+
+\subsection{Deterministic 5-Pillar Lead Qualification Formula (0 to 100 Points)}
+To answer Task 2 (\textit{``Which criteria are relevant for us to qualify a property management company as a potential customer, and why?''}), we designed and implemented a transparent 5-pillar scoring function in \texttt{src/heidi\_engine/enrichment/scorer.py} (\texttt{calculate\_heidi\_lead\_score}). Each company receives a composite score $S_{\text{total}} \in [0, 100]$ defined as the sum of five domain-specific sub-scores:
+\begin{equation}
+S_{\text{total}} = \min\left(100, \, S_{\text{scale}} + S_{\text{focus}} + S_{\text{digital}} + S_{\text{trust}} + S_{\text{contact}}\right)
+\end{equation}
+
+\begin{table}[htbp]
+\centering
+\caption{Five-Pillar Qualification Scorecard Implemented in \texttt{src/heidi\_engine/enrichment/scorer.py}}
+\label{tab:scorecard}
+\footnotesize
+\begin{tabularx}{\textwidth}{l c X X}
+\toprule
+\textbf{Qualification Pillar} & \textbf{Max} & \textbf{Deterministic Scoring Rules} & \textbf{Commercial Relevance for Heidi Systems} \\
+\midrule
+\textbf{1. Portfolio Scale} ($S_{\text{scale}}$) & 35 & 35 pts ($\ge 2,500$ units / Enterprise); 28 pts ($\ge 1,000$ units / Large); 20 pts ($\ge 300$ units / Medium / $\ge 5$ staff); 16 pts (GmbH/AG + website); 12 pts (GmbH/UG without website); 6 pts (baseline). & Determines hardware deployment volume and recurring revenue per signed contract. \\
+\addlinespace
+\textbf{2. Asset Focus} ($S_{\text{focus}}$) & 25 & 25 pts (both \texttt{WEG} and \texttt{Miet}); 20 pts (either \texttt{WEG} or \texttt{Miet}); 15 pts (general residential); 12 pts (\textit{Gewerbe} only); 4 pts (\textit{SEV} only). & Multi-family residential (\textit{Miet}) and condo (\textit{WEG}) buildings require HeizkostenV submetering. \\
+\addlinespace
+\textbf{3. Digital Maturity} ($S_{\text{digital}}$) & 20 & +12 pts (detected PropTech ERP: Casavi, Domus, Wodis, etc.); +5 pts (online tenant/owner portal); +3 pts (HTTPS website; +1 pt HTTP). & Digitally mature managers adopt automated consumption portals and API integrations faster. \\
+\addlinespace
+\textbf{4. Credibility \& Trust} ($S_{\text{trust}}$) & 10 & +5 pts (VDIV association member); +3 pts (verified HRB/HRA ID or founded $\le 2020$); +2 pts ($\ge 2$ directory sources; +1 pt single source). & Filters out dormant shell entities and prioritizes established, creditworthy operators. \\
+\addlinespace
+\textbf{5. Reachability} ($S_{\text{contact}}$) & 10 & +4 pts (named \textit{Gesch\"aftsf\"uhrer}); +4 pts (verified personal email \texttt{Non-info@}, MX valid); +2 pts (LinkedIn URL or E.164 phone). & Enables direct executive sales outreach without being blocked by generic \texttt{info@} gatekeepers. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Based on $S_{\text{total}}$, companies are segmented into three actionable sales tiers:
+\begin{itemize}
+    \item \textbf{Tier A (High Priority, $S_{\text{total}} \ge 70$): 35 companies (2.9\%)}, with a mean score of \textbf{78.9} (range 70 to 92). These are high-capacity Berlin property managers with strong residential focus, modern ERP/portal infrastructure, and verified executive contacts.
+    \item \textbf{Tier B (Qualified Mid-Market, $45 \le S_{\text{total}} \le 69$): 409 companies (34.1\%)}, with a mean score of \textbf{51.8} (range 45 to 69). These represent established mid-market Berlin \textit{Hausverwaltungen} suitable for structured outbound campaigns.
+    \item \textbf{Tier C (Long-Tail / Small Local, $S_{\text{total}} < 45$): 756 companies (63.0\%)}, with a mean score of \textbf{33.1} (range 27 to 44). These are smaller local operators lacking a corporate website or public digital infrastructure, suitable for automated nurture sequences.
+\end{itemize}
+
+\section{Bonus Task: Executive Contact Resolution \& DNS MX Verification}
+The Bonus Task specifies: \textit{``Find the right contact person including their email address, meaning not an info@ address but a personal and relevant one. LinkedIn profiles or similar are also very welcome.''} In Stage 5 (\texttt{src/heidi\_engine/enrichment/}), the pipeline executes a four-step executive contact resolution protocol:
+\begin{enumerate}
+    \item \textbf{Statutory Role Filtering:} From the crawled \texttt{/impressum} and team pages, the extractor isolates natural persons holding statutory authority (\textit{Gesch\"aftsf\"uhrer}, \textit{Vorstand}, \textit{Inhaber}, or \textit{Prokurist}) while excluding external data protection officers (\textit{Datenschutzbeauftragte}) and supervisory board members. This yielded named decision makers for \textbf{104 Berlin companies (8.7\% of all companies, 53.1\% of reachable websites)}.
+    \item \textbf{Strict Generic vs. Personal Inbox Separation:} All scraped email addresses are filtered against a prefix blocklist (\texttt{info@}, \texttt{kontakt@}, \texttt{office@}, \texttt{service@}, \texttt{mail@}, \texttt{verwaltung@}, \texttt{buchhaltung@}). Generic addresses are routed strictly to the \texttt{general\_email} column, while verified personal executive mailboxes are stored in \texttt{personal\_email}.
+    \item \textbf{German Diacritic Transliteration \& Corporate Pattern Synthesis:} When a managing director's name is verified on the \texttt{/impressum} page and the company operates a verified corporate domain, the enricher transliterates German umlauts (\texttt{\"a} $\to$ \texttt{ae}, \texttt{\"o} $\to$ \texttt{oe}, \texttt{\"u} $\to$ \texttt{ue}, \texttt{\ss} $\to$ \texttt{ss}) and synthesizes standard German corporate email formats (such as \texttt{vorname.nachname@domain.de}).
+    \item \textbf{RFC 5321 DNS Mail Exchange (MX) Verification:} Every personal email domain is validated via asynchronous DNS \texttt{MX} record resolution (Klensin, 2008). Candidates whose domain lacks a live Mail Exchange host are discarded. In total, the pipeline resolved \textbf{102 companies (8.5\%)} (\textbf{118} total executive contact rows) with DNS \texttt{MX}-verified personal decision-maker email addresses (\textbf{12} direct public personal emails + \textbf{90} \texttt{MX}-verified corporate executive patterns).
+\end{enumerate}
+
+\section{Task 3: Data Validation, Ablation Study \& Scaling Architecture}
+
+\subsection{Stage-by-Stage Pipeline Ablation Study}
+To quantify the engineering value contributed by each stage of the pipeline, \texttt{PipelineEvaluator} (\texttt{src/heidi\_engine/telemetry/evaluator.py}) computes a live ablation study directly against \texttt{data/metrixa\_leads.db}. Table~\ref{tab:ablation} compares a naive single-directory scrape against the progressive stages of our architecture.
+
+\begin{table}[htbp]
+\centering
+\caption{Empirical Stage-by-Stage Pipeline Ablation Study Across the Berlin Dataset ($N = 1,200$ Unique Companies)}
 \label{tab:ablation}
-\centering
-\begin{tabular}{lrrr}
+\footnotesize
+\begin{tabularx}{\textwidth}{X r r r r r}
 \toprule
-\textbf{Metric} & \textbf{Regex Baseline} & \textbf{LLM-Only} & \textbf{Metrixa Hybrid} \\
+\textbf{Pipeline Configuration (Ablation Stage)} & \textbf{Leads} & \textbf{Websites} & \textbf{KPIs} & \textbf{Named Exec} & \textbf{Personal Email} \\
 \midrule
-Precision       & 88.2\%                  & 81.4\%            & \textbf{96.4\%} \\
-Recall          & 64.7\%                  & 89.2\%            & \textbf{90.3\%} \\
-\textbf{F1 Score}& \textbf{74.6\%}        & \textbf{85.1\%}   & \textbf{93.3\%} \\
-Latency         & < 5 ms                  & 1,840 ms          & \textbf{42 ms (avg)} \\
-Hallucination   & 0.0\%                   & 14.2\%            & \textbf{0.0\%} \\
+\textbf{Baseline A:} Single Directory Only (\textit{Gelbe Seiten Raw}) & 405 & 35.1\% & 0.0\% & 0.0\% & 0.0\% (Only \texttt{info@}) \\
+\textbf{Stage 1 + 2:} 5-Source Ingestion + Union-Find Dedup & 1,200 & 20.2\% (243) & 2.5\% (VDIV) & 0.0\% & 0.0\% \\
+\textbf{Stage 3:} + Async Crawler + DOM ERP Scanner & 1,200 & 20.2\% (243) & 3.4\% (41 ERP) & 0.0\% & 1.0\% (12 Direct) \\
+\textbf{Stage 4:} + Impressum \& KPI Extractor (Evidence Gate) & 1,200 & 20.2\% (243) & 100.0\% (1,200) & 8.7\% (104 Co.) & 1.0\% (12 Direct) \\
+\textbf{Stage 5 (Full Pipeline):} + DNS MX Verifier + Scorer & \textbf{1,200} & \textbf{20.2\% (243)} & \textbf{100.0\% (1,200)} & \textbf{8.7\% (104 Co.)} & \textbf{8.5\% (102 Co.)} \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{table}
 
-\section{Strategic Multi-City Scale-Up Plan}
-To expand beyond Berlin, the engine architecture is prepared for nationwide scaling across Munich, Hamburg, Frankfurt, and Cologne (Table~\ref{tab:scaleup}).
+\subsection{Four-Gate Automated Data Validation Results}
+Before generating the final multi-tab Excel workbook (\texttt{data/exports/heidi\_berlin\_hausverwaltungen.xlsx}), Stage 6 enforces four automated verification gates across all 1,200 golden records (Table~\ref{tab:validation}).
 
-\begin{table}[h]
-\caption{Nationwide Horizontal Expansion Blueprint}
-\label{tab:scaleup}
+\begin{table}[htbp]
 \centering
-\begin{tabular}{llrr}
+\caption{Automated Four-Gate Validation Results Computed by \texttt{PipelineEvaluator}}
+\label{tab:validation}
+\footnotesize
+\begin{tabularx}{\textwidth}{l l r X}
 \toprule
-\textbf{Hub} & \textbf{PLZ Range} & \textbf{Target TAM} & \textbf{Regional Chapter} \\
+\textbf{Validation Gate} & \textbf{Evaluated Metric} & \textbf{Result} & \textbf{Enforcement Mechanism in Codebase} \\
 \midrule
-Berlin       & 10000--14199       & 1,200 leads         & VDIV Berlin-BB e.V. \\
-München      & 80000--81999       & 950 leads           & VDIV Bayern e.V. \\
-Hamburg      & 20000--22999       & 850 leads           & VDIV Nord e.V. \\
-Frankfurt/M. & 60000--60599       & 650 leads           & VDIV Hessen e.V. \\
-Köln         & 50000--50999       & 600 leads           & VDIV NRW e.V. \\
-\midrule
-\textbf{Total} & \textbf{Nationwide} & \textbf{25,000+ leads} & \textbf{VDIV Deutschland} \\
+\textbf{Gate 1: Geographic} & Berlin PLZ (\texttt{10115-14199}) Precision & \textbf{95.4\%} & Deterministic 5-digit PLZ range check and Berlin 12-district mapper \\
+\textbf{Gate 2: Unit Evidence} & Verbatim \textit{Wohneinheiten} Quote Match & \textbf{100.0\% (36/36)} & Every \texttt{exact\_units\_managed} requires a verified verbatim quote \\
+\textbf{Gate 3: Inbox Filter} & Non-Generic (\texttt{Non-info@}) Precision & \textbf{100.0\% (118/118)} & Role-prefix filter separating \texttt{info@}, \texttt{kontakt@}, \texttt{service@} \\
+\textbf{Gate 4: Hallucinations} & Ungrounded Claims in Final Export & \textbf{0.0\%} & Substring evidence gate nulls any unverified numeric portfolio claim \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{table}
 
-Key infrastructure additions for 25,000+ leads include Headless Playwright Chromium execution for JavaScript/React single-page applications, rotating residential IP pools, and two-way CRM sync.
+\subsection{Scaling Blueprint: Expanding from Berlin to All of Germany (25,000+ Companies)}
+Because statutory Impressum disclosures (\S~5 DDG), commercial register numbering (\texttt{HRB}/\texttt{HRA}), and German PropTech ERP footprints are uniform across all 16 German federal states (\textit{Bundesl\"ander}), scaling this pipeline from Berlin (1,200 companies) to the entire German market ($\sim$25,000 to 30,000 property management companies across Munich, Hamburg, Frankfurt, Cologne, Stuttgart, and D\"usseldorf) requires zero changes to the extraction or scoring logic:
+\begin{itemize}
+    \item \textbf{Parameterized Postal Code \& Regional Association Sharding:} Replace the Berlin postal filter (\texttt{10115-14199}) with Germany's full 5-digit postal code table (\texttt{01067-99998}) and add the remaining 10 regional VDIV association directories (such as VDIV Bayern, VDIV NRW, and VDIV Hessen).
+    \item \textbf{Federal Commercial Register Enrichment:} Cross-reference extracted company names and \texttt{HRB} numbers against the German Common Register Portal (\textit{Gemeinsames Registerportal der L\"ander} / OpenRegister) to verify legal status and managing director appointments for companies that do not operate a public website.
+    \item \textbf{Incremental Re-Crawl \& CRM Sync:} Run weekly delta crawls on \texttt{/impressum} hashes to detect managing director turnovers or ERP migrations and push Tier A and Tier B leads directly into outbound sales CRM sequences.
+\end{itemize}
 
-\section{Conclusion}
-The Metrixa Systems intelligence engine resolves the core challenge of German PropTech GTM: converting fragmented SME directory listings into a clean, scored, and verified pipeline. By grounding extraction in statutory German disclosures (\S~5 DDG), enforcing Union-Find deduplication, eliminating hallucinations via verbatim validation, and verifying mail server reachability with RFC 5321 DNS MX checks, the engine delivered 1,199 qualified Berlin property managers with 96.4\% precision and an F1 score of 93.3\%.
-
-\begin{thebibliography}{9}
-
-\bibitem{bmwk2021}
-Bundesministerium für Wirtschaft und Klimaschutz (BMWK), ``Verordnung über die verbrauchsabhängige Abrechnung der Heiz- und Warmwasserkosten (Heizkostenverordnung - HeizkostenV),'' \emph{Bundesgesetzblatt}, vol. 2021, no. 77, pp. 5036--5044, Nov. 2021.
-
-\bibitem{ddg2024}
-Deutscher Bundestag, ``Gesetz über digitale Dienste (Digitale-Dienste-Gesetz - DDG),'' \emph{Bundesgesetzblatt}, vol. 2024, no. 149, May 2024.
-
-\bibitem{gdpr2016}
-European Union, ``Regulation (EU) 2016/679 of the European Parliament and of the Council on the protection of natural persons with regard to the processing of personal data (GDPR),'' \emph{Official Journal of the European Union}, vol. L 119, pp. 1--88, May 2016.
-
-\bibitem{fette2011}
-I.~Fette and A.~Melnikov, ``The WebSocket Protocol,'' RFC 6455, Internet Engineering Task Force (IETF), Dec. 2011.
-
-\bibitem{hipp2020}
-D.~R. Hipp, ``SQLite Write-Ahead Logging (WAL),'' \emph{SQLite Consortium Technical Documentation}, 2020. [Online]. Available: \url{https://www.sqlite.org/wal.html}.
-
-\bibitem{rescorla2008}
-E.~Rescorla, ``Simple Mail Transfer Protocol,'' RFC 5321, Internet Engineering Task Force (IETF), Oct. 2008.
-
-\bibitem{destatis2024}
-Statistisches Bundesamt (Destatis), ``Wohnen in Deutschland: Mikrozensus 2022 Zusatzprogramm,'' Statistisches Bundesamt, Wiesbaden, Tech. Rep., 2024.
-
-\bibitem{tarjan1975}
-R.~E. Tarjan, ``Efficiency of a Good But Not Linear Set Union Algorithm,'' \emph{Journal of the ACM}, vol. 22, no. 2, pp. 215--225, Apr. 1975.
-
-\bibitem{vdiv2023}
-Verband der Immobilienverwalter Deutschland e.V. (VDIV), ``11. VDIV-Branchenbarometer: Der Markt für Immobilienverwaltungen in Deutschland,'' VDIV Management GmbH, Berlin, Tech. Rep., 2023.
-
+\begin{thebibliography}{10}
+\footnotesize
+\bibitem{weg2020} Bundesministerium der Justiz. (2020). \textit{Gesetz \"uber das Wohnungseigentum und das Dauerwohnrecht (Wohnungseigentumsgesetz - WEG)}. BGBl. I S. 2187. \url{https://www.gesetze-im-internet.de/woeigg/}
+\bibitem{heizkostenv2021} Bundesministerium f\"ur Wirtschaft und Klimaschutz. (2021). \textit{Verordnung \"uber die verbrauchsabh\"angige Abrechnung der Heiz- und Warmwasserkosten (Heizkostenverordnung - HeizkostenV)}. BGBl. I S. 4964. \url{https://www.gesetze-im-internet.de/heizkostenv/}
+\bibitem{ddg2024} Deutscher Bundestag. (2024). \textit{Gesetz \"uber digitale Dienste (Digitale-Dienste-Gesetz - DDG), \S~5 Allgemeine Informationspflichten}. BGBl. 2024 I Nr. 149. \url{https://www.gesetze-im-internet.de/ddg/__5.html}
+\bibitem{eed2018} European Parliament \& Council of the European Union. (2018). Directive (EU) 2018/2002 amending Directive 2012/27/EU on energy efficiency (EED). \textit{Official Journal of the European Union}, L 328, 210--230.
+\bibitem{rfc5321} Klensin, J. (2008). \textit{Simple Mail Transfer Protocol} (RFC 5321). Internet Engineering Task Force (IETF). \url{https://doi.org/10.17487/RFC5321}
+\bibitem{levenshtein1966} Levenshtein, V. I. (1966). Binary codes capable of correcting deletions, insertions, and reversals. \textit{Soviet Physics Doklady}, 10(8), 707--710.
+\bibitem{navarro2001} Navarro, G. (2001). A guided tour to approximate string matching. \textit{ACM Computing Surveys (CSUR)}, 33(1), 31--88. \url{https://doi.org/10.1145/375360.375365}
+\bibitem{destatis2024} Statistisches Bundesamt (Destatis). (2024). \textit{Geb\"aude und Wohnungen: Bestand an Wohnungen und Wohngeb\"auden in Deutschland}. Wiesbaden: Destatis.
+\bibitem{tarjan1975} Tarjan, R. E. (1975). Efficiency of a good but not linear set union algorithm. \textit{Journal of the ACM (JACM)}, 22(2), 215--225. \url{https://doi.org/10.1145/321879.321884}
+\bibitem{vdiv2024} Verband der Immobilienverwalter Deutschland e.V. (VDIV). (2024). \textit{Branchenbarometer der Immobilienverwaltungen in Deutschland}. Berlin: VDIV Deutschland.
 \end{thebibliography}
 
 \end{document}
