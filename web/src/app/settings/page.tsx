@@ -14,9 +14,6 @@ import {
   Lock,
   Wifi,
   Search,
-  Server,
-  Layers,
-  Sparkles,
   ShieldCheck,
 } from "lucide-react";
 import {
@@ -27,7 +24,7 @@ import {
 } from "@/lib/api";
 import { ProviderIcon } from "@/components/icons/ProviderLogos";
 
-// 1. LLM Models
+// 1. Real AI / LLM Models Only (7)
 interface LLMProviderDef {
   id: string;
   name: string;
@@ -110,29 +107,38 @@ const LLM_PROVIDERS: LLMProviderDef[] = [
     requiresKey: true,
     desc: "Accelerated containerized enterprise inference for Llama 3.3 70B.",
   },
+];
+
+// 2. Non-LLM System Parsers & Fallback Routers (2)
+const SYSTEM_ENGINES: LLMProviderDef[] = [
   {
     id: "auto_fallback",
     name: "Auto Fallback Cascade",
     category: "system",
-    badge: "Resilient Cascade",
+    badge: "Resilient Router",
     defaultBaseUrl: "internal://cascade",
     defaultModel: "cascading-router",
     requiresKey: false,
-    desc: "Cascades sequentially: DeepSeek → Gemini → NIM → Local Llama → Deterministic German Parser.",
+    desc: "Non-LLM traffic controller. Cascades sequentially: Cloud LLM → Local GPU → Deterministic German Legal Parser.",
   },
   {
     id: "deterministic",
     name: "Deterministic Legal Parser",
     category: "system",
-    badge: "Zero-Cost Engine",
+    badge: "Non-LLM Rule Engine",
     defaultBaseUrl: "internal://regex",
     defaultModel: "regex_german_impressum_v2",
     requiresKey: false,
-    desc: "German § 5 DDG legal notice parser, DOM tech scanner, and RFC MX validator. 100% deterministic, $0 cost.",
+    desc: "Pure Python German § 5 DDG legal notice parser, DOM tech scanner, and RFC MX validator. Zero AI tokens, $0 cost.",
   },
 ];
 
-// 2. Web Search Providers
+const ALL_EXTRACTION_ENGINES: LLMProviderDef[] = [
+  ...LLM_PROVIDERS,
+  ...SYSTEM_ENGINES,
+];
+
+// 3. Web Search Providers (5)
 interface SearchProviderDef {
   id: string;
   name: string;
@@ -194,18 +200,22 @@ const SEARCH_PROVIDERS: SearchProviderDef[] = [
 export default function SettingsHubPage() {
   const [cfg, setCfg] = useState<any>(null);
 
-  // Tab Switcher with Slide Motion: "llm" vs "search"
-  const [activeTab, setActiveTab] = useState<"llm" | "search">("llm");
+  // 3-Tab Switcher: "llm" | "system" | "search"
+  const [activeTab, setActiveTab] = useState<"llm" | "system" | "search">(
+    "llm",
+  );
 
   // Active configurations from backend
   const [activeLLM, setActiveLLM] = useState<string>("auto_fallback");
   const [activeSearch, setActiveSearch] = useState<string>("searxng");
 
-  // Selection states
+  // Selection states per tab
   const [selectedLLMId, setSelectedLLMId] = useState<string>("gemini");
+  const [selectedSystemId, setSelectedSystemId] =
+    useState<string>("auto_fallback");
   const [selectedSearchId, setSelectedSearchId] = useState<string>("searxng");
 
-  // Form states for LLM
+  // Form states for LLM / System
   const [llmBaseUrl, setLlmBaseUrl] = useState<string>("");
   const [llmModel, setLlmModel] = useState<string>("");
   const [llmApiKey, setLlmApiKey] = useState<string>("");
@@ -232,7 +242,14 @@ export default function SettingsHubPage() {
         setCfg(data);
         if (data.default_llm_provider) {
           setActiveLLM(data.default_llm_provider);
-          setSelectedLLMId(data.default_llm_provider);
+          const isSys = SYSTEM_ENGINES.some(
+            (s) => s.id === data.default_llm_provider,
+          );
+          if (isSys) {
+            setSelectedSystemId(data.default_llm_provider);
+          } else {
+            setSelectedLLMId(data.default_llm_provider);
+          }
         }
         if (data.default_search_provider) {
           setActiveSearch(data.default_search_provider);
@@ -244,8 +261,13 @@ export default function SettingsHubPage() {
       .catch(console.error);
   }, []);
 
+  const currentEngineId =
+    activeTab === "system" ? selectedSystemId : selectedLLMId;
+
   const selectedLLMDef =
-    LLM_PROVIDERS.find((p) => p.id === selectedLLMId) || LLM_PROVIDERS[0];
+    ALL_EXTRACTION_ENGINES.find((p) => p.id === currentEngineId) ||
+    LLM_PROVIDERS[0];
+
   const selectedSearchDef =
     SEARCH_PROVIDERS.find((p) => p.id === selectedSearchId) ||
     SEARCH_PROVIDERS[0];
@@ -261,31 +283,31 @@ export default function SettingsHubPage() {
       return;
     }
 
-    if (selectedLLMId === "deepseek") {
+    if (currentEngineId === "deepseek") {
       setLlmBaseUrl(cfg.deepseek_base_url || selectedLLMDef.defaultBaseUrl);
       setLlmModel(cfg.deepseek_model || selectedLLMDef.defaultModel);
       setLlmApiKey("");
-    } else if (selectedLLMId === "gemini") {
+    } else if (currentEngineId === "gemini") {
       setLlmBaseUrl(cfg.gemini_base_url || selectedLLMDef.defaultBaseUrl);
       setLlmModel(cfg.gemini_model || selectedLLMDef.defaultModel);
       setLlmApiKey("");
-    } else if (selectedLLMId === "openai") {
+    } else if (currentEngineId === "openai") {
       setLlmBaseUrl(cfg.openai_base_url || selectedLLMDef.defaultBaseUrl);
       setLlmModel(cfg.openai_model || selectedLLMDef.defaultModel);
       setLlmApiKey("");
-    } else if (selectedLLMId === "ollama") {
+    } else if (currentEngineId === "ollama") {
       setLlmBaseUrl(cfg.ollama_base_url || selectedLLMDef.defaultBaseUrl);
       setLlmModel(cfg.ollama_model || selectedLLMDef.defaultModel);
       setLlmApiKey("");
-    } else if (selectedLLMId === "lm_studio") {
+    } else if (currentEngineId === "lm_studio") {
       setLlmBaseUrl(cfg.lmstudio_base_url || selectedLLMDef.defaultBaseUrl);
       setLlmModel(cfg.lmstudio_model || selectedLLMDef.defaultModel);
       setLlmApiKey("");
-    } else if (selectedLLMId === "local_llamacpp") {
+    } else if (currentEngineId === "local_llamacpp") {
       setLlmBaseUrl(cfg.llamacpp_base_url || selectedLLMDef.defaultBaseUrl);
       setLlmModel(cfg.llamacpp_model || selectedLLMDef.defaultModel);
       setLlmApiKey("");
-    } else if (selectedLLMId === "nvidia_nim") {
+    } else if (currentEngineId === "nvidia_nim") {
       setLlmBaseUrl(cfg.nvidia_nim_base_url || selectedLLMDef.defaultBaseUrl);
       setLlmModel(cfg.nvidia_nim_model || selectedLLMDef.defaultModel);
       setLlmApiKey("");
@@ -294,7 +316,8 @@ export default function SettingsHubPage() {
       setLlmModel(selectedLLMDef.defaultModel);
       setLlmApiKey("");
     }
-  }, [selectedLLMId, cfg]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentEngineId, cfg]);
 
   // Update Search form values when selection changes
   useEffect(() => {
@@ -311,13 +334,11 @@ export default function SettingsHubPage() {
         cfg.searxng_base_url || selectedSearchDef.defaultBaseUrl,
       );
       setSearchApiKey("");
-    } else if (selectedSearchId === "tavily") {
-      setSearchBaseUrl(selectedSearchDef.defaultBaseUrl);
-      setSearchApiKey("");
     } else {
       setSearchBaseUrl(selectedSearchDef.defaultBaseUrl);
       setSearchApiKey("");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSearchId, cfg]);
 
   // Execute Ping Test
@@ -326,9 +347,9 @@ export default function SettingsHubPage() {
       setPinging(true);
       setPingResult(null);
 
-      if (activeTab === "llm") {
+      if (activeTab === "llm" || activeTab === "system") {
         const res = await pingProvider({
-          provider: selectedLLMId,
+          provider: currentEngineId,
           base_url: llmBaseUrl || undefined,
           api_key: llmApiKey || undefined,
           model: llmModel || undefined,
@@ -360,36 +381,36 @@ export default function SettingsHubPage() {
       setApplying(true);
       const payload: Record<string, any> = {};
 
-      if (activeTab === "llm") {
-        payload.default_llm_provider = selectedLLMId;
-        if (selectedLLMId === "deepseek") {
+      if (activeTab === "llm" || activeTab === "system") {
+        payload.default_llm_provider = currentEngineId;
+        if (currentEngineId === "deepseek") {
           if (llmApiKey) payload.deepseek_api_key = llmApiKey;
           if (llmBaseUrl) payload.deepseek_base_url = llmBaseUrl;
           if (llmModel) payload.deepseek_model = llmModel;
-        } else if (selectedLLMId === "gemini") {
+        } else if (currentEngineId === "gemini") {
           if (llmApiKey) payload.gemini_api_key = llmApiKey;
           if (llmBaseUrl) payload.gemini_base_url = llmBaseUrl;
           if (llmModel) payload.gemini_model = llmModel;
-        } else if (selectedLLMId === "openai") {
+        } else if (currentEngineId === "openai") {
           if (llmApiKey) payload.openai_api_key = llmApiKey;
           if (llmBaseUrl) payload.openai_base_url = llmBaseUrl;
           if (llmModel) payload.openai_model = llmModel;
-        } else if (selectedLLMId === "ollama") {
+        } else if (currentEngineId === "ollama") {
           if (llmBaseUrl) payload.ollama_base_url = llmBaseUrl;
           if (llmModel) payload.ollama_model = llmModel;
-        } else if (selectedLLMId === "lm_studio") {
+        } else if (currentEngineId === "lm_studio") {
           if (llmBaseUrl) payload.lmstudio_base_url = llmBaseUrl;
           if (llmModel) payload.lmstudio_model = llmModel;
-        } else if (selectedLLMId === "local_llamacpp") {
+        } else if (currentEngineId === "local_llamacpp") {
           if (llmBaseUrl) payload.llamacpp_base_url = llmBaseUrl;
           if (llmModel) payload.llamacpp_model = llmModel;
-        } else if (selectedLLMId === "nvidia_nim") {
+        } else if (currentEngineId === "nvidia_nim") {
           if (llmApiKey) payload.nvidia_nim_api_key = llmApiKey;
           if (llmBaseUrl) payload.nvidia_nim_base_url = llmBaseUrl;
           if (llmModel) payload.nvidia_nim_model = llmModel;
         }
         await saveSettings(payload);
-        setActiveLLM(selectedLLMId);
+        setActiveLLM(currentEngineId);
       } else {
         payload.default_search_provider = selectedSearchId;
         if (selectedSearchId === "searxng") {
@@ -431,7 +452,7 @@ export default function SettingsHubPage() {
     if (id === "tavily") return cfg.tavily_configured;
     if (id === "google_cse") return cfg.google_cse_configured;
     if (id === "brave") return cfg.brave_configured;
-    return true; // SearXNG and Native are always active
+    return true;
   };
 
   return (
@@ -446,18 +467,19 @@ export default function SettingsHubPage() {
             </span>
           </h1>
           <p className="text-xs text-zinc-400 mt-1">
-            Toggle between LLM extraction models and Web Search engines, test
-            live pings, and connect to Metrixa Engine.
+            Configure AI/LLM extraction models, non-LLM deterministic legal
+            parsers, and web search engines.
           </p>
         </div>
 
         {/* Live Active Pills */}
         <div className="flex flex-wrap items-center gap-2 text-xs font-mono">
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800">
-            <span className="text-zinc-500">Active LLM:</span>
+            <span className="text-zinc-500">Active Engine:</span>
             <span className="text-emerald-400 font-bold flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-sm bg-emerald-400 animate-pulse"></span>
-              {LLM_PROVIDERS.find((p) => p.id === activeLLM)?.name || activeLLM}
+              {ALL_EXTRACTION_ENGINES.find((p) => p.id === activeLLM)?.name ||
+                activeLLM}
             </span>
           </div>
 
@@ -473,27 +495,18 @@ export default function SettingsHubPage() {
       </div>
 
       {/* ======================================================== */}
-      {/* SLIDE MOTION TOGGLE BUTTON: LLM Models vs Web Search    */}
+      {/* 3-TAB SWITCHER: LLM Models (7) | Rule Parsers (2) | Search (5) */}
       {/* ======================================================== */}
-      <div className="flex justify-start">
-        <div className="relative p-1 rounded-2xl bg-zinc-900/90 border border-zinc-800 flex items-center shadow-matte">
-          {/* Sliding Motion Pill Background */}
-          <div
-            className="absolute top-1 bottom-1 rounded-xl bg-zinc-800 border border-zinc-700/80 shadow-md transition-all duration-300 ease-in-out"
-            style={{
-              left: activeTab === "llm" ? "4px" : "50%",
-              width: "calc(50% - 4px)",
-            }}
-          />
-
+      <div className="flex justify-start overflow-x-auto">
+        <div className="p-1 rounded-2xl bg-zinc-900/90 border border-zinc-800 flex items-center gap-1 shadow-matte">
           <button
             onClick={() => {
               setActiveTab("llm");
               setPingResult(null);
             }}
-            className={`relative z-10 flex items-center gap-2.5 px-6 py-2.5 rounded-xl text-xs font-bold transition-colors duration-200 ${
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 ${
               activeTab === "llm"
-                ? "text-emerald-400"
+                ? "bg-zinc-800 text-emerald-400 border border-zinc-700/80 shadow-md"
                 : "text-zinc-400 hover:text-zinc-200"
             }`}
           >
@@ -503,12 +516,27 @@ export default function SettingsHubPage() {
 
           <button
             onClick={() => {
+              setActiveTab("system");
+              setPingResult(null);
+            }}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 ${
+              activeTab === "system"
+                ? "bg-zinc-800 text-emerald-400 border border-zinc-700/80 shadow-md"
+                : "text-zinc-400 hover:text-zinc-200"
+            }`}
+          >
+            <ShieldCheck className="w-4 h-4" />
+            <span>System Parsers & Fallback ({SYSTEM_ENGINES.length})</span>
+          </button>
+
+          <button
+            onClick={() => {
               setActiveTab("search");
               setPingResult(null);
             }}
-            className={`relative z-10 flex items-center gap-2.5 px-6 py-2.5 rounded-xl text-xs font-bold transition-colors duration-200 ${
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 ${
               activeTab === "search"
-                ? "text-emerald-400"
+                ? "bg-zinc-800 text-emerald-400 border border-zinc-700/80 shadow-md"
                 : "text-zinc-400 hover:text-zinc-200"
             }`}
           >
@@ -523,14 +551,16 @@ export default function SettingsHubPage() {
       {/* ======================================================== */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* ======================================================== */}
-        {/* LEFT PANEL: Inventory List (LLM or Search) (5 Columns)   */}
+        {/* LEFT PANEL: Inventory List (5 Columns)                   */}
         {/* ======================================================== */}
         <div className="lg:col-span-5 p-5 rounded-2xl bg-[#111114] border border-zinc-800/80 shadow-matte space-y-3">
           <div className="flex items-center justify-between pb-2 border-b border-zinc-800">
             <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">
               {activeTab === "llm"
-                ? "LLM Engine Inventory"
-                : "Search Provider Inventory"}
+                ? "AI / LLM Model Inventory (7)"
+                : activeTab === "system"
+                  ? "Non-LLM Rule Parsers & Routers (2)"
+                  : "Search Provider Inventory (5)"}
             </span>
             <span className="text-[10px] font-mono text-zinc-500">
               Click to Select
@@ -539,7 +569,7 @@ export default function SettingsHubPage() {
 
           <div className="space-y-2 max-h-[640px] overflow-y-auto pr-1">
             {activeTab === "llm"
-              ? // LLM Providers List
+              ? // 1. Pure LLM Providers List (7)
                 LLM_PROVIDERS.map((p) => {
                   const isSelected = selectedLLMId === p.id;
                   const isActive = activeLLM === p.id;
@@ -562,7 +592,11 @@ export default function SettingsHubPage() {
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
                             <span
-                              className={`text-xs font-bold truncate ${isSelected ? "text-emerald-400" : "text-zinc-200"}`}
+                              className={`text-xs font-bold truncate ${
+                                isSelected
+                                  ? "text-emerald-400"
+                                  : "text-zinc-200"
+                              }`}
                             >
                               {p.name}
                             </span>
@@ -584,51 +618,105 @@ export default function SettingsHubPage() {
                     </div>
                   );
                 })
-              : // Search Providers List
-                SEARCH_PROVIDERS.map((p) => {
-                  const isSelected = selectedSearchId === p.id;
-                  const isActive = activeSearch === p.id;
+              : activeTab === "system"
+                ? // 2. Non-LLM System Parsers & Fallback Routers (2)
+                  SYSTEM_ENGINES.map((p) => {
+                    const isSelected = selectedSystemId === p.id;
+                    const isActive = activeLLM === p.id;
 
-                  return (
-                    <div
-                      key={p.id}
-                      onClick={() => setSelectedSearchId(p.id)}
-                      className={`p-3.5 rounded-xl cursor-pointer transition-all border text-left flex items-start justify-between gap-3 ${
-                        isSelected
-                          ? "border-emerald-500/80 bg-zinc-900 shadow-[0_0_15px_-3px_rgba(16,185,129,0.2)]"
-                          : "border-zinc-800/80 bg-[#141418] hover:bg-zinc-850 hover:border-zinc-700"
-                      }`}
-                    >
-                      <div className="flex items-start gap-3 min-w-0">
-                        <div className="w-8 h-8 flex items-center justify-center shrink-0 mt-0.5">
-                          <ProviderIcon providerId={p.id} size={24} />
-                        </div>
-
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={`text-xs font-bold truncate ${isSelected ? "text-emerald-400" : "text-zinc-200"}`}
-                            >
-                              {p.name}
-                            </span>
-                            {isActive && (
-                              <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0">
-                                DEFAULT ACTIVE
-                              </span>
-                            )}
+                    return (
+                      <div
+                        key={p.id}
+                        onClick={() => setSelectedSystemId(p.id)}
+                        className={`p-3.5 rounded-xl cursor-pointer transition-all border text-left flex items-start justify-between gap-3 ${
+                          isSelected
+                            ? "border-emerald-500/80 bg-zinc-900 shadow-[0_0_15px_-3px_rgba(16,185,129,0.2)]"
+                            : "border-zinc-800/80 bg-[#141418] hover:bg-zinc-850 hover:border-zinc-700"
+                        }`}
+                      >
+                        <div className="flex items-start gap-3 min-w-0">
+                          <div className="w-8 h-8 flex items-center justify-center shrink-0 mt-0.5">
+                            <ProviderIcon providerId={p.id} size={24} />
                           </div>
-                          <p className="text-[11px] text-zinc-400 line-clamp-1 mt-0.5">
-                            {p.desc}
-                          </p>
-                        </div>
-                      </div>
 
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-400 shrink-0">
-                        {p.badge}
-                      </span>
-                    </div>
-                  );
-                })}
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`text-xs font-bold truncate ${
+                                  isSelected
+                                    ? "text-emerald-400"
+                                    : "text-zinc-200"
+                                }`}
+                              >
+                                {p.name}
+                              </span>
+                              {isActive && (
+                                <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0">
+                                  ACTIVE
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[11px] text-zinc-400 line-clamp-2 mt-0.5">
+                              {p.desc}
+                            </p>
+                          </div>
+                        </div>
+
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-400 shrink-0">
+                          {p.badge}
+                        </span>
+                      </div>
+                    );
+                  })
+                : // 3. Search Providers List (5)
+                  SEARCH_PROVIDERS.map((p) => {
+                    const isSelected = selectedSearchId === p.id;
+                    const isActive = activeSearch === p.id;
+
+                    return (
+                      <div
+                        key={p.id}
+                        onClick={() => setSelectedSearchId(p.id)}
+                        className={`p-3.5 rounded-xl cursor-pointer transition-all border text-left flex items-start justify-between gap-3 ${
+                          isSelected
+                            ? "border-emerald-500/80 bg-zinc-900 shadow-[0_0_15px_-3px_rgba(16,185,129,0.2)]"
+                            : "border-zinc-800/80 bg-[#141418] hover:bg-zinc-850 hover:border-zinc-700"
+                        }`}
+                      >
+                        <div className="flex items-start gap-3 min-w-0">
+                          <div className="w-8 h-8 flex items-center justify-center shrink-0 mt-0.5">
+                            <ProviderIcon providerId={p.id} size={24} />
+                          </div>
+
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`text-xs font-bold truncate ${
+                                  isSelected
+                                    ? "text-emerald-400"
+                                    : "text-zinc-200"
+                                }`}
+                              >
+                                {p.name}
+                              </span>
+                              {isActive && (
+                                <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0">
+                                  DEFAULT ACTIVE
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[11px] text-zinc-400 line-clamp-1 mt-0.5">
+                              {p.desc}
+                            </p>
+                          </div>
+                        </div>
+
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-400 shrink-0">
+                          {p.badge}
+                        </span>
+                      </div>
+                    );
+                  })}
           </div>
         </div>
 
@@ -636,8 +724,8 @@ export default function SettingsHubPage() {
         {/* RIGHT PANEL: Provider Setup, Real Ping & Connector (7 Cols) */}
         {/* ======================================================== */}
         <div className="lg:col-span-7 p-6 rounded-2xl bg-[#111114] border border-zinc-800/80 shadow-matte space-y-6">
-          {activeTab === "llm" ? (
-            // ==================== LLM CONFIGURATION ====================
+          {activeTab === "llm" || activeTab === "system" ? (
+            // ==================== LLM OR SYSTEM ENGINE CONFIGURATION ====================
             <>
               {/* Header */}
               <div className="flex items-start justify-between pb-4 border-b border-zinc-800">
@@ -671,9 +759,15 @@ export default function SettingsHubPage() {
               <div className="space-y-4">
                 <div>
                   <label className="text-xs font-semibold text-zinc-300 block mb-1.5 flex items-center justify-between">
-                    <span>Base Endpoint URL</span>
+                    <span>
+                      {selectedLLMDef.category === "system"
+                        ? "Internal Execution Engine URI"
+                        : "Base Endpoint URL"}
+                    </span>
                     <span className="text-[10px] font-mono text-zinc-500">
-                      OpenAI-Compatible /v1
+                      {selectedLLMDef.category === "system"
+                        ? "Built-In Python Module"
+                        : "OpenAI-Compatible /v1"}
                     </span>
                   </label>
                   <input
@@ -693,18 +787,24 @@ export default function SettingsHubPage() {
                       )}
                       {llmBaseUrl.startsWith("https")
                         ? "TLS Encrypted (HTTPS)"
-                        : "Local Loopback (HTTP)"}
+                        : selectedLLMDef.category === "system"
+                          ? "In-Process Python Execution (0ms Network Overhead)"
+                          : "Local Loopback (HTTP)"}
                     </span>
-                    <span>•</span>
-                    <span>Protocol: OpenAI ChatCompletions v1</span>
                   </div>
                 </div>
 
                 <div>
                   <label className="text-xs font-semibold text-zinc-300 block mb-1.5 flex items-center justify-between">
-                    <span>Model ID / Tag</span>
+                    <span>
+                      {selectedLLMDef.category === "system"
+                        ? "Parser / Router Strategy"
+                        : "Model ID / Tag"}
+                    </span>
                     <span className="text-[10px] font-mono text-zinc-500">
-                      e.g. llama3.2, gpt-4o-mini, gemini-2.5-flash
+                      {selectedLLMDef.category === "system"
+                        ? "Deterministic Rule Specification"
+                        : "e.g. llama3.2, gpt-4o-mini, gemini-2.5-flash"}
                     </span>
                   </label>
                   <input
@@ -763,12 +863,18 @@ export default function SettingsHubPage() {
                   className="w-full sm:w-auto flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-200 font-semibold text-xs border border-zinc-800 hover:border-zinc-700 transition-all disabled:opacity-50"
                 >
                   <Zap
-                    className={`w-4 h-4 ${pinging ? "animate-spin text-emerald-400" : "text-emerald-400"}`}
+                    className={`w-4 h-4 ${
+                      pinging
+                        ? "animate-spin text-emerald-400"
+                        : "text-emerald-400"
+                    }`}
                   />
                   <span>
                     {pinging
-                      ? "Pinging Endpoint (10 Tokens)..."
-                      : "Test Connection (10-Token Ping)"}
+                      ? "Testing Engine..."
+                      : selectedLLMDef.category === "system"
+                        ? "Test Engine Health"
+                        : "Test Connection (10-Token Ping)"}
                   </span>
                 </button>
 
@@ -916,7 +1022,11 @@ export default function SettingsHubPage() {
                   className="w-full sm:w-auto flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-200 font-semibold text-xs border border-zinc-800 hover:border-zinc-700 transition-all disabled:opacity-50"
                 >
                   <Zap
-                    className={`w-4 h-4 ${pinging ? "animate-spin text-emerald-400" : "text-emerald-400"}`}
+                    className={`w-4 h-4 ${
+                      pinging
+                        ? "animate-spin text-emerald-400"
+                        : "text-emerald-400"
+                    }`}
                   />
                   <span>
                     {pinging
@@ -941,7 +1051,7 @@ export default function SettingsHubPage() {
             </>
           )}
 
-          {/* Live Ping Test Result Box (Shared for both tabs) */}
+          {/* Live Ping Test Result Box (Shared across tabs) */}
           {pingResult && (
             <div
               className={`p-4 rounded-xl font-mono text-xs space-y-2 border animate-in fade-in transition-all ${
@@ -956,9 +1066,9 @@ export default function SettingsHubPage() {
                     <>
                       <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                       <span>
-                        {activeTab === "llm"
-                          ? "10-Token Ping: SUCCESS (200 OK)"
-                          : "Search Connection: VERIFIED (200 OK)"}
+                        {activeTab === "search"
+                          ? "Search Connection: VERIFIED (200 OK)"
+                          : "Engine Verification: SUCCESS (200 OK)"}
                       </span>
                     </>
                   ) : (
@@ -981,14 +1091,14 @@ export default function SettingsHubPage() {
                 <div className="p-2.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 space-y-1">
                   <div className="flex justify-between text-[11px] text-zinc-400">
                     <span>
-                      {activeTab === "llm"
-                        ? `Model: ${pingResult.model}`
-                        : `Engines Active: ${pingResult.engines_active || 4}`}
+                      {activeTab === "search"
+                        ? `Engines Active: ${pingResult.engines_active || 4}`
+                        : `Engine: ${pingResult.model}`}
                     </span>
                     <span>
-                      {activeTab === "llm"
-                        ? `Tokens: ${pingResult.tokens || 10}`
-                        : `Privacy: ${pingResult.privacy || "100% Private"}`}
+                      {activeTab === "search"
+                        ? `Privacy: ${pingResult.privacy || "100% Private"}`
+                        : `Tokens: ${pingResult.tokens || 10}`}
                     </span>
                   </div>
                   <p className="text-[11px] font-mono text-zinc-100">
