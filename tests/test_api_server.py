@@ -135,3 +135,27 @@ def test_api_artifacts_library_and_preview(client: TestClient) -> None:
         json={"action": "restore", "file_ids": ["eval-report"]},
     )
     assert restore_resp.status_code == 200
+
+
+def test_api_pipeline_runs_and_comparison(client: TestClient) -> None:
+    resp = client.get("/api/pipeline/runs")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "runs" in data
+    assert len(data["runs"]) >= 3
+    run_16 = data["runs"][0]
+    run_15 = data["runs"][1]
+    assert run_16["run_number"] >= 16
+    assert run_16["status"] == "COMPLETED"
+
+    # Test run-to-run comparison diff endpoint
+    cmp_resp = client.get(
+        f"/api/pipeline/runs/compare?run_a={run_15['run_id']}&run_b={run_16['run_id']}"
+    )
+    assert cmp_resp.status_code == 200
+    cmp_data = cmp_resp.json()
+    assert "run_a" in cmp_data
+    assert "run_b" in cmp_data
+    assert "diff" in cmp_data
+    assert "leads_delta" in cmp_data["diff"]
+    assert "duration_delta_seconds" in cmp_data["diff"]

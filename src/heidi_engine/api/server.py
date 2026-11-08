@@ -12,7 +12,7 @@ import json
 import time
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -445,6 +445,37 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
             },
         )
 
+        started_ts = datetime.now(timezone.utc).isoformat()
+        t_start = time.perf_counter()
+        initial_golden_count = 0
+        try:
+            with db.connect() as conn:
+                initial_golden_count = conn.execute(
+                    "SELECT COUNT(*) FROM companies_golden WHERE pipeline_stage != 'DISQUALIFIED'"
+                ).fetchone()[0]
+                run_num = conn.execute(
+                    "SELECT COALESCE(MAX(run_number), 0) + 1 FROM pipeline_runs"
+                ).fetchone()[0]
+                conn.execute(
+                    """
+                    INSERT INTO pipeline_runs (
+                        run_id, run_number, trigger_type, target_city, active_stage, status,
+                        total_companies_in, started_at
+                    ) VALUES (?, ?, ?, ?, ?, 'RUNNING', ?, ?)
+                    """,
+                    (
+                        run_id,
+                        run_num,
+                        "MANUAL_FULL" if req.stage == "full" else "MANUAL_STAGE",
+                        "Berlin",
+                        req.stage,
+                        initial_golden_count,
+                        started_ts,
+                    ),
+                )
+        except Exception:
+            pass
+
         try:
             if req.stage in ("full", "ingest"):
                 await event_bus.emit(
@@ -639,6 +670,44 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                     "message": "Pipeline execution completed successfully.",
                 },
             )
+            # Update pipeline_runs to COMPLETED
+            try:
+                finished_ts = datetime.now(timezone.utc).isoformat()
+                dur_sec = round(time.perf_counter() - t_start, 1)
+                with db.connect() as conn:
+                    final_golden_count = conn.execute(
+                        "SELECT COUNT(*) FROM companies_golden WHERE pipeline_stage != 'DISQUALIFIED'"
+                    ).fetchone()[0]
+                    new_leads = max(0, final_golden_count - initial_golden_count)
+                    conn.execute(
+                        """
+                        UPDATE pipeline_runs
+                        SET status = 'COMPLETED',
+                            total_companies_out = ?,
+                            new_companies_found = ?,
+                            duration_seconds = ?,
+                            finished_at = ?,
+                            summary_metrics_json = ?
+                        WHERE run_id = ?
+                        """,
+                        (
+                            final_golden_count,
+                            new_leads,
+                            dur_sec,
+                            finished_ts,
+                            json.dumps(
+                                {
+                                    "stage": req.stage,
+                                    "golden_companies": final_golden_count,
+                                    "new_leads": new_leads,
+                                    "duration_seconds": dur_sec,
+                                }
+                            ),
+                            run_id,
+                        ),
+                    )
+            except Exception:
+                pass
 
         except Exception as e:
             await event_bus.emit(
@@ -646,6 +715,23 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                 {"level": "ERROR", "message": f"Pipeline execution failed: {e!s}"},
             )
             await event_bus.emit("ERROR", {"error": str(e)})
+            try:
+                finished_ts = datetime.now(timezone.utc).isoformat()
+                dur_sec = round(time.perf_counter() - t_start, 1)
+                with db.connect() as conn:
+                    conn.execute(
+                        """
+                        UPDATE pipeline_runs
+                        SET status = 'FAILED',
+                            duration_seconds = ?,
+                            finished_at = ?,
+                            error_message = ?
+                        WHERE run_id = ?
+                        """,
+                        (dur_sec, finished_ts, str(e), run_id),
+                    )
+            except Exception:
+                pass
         finally:
             event_bus.is_running = False
             event_bus.current_stage = "IDLE"
@@ -685,6 +771,130 @@ async def stream_pipeline_events():
             event_bus.unsubscribe(q)
 
     return EventSourceResponse(_event_generator())
+
+
+@app.get("/api/pipeline/runs")
+async def get_pipeline_runs(limit: int = 25):
+    """List historical pipeline execution runs with metrics and status."""
+    with db.connect() as conn:
+        rows = conn.execute(
+            """
+            SELECT
+                run_id, run_number, trigger_type, target_city, active_stage, status,
+                total_companies_in, total_companies_out, new_companies_found, changed_kpis_count,
+                duration_seconds, started_at, finished_at, error_message, summary_metrics_json
+            FROM pipeline_runs
+            ORDER BY run_number DESC
+            LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+
+    runs = []
+    for r in rows:
+        summary = {}
+        if r["summary_metrics_json"]:
+            try:
+                summary = json.loads(r["summary_metrics_json"])
+            except Exception:
+                pass
+        runs.append(
+            {
+                "run_id": r["run_id"],
+                "run_number": r["run_number"],
+                "trigger_type": r["trigger_type"],
+                "target_city": r["target_city"] or "Berlin",
+                "active_stage": r["active_stage"],
+                "status": r["status"],
+                "total_companies_in": r["total_companies_in"] or 0,
+                "total_companies_out": r["total_companies_out"] or 0,
+                "new_companies_found": r["new_companies_found"] or 0,
+                "changed_kpis_count": r["changed_kpis_count"] or 0,
+                "duration_seconds": r["duration_seconds"] or 0.0,
+                "started_at": r["started_at"],
+                "finished_at": r["finished_at"],
+                "error_message": r["error_message"],
+                "summary": summary,
+            }
+        )
+    return {"runs": runs, "total": len(runs)}
+
+
+@app.get("/api/pipeline/runs/compare")
+async def compare_pipeline_runs(run_a: str, run_b: str):
+    """Compute run-to-run comparison diff showing new leads, changed KPIs, and growth metrics."""
+    with db.connect() as conn:
+        ra = conn.execute(
+            "SELECT * FROM pipeline_runs WHERE run_id = ?", (run_a,)
+        ).fetchone()
+        rb = conn.execute(
+            "SELECT * FROM pipeline_runs WHERE run_id = ?", (run_b,)
+        ).fetchone()
+
+        if not ra or not rb:
+            raise HTTPException(status_code=404, detail="One or both runs not found")
+
+        sum_a = {}
+        sum_b = {}
+        if ra["summary_metrics_json"]:
+            try:
+                sum_a = json.loads(ra["summary_metrics_json"])
+            except Exception:
+                pass
+        if rb["summary_metrics_json"]:
+            try:
+                sum_b = json.loads(rb["summary_metrics_json"])
+            except Exception:
+                pass
+
+        leads_delta = (rb["total_companies_out"] or 0) - (
+            ra["total_companies_out"] or 0
+        )
+        duration_delta = round(
+            (rb["duration_seconds"] or 0.0) - (ra["duration_seconds"] or 0.0), 1
+        )
+
+        return {
+            "run_a": {
+                "run_id": ra["run_id"],
+                "run_number": ra["run_number"],
+                "status": ra["status"],
+                "total_companies": ra["total_companies_out"] or 0,
+                "duration_seconds": ra["duration_seconds"] or 0.0,
+                "started_at": ra["started_at"],
+                "summary": sum_a,
+            },
+            "run_b": {
+                "run_id": rb["run_id"],
+                "run_number": rb["run_number"],
+                "status": rb["status"],
+                "total_companies": rb["total_companies_out"] or 0,
+                "duration_seconds": rb["duration_seconds"] or 0.0,
+                "started_at": rb["started_at"],
+                "summary": sum_b,
+            },
+            "diff": {
+                "leads_delta": leads_delta,
+                "duration_delta_seconds": duration_delta,
+                "new_companies_found": rb["new_companies_found"] or 0,
+                "changed_kpis_count": rb["changed_kpis_count"] or 0,
+                "efficiency_gain_pct": (
+                    round(
+                        (
+                            (
+                                (ra["duration_seconds"] or 1)
+                                - (rb["duration_seconds"] or 1)
+                            )
+                            / max(1, (ra["duration_seconds"] or 1))
+                        )
+                        * 100,
+                        1,
+                    )
+                    if ra["duration_seconds"]
+                    else 0.0
+                ),
+            },
+        }
 
 
 # ============================================================================

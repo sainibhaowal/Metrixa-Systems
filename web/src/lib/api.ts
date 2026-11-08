@@ -191,3 +191,32 @@ export async function syncArtifactDeliverables() {
   if (!res.ok) throw new Error("Failed to sync deliverables from database");
   return res.json();
 }
+
+export async function fetchPipelineRuns(limit: number = 25) {
+  const res = await fetch(`${API_BASE}/api/pipeline/runs?limit=${limit}`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error("Failed to fetch pipeline runs");
+  return res.json();
+}
+
+export async function comparePipelineRuns(runA: string, runB: string) {
+  const res = await fetch(
+    `${API_BASE}/api/pipeline/runs/compare?run_a=${encodeURIComponent(runA)}&run_b=${encodeURIComponent(runB)}`,
+    {
+      cache: "no-store",
+    },
+  );
+  if (!res.ok) throw new Error("Failed to compare pipeline runs");
+  return res.json();
+}
+
+export async function executeTool(data: { tool_id: string; input?: string }) {
+  const res = await fetch(`${API_BASE}/api/tools/execute`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to execute tool action");
+  return res.json();
+}

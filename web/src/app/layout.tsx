@@ -22,7 +22,7 @@ export default function RootLayout({
           <SidebarNav />
           <div className="flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out">
             <StickyTopbar />
-            <main className="flex-1 p-3 sm:p-5 lg:p-6 overflow-y-auto">
+            <main className="flex-1 flex flex-col p-3 sm:p-4 lg:p-5 overflow-y-auto">
               {children}
             </main>
           </div>

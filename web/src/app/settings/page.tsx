@@ -646,8 +646,8 @@ export default function SettingsHubPage() {
                       onClick={() => setSelectedLLMId(p.id)}
                       className={`p-3.5 rounded-xl cursor-pointer transition-all border text-left flex items-start justify-between gap-3 ${
                         isSelected
-                          ? "border-emerald-500/80 bg-zinc-900 shadow-[0_0_15px_-3px_rgba(16,185,129,0.2)]"
-                          : "border-zinc-800/80 bg-[#141418] hover:bg-zinc-850 hover:border-zinc-700"
+                          ? "border-emerald-500/35 bg-zinc-900/90 shadow-[0_0_12px_rgba(16,185,129,0.06)] ring-1 ring-emerald-500/20"
+                          : "border-white/[0.06] bg-[#141418] hover:bg-zinc-850 hover:border-white/[0.1]"
                       }`}
                     >
                       <div className="flex items-start gap-3 min-w-0">
@@ -696,8 +696,8 @@ export default function SettingsHubPage() {
                         onClick={() => setSelectedSystemId(p.id)}
                         className={`p-3.5 rounded-xl cursor-pointer transition-all border text-left flex items-start justify-between gap-3 ${
                           isSelected
-                            ? "border-emerald-500/80 bg-zinc-900 shadow-[0_0_15px_-3px_rgba(16,185,129,0.2)]"
-                            : "border-zinc-800/80 bg-[#141418] hover:bg-zinc-850 hover:border-zinc-700"
+                            ? "border-emerald-500/35 bg-zinc-900/90 shadow-[0_0_12px_rgba(16,185,129,0.06)] ring-1 ring-emerald-500/20"
+                            : "border-white/[0.06] bg-[#141418] hover:bg-zinc-850 hover:border-white/[0.1]"
                         }`}
                       >
                         <div className="flex items-start gap-3 min-w-0">
@@ -745,8 +745,8 @@ export default function SettingsHubPage() {
                         onClick={() => setSelectedSearchId(p.id)}
                         className={`p-3.5 rounded-xl cursor-pointer transition-all border text-left flex items-start justify-between gap-3 ${
                           isSelected
-                            ? "border-emerald-500/80 bg-zinc-900 shadow-[0_0_15px_-3px_rgba(16,185,129,0.2)]"
-                            : "border-zinc-800/80 bg-[#141418] hover:bg-zinc-850 hover:border-zinc-700"
+                            ? "border-emerald-500/35 bg-zinc-900/90 shadow-[0_0_12px_rgba(16,185,129,0.06)] ring-1 ring-emerald-500/20"
+                            : "border-white/[0.06] bg-[#141418] hover:bg-zinc-850 hover:border-white/[0.1]"
                         }`}
                       >
                         <div className="flex items-start gap-3 min-w-0">
