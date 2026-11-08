@@ -66,6 +66,25 @@ export async function fetchToolsCatalog() {
   return res.json();
 }
 
+export async function testToolHealth(toolId: string) {
+  const res = await fetch(`${API_BASE}/api/tools/test/${toolId}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) throw new Error("Failed to test tool health");
+  return res.json();
+}
+
+export async function executeToolAction(toolId: string, input?: string) {
+  const res = await fetch(`${API_BASE}/api/tools/execute`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ tool_id: toolId, input: input || "" }),
+  });
+  if (!res.ok) throw new Error("Failed to execute tool action");
+  return res.json();
+}
+
 let settingsCache: { data: any; timestamp: number } | null = null;
 
 export async function fetchSettings(force = false) {

@@ -125,4 +125,6 @@ export interface ToolItem {
   status: string;
   description: string;
   records_extracted: number;
+  engine?: string;
+  target?: string;
 }
