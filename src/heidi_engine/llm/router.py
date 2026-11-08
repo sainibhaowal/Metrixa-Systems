@@ -386,11 +386,13 @@ def extract_deterministic_german_kpis(
 class LLMRouter:
     """
     Routes structured extraction requests across:
-      - llama.cpp local server (local_llamacpp)
-      - LM Studio local server (lm_studio)
+      - OpenAI Platform API (openai)
+      - Google Gemini API (gemini)
       - DeepSeek API (deepseek)
       - NVIDIA NIM API (nvidia_nim)
-      - Google Gemini API (gemini)
+      - Ollama local server (ollama)
+      - llama.cpp local server (local_llamacpp)
+      - LM Studio local server (lm_studio)
       - Deterministic German Legal & KPI Parser (deterministic / fallback)
     """
 
@@ -412,6 +414,13 @@ class LLMRouter:
 
     def get_provider_config(self, provider: str) -> Optional[Dict[str, str]]:
         p = provider.lower().strip()
+        if p == "openai" and settings.openai_api_key:
+            return {
+                "provider": "openai",
+                "base_url": settings.openai_base_url,
+                "api_key": settings.openai_api_key,
+                "model": settings.openai_model,
+            }
         if p == "deepseek" and settings.deepseek_api_key:
             return {
                 "provider": "deepseek",
@@ -432,6 +441,13 @@ class LLMRouter:
                 "base_url": settings.gemini_base_url,
                 "api_key": settings.gemini_api_key,
                 "model": settings.gemini_model,
+            }
+        if p == "ollama":
+            return {
+                "provider": "ollama",
+                "base_url": settings.ollama_base_url,
+                "api_key": "ollama-local",
+                "model": settings.ollama_model,
             }
         if p == "local_llamacpp":
             return {
@@ -459,19 +475,19 @@ class LLMRouter:
         if target != "auto_fallback":
             cfg = self.get_provider_config(target)
             if cfg:
-                if target in ("local_llamacpp", "lm_studio"):
+                if target in ("ollama", "local_llamacpp", "lm_studio"):
                     if await self._probe_local_server(cfg["base_url"]):
                         return cfg
                     return None
                 return cfg
 
-        # Auto-fallback priority chain: DeepSeek -> Gemini -> NVIDIA NIM -> Local llama.cpp -> LM Studio
-        for candidate in ("deepseek", "gemini", "nvidia_nim"):
+        # Auto-fallback priority chain: OpenAI -> DeepSeek -> Gemini -> NVIDIA NIM -> Ollama -> Local llama.cpp -> LM Studio
+        for candidate in ("openai", "deepseek", "gemini", "nvidia_nim"):
             cfg = self.get_provider_config(candidate)
             if cfg:
                 return cfg
 
-        for local_cand in ("local_llamacpp", "lm_studio"):
+        for local_cand in ("ollama", "local_llamacpp", "lm_studio"):
             cfg = self.get_provider_config(local_cand)
             if cfg and await self._probe_local_server(cfg["base_url"]):
                 return cfg
@@ -534,16 +550,22 @@ class LLMRouter:
             "Authorization": f"Bearer {provider_cfg['api_key']}",
             "Content-Type": "application/json",
         }
+        model_id = provider_cfg["model"]
+        is_o_series = bool(re.match(r"^o[134](?:-|$)", model_id.lower()))
         payload: Dict[str, Any] = {
-            "model": provider_cfg["model"],
+            "model": model_id,
             "messages": [
                 {"role": "system", "content": SYSTEM_EXTRACTION_PROMPT},
                 {"role": "user", "content": user_prompt},
             ],
-            "temperature": 0.0,
-            "max_tokens": 1200,
         }
-        if provider_cfg["provider"] in ("deepseek", "gemini"):
+        if is_o_series:
+            payload["max_completion_tokens"] = 1600
+        else:
+            payload["temperature"] = 0.0
+            payload["max_tokens"] = 1200
+
+        if provider_cfg["provider"] in ("openai", "deepseek", "gemini"):
             payload["response_format"] = {"type": "json_object"}
 
         try:

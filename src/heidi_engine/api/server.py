@@ -1819,12 +1819,22 @@ async def ping_provider(req: ProviderPingRequest):
     model = target["model"]
     api_key = target["api_key"]
 
+    if req.provider in ("openai", "gemini", "deepseek", "nvidia_nim") and not api_key:
+        return {
+            "status": "error",
+            "latency_ms": 0,
+            "error": "No API Key configured. Enter your API key above to authenticate and test live connectivity.",
+        }
+
     endpoint = f"{base_url}/chat/completions"
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {api_key}" if api_key else "Bearer local",
     }
-    payload = {
+    is_o_series = model.lower() in ("o1", "o3", "o4") or model.lower().startswith(
+        ("o1-", "o3-", "o4-")
+    )
+    payload: dict[str, Any] = {
         "model": model,
         "messages": [
             {
@@ -1833,9 +1843,12 @@ async def ping_provider(req: ProviderPingRequest):
             },
             {"role": "user", "content": "Ping test."},
         ],
-        "max_tokens": 10,
-        "temperature": 0.0,
     }
+    if is_o_series:
+        payload["max_completion_tokens"] = 32
+    else:
+        payload["max_tokens"] = 10
+        payload["temperature"] = 0.0
 
     try:
         async with httpx.AsyncClient(
@@ -2364,13 +2377,30 @@ async def discover_provider_models(req: ProviderPingRequest):
                 )
             latency_ms = int((time.perf_counter() - t0) * 1000)
             if discovered:
-                discovered.sort(key=lambda x: (0 if x["recommended"] else 1, x["id"]))
+                if prov == "openai":
+                    discovered.sort(
+                        key=lambda x: (
+                            0 if x["recommended"] else 1,
+                            (
+                                0
+                                if x["id"].startswith(
+                                    ("gpt-4.1", "gpt-4o", "o3", "o4", "o1")
+                                )
+                                else (1 if x["id"].startswith("gpt-4") else 2)
+                            ),
+                            x["id"],
+                        )
+                    )
+                else:
+                    discovered.sort(
+                        key=lambda x: (0 if x["recommended"] else 1, x["id"])
+                    )
                 return {
                     "status": "ok",
                     "source": "live_api",
                     "latency_ms": latency_ms,
                     "message": f"Discovered {len(discovered)} live models from {base_url}/models.",
-                    "models": discovered[:30],
+                    "models": discovered[:40],
                 }
     except Exception as exc:
         latency_ms = int((time.perf_counter() - t0) * 1000)
