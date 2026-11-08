@@ -1,14 +1,14 @@
 # Autonomous B2B Lead Intelligence & Statutory Verification: Market Saturation, Deterministic Qualification, and Decision-Maker Extraction for the German Property Management Ecosystem
 
 **Technical Whitepaper & Case Study Report**
-*Metrixa Systems GmbH — Autonomous LeadOps & Engineering Architecture*
+*Metrixa Systems GmbH: Autonomous LeadOps & Engineering Architecture*
 *Date: November 8, 2026 (For Public Review & Executive Presentation)*
 
 ---
 
 ## Abstract
 
-Extracting accurate, actionable go-to-market (GTM) sales intelligence within the German small and medium-sized enterprise (*Mittelstand*) ecosystem presents severe structural hurdles for global commercial data vendors. In the property management (*Hausverwaltung*) sector, operational scale, portfolio composition, and enterprise software configurations are rarely publicized on professional social networks such as LinkedIn. However, German statutory disclosure mandates—specifically **§ 5 Digitale-Dienste-Gesetz (DDG)** and **§ 18 Medienstaatsvertrag (MStV)**—obligate commercial entities to publish legal identities, commercial register numbers (*Handelsregister*), and managing directors (*Geschäftsführer*) on their website `/impressum`.
+Extracting accurate, actionable go-to-market (GTM) sales intelligence within the German small and medium-sized enterprise (*Mittelstand*) ecosystem presents severe structural hurdles for global commercial data vendors. In the property management (*Hausverwaltung*) sector, operational scale, portfolio composition, and enterprise software configurations are rarely publicized on professional social networks such as LinkedIn. However, German statutory disclosure mandates (specifically **§ 5 Digitale-Dienste-Gesetz [DDG]** and **§ 18 Medienstaatsvertrag [MStV]**) obligate commercial entities to publish legal identities, commercial register numbers (*Handelsregister*), and managing directors (*Geschäftsführer*) on their website `/impressum`.
 
 This paper presents the end-to-end architecture, mathematical methodology, and empirical findings of an autonomous B2B lead intelligence pipeline deployed across Berlin. By combining **five-source parallel ingestion**, **Union-Find entity deduplication**, **hybrid deterministic/LLM Impressum parsing with verbatim anti-hallucination verification**, **DOM PropTech ERP fingerprinting**, and **RFC 5321 DNS Mail Exchange (MX) validation**, the system resolved **1,199 unique, qualified property management companies** from an initial raw pool of 1,240 records, achieving an estimated **~95% total addressable market (TAM) saturation** across all 12 Berlin administrative districts (*Bezirke*).
 
@@ -19,7 +19,7 @@ We formalize a **5-Pillar Mathematical Qualification Scorecard ($S \in [0, 100]$
 ## 1. Introduction & Problem Definition
 
 ### 1.1 The German Real Estate & Submetering Landscape
-The German residential real estate market is characterized by a high tenancy density: over 53% of households nationwide—and approximately 85% within Berlin—reside in rented multi-family properties (*Mietwohnungen*) or condominium associations (*Wohnungseigentümergemeinschaften*, WEG) (Statistisches Bundesamt, 2024). German heating cost regulations (*Heizkostenverordnung*, HeizkostenV), updated in accordance with the European Energy Efficiency Directive (EED), legally mandate monthly digital consumption reporting and remote submetering (*Fernauslesung*) for multi-tenant buildings (Bundesministerium für Wirtschaft und Klimaschutz, 2021).
+The German residential real estate market is characterized by a high tenancy density: over 53% of households nationwide, and approximately 85% within Berlin, reside in rented multi-family properties (*Mietwohnungen*) or condominium associations (*Wohnungseigentümergemeinschaften*, WEG) (Statistisches Bundesamt, 2024). German heating cost regulations (*Heizkostenverordnung*, HeizkostenV), updated in accordance with the European Energy Efficiency Directive (EED), legally mandate monthly digital consumption reporting and remote submetering (*Fernauslesung*) for multi-tenant buildings (Bundesministerium für Wirtschaft und Klimaschutz, 2021).
 
 For technology providers delivering submetering infrastructure, Internet-of-Things (IoT) gateway hardware, and automated billing software (such as Heidi Systems and Metrixa Systems), German property management companies (*Hausverwaltungen*) represent the primary institutional buyer. However, acquiring verified commercial intelligence on these entities is notoriously difficult:
 1. **Extreme SME Fragmentation:** Unlike institutional US asset managers, German property managers are predominantly privately held SMEs (*GmbH, GmbH & Co. KG, UG, or Einzelunternehmen*), managing portfolios between 300 and 5,000 residential units (VDIV Deutschland, 2023).
@@ -406,14 +406,14 @@ This system moves beyond basic web scraping to deliver an enterprise-grade GTM s
 - **Verband der Immobilienverwalter Deutschland e.V. (VDIV).** (2023). *11. VDIV-Branchenbarometer: Der Markt für Immobilienverwaltungen in Deutschland*. VDIV Management GmbH, Berlin.
 
 **Technical Whitepaper & Case Study Report**
-*Metrixa Systems GmbH — Autonomous LeadOps & Engineering Architecture*
+*Metrixa Systems GmbH: Autonomous LeadOps & Engineering Architecture*
 *Date: November 8, 2026 (For Public Review & Executive Presentation)*
 
 ---
 
 ## Abstract
 
-Extracting accurate, actionable go-to-market (GTM) sales intelligence within the German small and medium-sized enterprise (*Mittelstand*) ecosystem presents severe structural hurdles for global commercial data vendors. In the property management (*Hausverwaltung*) sector, operational scale, portfolio composition, and enterprise software configurations are rarely publicized on professional social networks such as LinkedIn. However, German statutory disclosure mandates—specifically **§ 5 Digitale-Dienste-Gesetz (DDG)** and **§ 18 Medienstaatsvertrag (MStV)**—obligate commercial entities to publish legal identities, commercial register numbers (*Handelsregister*), and managing directors (*Geschäftsführer*) on their website `/impressum`.
+Extracting accurate, actionable go-to-market (GTM) sales intelligence within the German small and medium-sized enterprise (*Mittelstand*) ecosystem presents severe structural hurdles for global commercial data vendors. In the property management (*Hausverwaltung*) sector, operational scale, portfolio composition, and enterprise software configurations are rarely publicized on professional social networks such as LinkedIn. However, German statutory disclosure mandates (specifically **§ 5 Digitale-Dienste-Gesetz [DDG]** and **§ 18 Medienstaatsvertrag [MStV]**) obligate commercial entities to publish legal identities, commercial register numbers (*Handelsregister*), and managing directors (*Geschäftsführer*) on their website `/impressum`.
 
 This paper presents the end-to-end architecture, mathematical methodology, and empirical findings of an autonomous B2B lead intelligence pipeline deployed across Berlin. By combining **five-source parallel ingestion**, **Union-Find entity deduplication**, **hybrid deterministic/LLM Impressum parsing with verbatim anti-hallucination verification**, **DOM PropTech ERP fingerprinting**, and **RFC 5321 DNS Mail Exchange (MX) validation**, the system resolved **1,199 unique, qualified property management companies** from an initial raw pool of 1,240 records, achieving an estimated **~95% total addressable market (TAM) saturation** across all 12 Berlin administrative districts (*Bezirke*).
 
@@ -424,7 +424,7 @@ We formalize a **5-Pillar Mathematical Qualification Scorecard ($S \in [0, 100]$
 ## 1. Introduction & Problem Definition
 
 ### 1.1 The German Real Estate & Submetering Landscape
-The German residential real estate market is characterized by a high tenancy density: over 53% of households nationwide—and approximately 85% within Berlin—reside in rented multi-family properties (*Mietwohnungen*) or condominium associations (*Wohnungseigentümergemeinschaften*, WEG) (Statistisches Bundesamt, 2024). German heating cost regulations (*Heizkostenverordnung*, HeizkostenV), updated in accordance with the European Energy Efficiency Directive (EED), legally mandate monthly digital consumption reporting and remote submetering (*Fernauslesung*) for multi-tenant buildings (Bundesministerium für Wirtschaft und Klimaschutz, 2021).
+The German residential real estate market is characterized by a high tenancy density: over 53% of households nationwide, and approximately 85% within Berlin, reside in rented multi-family properties (*Mietwohnungen*) or condominium associations (*Wohnungseigentümergemeinschaften*, WEG) (Statistisches Bundesamt, 2024). German heating cost regulations (*Heizkostenverordnung*, HeizkostenV), updated in accordance with the European Energy Efficiency Directive (EED), legally mandate monthly digital consumption reporting and remote submetering (*Fernauslesung*) for multi-tenant buildings (Bundesministerium für Wirtschaft und Klimaschutz, 2021).
 
 For technology providers delivering submetering infrastructure, Internet-of-Things (IoT) gateway hardware, and automated billing software (such as Heidi Systems and Metrixa Systems), German property management companies (*Hausverwaltungen*) represent the primary institutional buyer. However, acquiring verified commercial intelligence on these entities is notoriously difficult:
 1. **Extreme SME Fragmentation:** Unlike institutional US asset managers, German property managers are predominantly privately held SMEs (*GmbH, GmbH & Co. KG, UG, or Einzelunternehmen*), managing portfolios between 300 and 5,000 residential units (VDIV Deutschland, 2023).

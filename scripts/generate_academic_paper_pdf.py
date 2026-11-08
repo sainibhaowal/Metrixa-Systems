@@ -79,7 +79,7 @@ class AcademicNumberedCanvas(canvas.Canvas):
             self.drawString(
                 36,
                 808,
-                "PREPRINT UNDER PEER REVIEW — METRIXA RESEARCH ARCHIVE: arXiv:2611.08942v1 [cs.SE]",
+                "PREPRINT UNDER PEER REVIEW  -  METRIXA RESEARCH ARCHIVE: arXiv:2611.08942v1 [cs.SE]",
             )
             self.setStrokeColor(colors.HexColor("#cbd5e1"))
             self.setLineWidth(0.4)
@@ -372,11 +372,11 @@ def generate_publication_paper(output_path: Path):
     )
 
     abstract_p = Paragraph(
-        "<i><b>Abstract</b></i>—Extracting verified go-to-market (GTM) sales intelligence within the German small and medium-sized "
+        "<i><b>Abstract</b></i> - Extracting verified go-to-market (GTM) sales intelligence within the German small and medium-sized "
         "enterprise (<i>Mittelstand</i>) ecosystem presents severe structural hurdles for global commercial data vendors. In the property management "
         "(<i>Hausverwaltung</i>) sector, operational scale, portfolio composition, and enterprise software configurations are rarely publicized on "
-        "professional social networks. However, German statutory disclosure mandates—specifically § 5 Digitale-Dienste-Gesetz (DDG) and § 18 "
-        "Medienstaatsvertrag (MStV)—obligate commercial entities to publish legal identities, commercial register numbers (<i>HRB</i>), and managing "
+        "professional social networks. However, German statutory disclosure mandates - specifically § 5 Digitale-Dienste-Gesetz (DDG) and § 18 "
+        "Medienstaatsvertrag (MStV) - obligate commercial entities to publish legal identities, commercial register numbers (<i>HRB</i>), and managing "
         "directors (<i>Geschäftsführer</i>) on their website <code>/impressum</code>. This paper presents the end-to-end architecture, mathematical "
         "methodology, and empirical evaluation of an autonomous B2B pipeline deployed across Berlin. Combining five-source parallel ingestion, "
         "Disjoint-Set Union-Find entity deduplication, hybrid deterministic/LLM Impressum parsing with a verbatim anti-hallucination verification gate, "
@@ -389,7 +389,7 @@ def generate_publication_paper(output_path: Path):
     )
 
     keywords_p = Paragraph(
-        "<i>Index Terms</i>—B2B Lead Intelligence, Statutory Disclosure, § 5 DDG, German Property Management, Disjoint-Set Union-Find, "
+        "<i>Index Terms</i> - B2B Lead Intelligence, Statutory Disclosure, § 5 DDG, German Property Management, Disjoint-Set Union-Find, "
         "Anti-Hallucination Gate, RFC 5321 DNS MX, PropTech ERP, Submetering (HeizkostenV).",
         keywords_style,
     )
@@ -421,7 +421,7 @@ def generate_publication_paper(output_path: Path):
     story.append(
         Paragraph(
             "<b>T</b>HE German residential real estate sector is characterized by extreme tenancy density: over 53% of households nationwide "
-            "— and approximately 85% within the federal state of Berlin — reside in rented multi-family properties or condominium associations "
+            " -  and approximately 85% within the federal state of Berlin  -  reside in rented multi-family properties or condominium associations "
             "(<i>Wohnungseigentümergemeinschaften</i>, WEG) [1]. In accordance with the European Energy Efficiency Directive (EED), the German "
             "Heating Cost Ordinance (<i>Heizkostenverordnung</i>, HeizkostenV) mandates monthly digital consumption readouts and remote submetering "
             "(<i>Fernauslesung</i>) for multi-tenant housing stock [2].",
