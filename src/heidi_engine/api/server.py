@@ -1759,71 +1759,76 @@ async def ping_provider(req: ProviderPingRequest):
             "tokens": 10,
         }
 
-    # 2. Map provider to base_url, model, and api_key
+    # 2. Map provider to base_url, model, and api_key (zero hardcoded model stubs)
     provider_map = {
         "deepseek": {
             "base_url": req.base_url
             or settings.deepseek_base_url
             or "https://api.deepseek.com/v1",
-            "model": req.model or settings.deepseek_model or "deepseek-chat",
+            "model": req.model or settings.deepseek_model or "",
             "api_key": req.api_key or settings.deepseek_api_key or "",
         },
         "gemini": {
             "base_url": req.base_url
             or settings.gemini_base_url
             or "https://generativelanguage.googleapis.com/v1beta/openai",
-            "model": req.model or settings.gemini_model or "gemini-2.5-flash",
+            "model": req.model or settings.gemini_model or "",
             "api_key": req.api_key or settings.gemini_api_key or "",
         },
         "openai": {
             "base_url": req.base_url
             or settings.openai_base_url
             or "https://api.openai.com/v1",
-            "model": req.model or settings.openai_model or "gpt-4o-mini",
+            "model": req.model or settings.openai_model or "",
             "api_key": req.api_key or settings.openai_api_key or "",
         },
         "ollama": {
             "base_url": req.base_url
             or settings.ollama_base_url
             or "http://localhost:11434/v1",
-            "model": req.model or settings.ollama_model or "llama3.2",
+            "model": req.model or settings.ollama_model or "",
             "api_key": req.api_key or "ollama-local",
         },
         "lm_studio": {
             "base_url": req.base_url
             or settings.lmstudio_base_url
             or "http://localhost:1234/v1",
-            "model": req.model or settings.lmstudio_model or "local-model",
+            "model": req.model or settings.lmstudio_model or "",
             "api_key": req.api_key or settings.lmstudio_api_key or "lm-studio",
         },
         "local_llamacpp": {
             "base_url": req.base_url
             or settings.llamacpp_base_url
             or "http://localhost:8080/v1",
-            "model": req.model or settings.llamacpp_model or "qwen2.5-14b-instruct",
+            "model": req.model or settings.llamacpp_model or "",
             "api_key": req.api_key or settings.llamacpp_api_key or "local-no-key",
         },
         "nvidia_nim": {
             "base_url": req.base_url
             or settings.nvidia_nim_base_url
             or "https://integrate.api.nvidia.com/v1",
-            "model": req.model
-            or settings.nvidia_nim_model
-            or "meta/llama-3.3-70b-instruct",
+            "model": req.model or settings.nvidia_nim_model or "",
             "api_key": req.api_key or settings.nvidia_nim_api_key or "",
         },
     }
 
     target = provider_map.get(req.provider, provider_map["deepseek"])
     base_url = target["base_url"].rstrip("/")
-    model = target["model"]
-    api_key = target["api_key"]
+    model = target["model"].strip()
+    api_key = target["api_key"].strip()
 
     if req.provider in ("openai", "gemini", "deepseek", "nvidia_nim") and not api_key:
         return {
             "status": "error",
             "latency_ms": 0,
-            "error": "No API Key configured. Enter your API key above to authenticate and test live connectivity.",
+            "error": "No API Key configured. Enter your API key above to authenticate and discover live models.",
+        }
+
+    if not model:
+        return {
+            "status": "error",
+            "latency_ms": 0,
+            "error": "No model selected. Discover live models using your API key (or local server) and choose a model from the list before testing connection.",
         }
 
     endpoint = f"{base_url}/chat/completions"
@@ -1901,238 +1906,11 @@ async def ping_provider(req: ProviderPingRequest):
         }
 
 
-_CURATED_PROVIDER_MODELS: dict[str, list[dict[str, Any]]] = {
-    "gemini": [
-        {
-            "id": "gemini-2.5-flash",
-            "name": "Gemini 2.5 Flash",
-            "context_window": "1,048,576 tokens (1M)",
-            "capabilities": "Native JSON Schema • Fast Reasoning • Multimodal",
-            "owned_by": "google",
-            "recommended": True,
-        },
-        {
-            "id": "gemini-2.5-pro",
-            "name": "Gemini 2.5 Pro",
-            "context_window": "2,097,152 tokens (2M)",
-            "capabilities": "Deep Complex Reasoning • German Legal Synthesis",
-            "owned_by": "google",
-            "recommended": False,
-        },
-        {
-            "id": "gemini-2.0-flash",
-            "name": "Gemini 2.0 Flash",
-            "context_window": "1,048,576 tokens (1M)",
-            "capabilities": "High-Throughput Extraction • Low Latency",
-            "owned_by": "google",
-            "recommended": False,
-        },
-        {
-            "id": "gemini-2.0-flash-lite",
-            "name": "Gemini 2.0 Flash-Lite",
-            "context_window": "1,048,576 tokens (1M)",
-            "capabilities": "Ultra-Low Cost Bulk Crawling",
-            "owned_by": "google",
-            "recommended": False,
-        },
-        {
-            "id": "gemini-1.5-pro",
-            "name": "Gemini 1.5 Pro",
-            "context_window": "2,097,152 tokens (2M)",
-            "capabilities": "Long-Context Document Dossier Extraction",
-            "owned_by": "google",
-            "recommended": False,
-        },
-    ],
-    "openai": [
-        {
-            "id": "gpt-4o-mini",
-            "name": "GPT-4o Mini",
-            "context_window": "128,000 tokens",
-            "capabilities": "Structured Outputs • Fast & Cost-Efficient",
-            "owned_by": "openai",
-            "recommended": True,
-        },
-        {
-            "id": "gpt-4o",
-            "name": "GPT-4o (Omni)",
-            "context_window": "128,000 tokens",
-            "capabilities": "Flagship High-Precision Extraction • JSON Schema",
-            "owned_by": "openai",
-            "recommended": False,
-        },
-        {
-            "id": "gpt-4.1-mini",
-            "name": "GPT-4.1 Mini",
-            "context_window": "1,000,000 tokens",
-            "capabilities": "1M Context • Instruction Following",
-            "owned_by": "openai",
-            "recommended": False,
-        },
-        {
-            "id": "gpt-4.1",
-            "name": "GPT-4.1",
-            "context_window": "1,000,000 tokens",
-            "capabilities": "Enterprise Structured Synthesis",
-            "owned_by": "openai",
-            "recommended": False,
-        },
-        {
-            "id": "o3-mini",
-            "name": "o3-mini (Reasoning)",
-            "context_window": "200,000 tokens",
-            "capabilities": "Chain-of-Thought Verification",
-            "owned_by": "openai",
-            "recommended": False,
-        },
-    ],
-    "deepseek": [
-        {
-            "id": "deepseek-chat",
-            "name": "DeepSeek-V3 (deepseek-chat)",
-            "context_window": "64,000 tokens",
-            "capabilities": "671B MoE • JSON Output Mode • $0.14/1M Tokens",
-            "owned_by": "deepseek",
-            "recommended": True,
-        },
-        {
-            "id": "deepseek-reasoner",
-            "name": "DeepSeek-R1 (deepseek-reasoner)",
-            "context_window": "64,000 tokens",
-            "capabilities": "Reinforcement Reasoning • Complex Entity Resolution",
-            "owned_by": "deepseek",
-            "recommended": False,
-        },
-    ],
-    "ollama": [
-        {
-            "id": "llama3.2",
-            "name": "Llama 3.2 (3B / 8B Local)",
-            "context_window": "128,000 tokens",
-            "capabilities": "Fast Local GPU Inference • GGUF Q4_K_M",
-            "owned_by": "library",
-            "recommended": True,
-        },
-        {
-            "id": "qwen2.5:14b",
-            "name": "Qwen 2.5 14B Instruct",
-            "context_window": "128,000 tokens",
-            "capabilities": "Top German & Multilingual JSON Extraction",
-            "owned_by": "library",
-            "recommended": False,
-        },
-        {
-            "id": "qwen2.5:7b",
-            "name": "Qwen 2.5 7B Instruct",
-            "context_window": "128,000 tokens",
-            "capabilities": "Balanced VRAM (6GB) • Structured JSON",
-            "owned_by": "library",
-            "recommended": False,
-        },
-        {
-            "id": "mistral-nemo",
-            "name": "Mistral NeMo 12B",
-            "context_window": "128,000 tokens",
-            "capabilities": "European/German Native Tokenizer • Tekken",
-            "owned_by": "library",
-            "recommended": False,
-        },
-        {
-            "id": "deepseek-r1:14b",
-            "name": "DeepSeek-R1 Distill Qwen 14B",
-            "context_window": "64,000 tokens",
-            "capabilities": "Local Chain-of-Thought Reasoning",
-            "owned_by": "library",
-            "recommended": False,
-        },
-    ],
-    "lm_studio": [
-        {
-            "id": "qwen2.5-14b-instruct",
-            "name": "Qwen 2.5 14B Instruct (GGUF)",
-            "context_window": "32,768 tokens",
-            "capabilities": "LM Studio Local Server • Structured JSON",
-            "owned_by": "lm-studio",
-            "recommended": True,
-        },
-        {
-            "id": "llama-3.2-3b-instruct",
-            "name": "Llama 3.2 3B Instruct (GGUF)",
-            "context_window": "128,000 tokens",
-            "capabilities": "Ultra-Fast Local CPU/GPU Inference",
-            "owned_by": "lm-studio",
-            "recommended": False,
-        },
-        {
-            "id": "mistral-nemo-instruct-2407",
-            "name": "Mistral NeMo 12B Instruct (GGUF)",
-            "context_window": "128,000 tokens",
-            "capabilities": "German B2B & Legal Entity Extraction",
-            "owned_by": "lm-studio",
-            "recommended": False,
-        },
-    ],
-    "local_llamacpp": [
-        {
-            "id": "qwen2.5-14b-instruct",
-            "name": "Qwen 2.5 14B Instruct (llama-server)",
-            "context_window": "32,768 tokens",
-            "capabilities": "C++ CUDA/Metal/AVX512 • Grammar-Constrained JSON",
-            "owned_by": "llamacpp",
-            "recommended": True,
-        },
-        {
-            "id": "Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf",
-            "name": "Llama 3.1 8B Instruct Q4_K_M",
-            "context_window": "128,000 tokens",
-            "capabilities": "Low-Latency Slot Batching",
-            "owned_by": "llamacpp",
-            "recommended": False,
-        },
-    ],
-    "nvidia_nim": [
-        {
-            "id": "meta/llama-3.3-70b-instruct",
-            "name": "Llama 3.3 70B Instruct (NIM)",
-            "context_window": "128,000 tokens",
-            "capabilities": "Enterprise TensorRT-LLM • High Precision",
-            "owned_by": "meta",
-            "recommended": True,
-        },
-        {
-            "id": "deepseek-ai/deepseek-r1",
-            "name": "DeepSeek R1 (NVIDIA NIM)",
-            "context_window": "64,000 tokens",
-            "capabilities": "Accelerated Reasoning Microservice",
-            "owned_by": "deepseek-ai",
-            "recommended": False,
-        },
-        {
-            "id": "qwen/qwen2.5-72b-instruct",
-            "name": "Qwen 2.5 72B Instruct (NIM)",
-            "context_window": "128,000 tokens",
-            "capabilities": "Multilingual European Enterprise Extraction",
-            "owned_by": "qwen",
-            "recommended": False,
-        },
-        {
-            "id": "mistralai/mistral-nemotron",
-            "name": "Mistral Nemotron (NIM)",
-            "context_window": "128,000 tokens",
-            "capabilities": "Function Calling & JSON Schema",
-            "owned_by": "mistralai",
-            "recommended": False,
-        },
-    ],
-}
-
-
 @app.post("/api/providers/models")
 async def discover_provider_models(req: ProviderPingRequest):
     """
-    Dynamically discover available LLM models and their metadata from a provider endpoint.
-    Automatically queries /v1/models, /api/tags (Ollama), or /v1beta/models (Gemini) when
-    credentials/endpoints are reachable, with fallback to curated provider model specs.
+    Dynamically discover available LLM models and their metadata directly from a live provider endpoint.
+    Strictly queries /v1/models, /api/tags (Ollama), or /v1beta/models (Gemini) with zero pre-filled stubs.
     """
     import time
 
@@ -2140,8 +1918,6 @@ async def discover_provider_models(req: ProviderPingRequest):
 
     t0 = time.perf_counter()
     prov = req.provider
-    curated = _CURATED_PROVIDER_MODELS.get(prov, [])
-    curated_by_id = {m["id"]: m for m in curated}
 
     provider_map = {
         "deepseek": {
@@ -2219,7 +1995,7 @@ async def discover_provider_models(req: ProviderPingRequest):
 
     try:
         async with httpx.AsyncClient(timeout=6.0, verify=False) as client:  # nosec B501
-            # 1. Special rich discovery for Ollama via /api/tags
+            # 1. Live discovery for Ollama via /api/tags
             if prov == "ollama":
                 ollama_root = (
                     base_url[:-3] if base_url.endswith("/v1") else base_url
@@ -2242,18 +2018,18 @@ async def discover_provider_models(req: ProviderPingRequest):
                         {
                             "id": mid,
                             "name": f"{mid} ({param_size})" if param_size else mid,
-                            "context_window": "128,000 tokens (Local)",
+                            "context_window": "Local GGUF Context",
                             "capabilities": " • ".join(
                                 filter(
                                     None,
                                     [
                                         f"Family: {family}" if family else "",
                                         f"Quant: {quant}" if quant else "",
-                                        f"{size_gb} GB VRAM" if size_gb > 0 else "",
+                                        f"{size_gb} GB" if size_gb > 0 else "",
                                     ],
                                 )
                             )
-                            or "Local Ollama GGUF Model",
+                            or "Local Ollama Model",
                             "owned_by": family,
                             "recommended": idx == 0,
                         }
@@ -2268,7 +2044,7 @@ async def discover_provider_models(req: ProviderPingRequest):
                         "models": discovered,
                     }
 
-            # 2. Special rich discovery for Google Gemini via native v1beta/models
+            # 2. Live discovery for Google Gemini via native v1beta/models
             if prov == "gemini":
                 gem_url = f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}"
                 res = await client.get(gem_url)
@@ -2281,19 +2057,19 @@ async def discover_provider_models(req: ProviderPingRequest):
                         continue
                     raw_name = m.get("name", "")
                     mid = raw_name.replace("models/", "")
-                    if not mid.startswith("gemini"):
+                    if not mid:
                         continue
                     in_lim = m.get("inputTokenLimit")
                     out_lim = m.get("outputTokenLimit")
                     ctx_str = (
                         f"{in_lim:,} tokens"
                         if isinstance(in_lim, int)
-                        else "1,048,576 tokens"
+                        else "Live API Model"
                     )
                     caps = (
-                        f"Max Output: {out_lim:,} tokens • Native JSON Schema"
+                        f"Max Output: {out_lim:,} tokens"
                         if isinstance(out_lim, int)
-                        else "Native JSON Schema • Multimodal"
+                        else "Google Generative Language API"
                     )
                     discovered.append(
                         {
@@ -2302,25 +2078,17 @@ async def discover_provider_models(req: ProviderPingRequest):
                             "context_window": ctx_str,
                             "capabilities": caps,
                             "owned_by": "google",
-                            "recommended": mid
-                            in ("gemini-2.5-flash", "gemini-2.0-flash"),
+                            "recommended": False,
                         }
                     )
                 latency_ms = int((time.perf_counter() - t0) * 1000)
                 if discovered:
-                    discovered.sort(
-                        key=lambda x: (
-                            0 if x["recommended"] else 1,
-                            0 if "2.5" in x["id"] else (1 if "2.0" in x["id"] else 2),
-                            x["id"],
-                        )
-                    )
                     return {
                         "status": "ok",
                         "source": "live_api",
                         "latency_ms": latency_ms,
-                        "message": f"Discovered {len(discovered)} live Gemini models via Google AI API.",
-                        "models": discovered[:20],
+                        "message": f"Discovered {len(discovered)} live models from Google Gemini API.",
+                        "models": discovered,
                     }
 
             # 3. Standard OpenAI-Compatible /v1/models Discovery (OpenAI, DeepSeek, NVIDIA NIM, LM Studio, llama.cpp)
@@ -2333,7 +2101,7 @@ async def discover_provider_models(req: ProviderPingRequest):
             payload = res.json()
             raw_list = payload.get("data", []) if isinstance(payload, dict) else []
             discovered = []
-            for idx, item in enumerate(raw_list):
+            for item in raw_list:
                 if not isinstance(item, dict):
                     continue
                 mid = str(item.get("id", "")).strip()
@@ -2355,52 +2123,33 @@ async def discover_provider_models(req: ProviderPingRequest):
                     )
                 ):
                     continue
-                preset = curated_by_id.get(mid, {})
-                ctx_val = (
-                    item.get("context_window")
-                    or item.get("max_model_len")
-                    or preset.get("context_window")
-                    or "128,000 tokens"
-                )
+                ctx_val = item.get("context_window") or item.get("max_model_len")
                 if isinstance(ctx_val, int):
-                    ctx_val = f"{ctx_val:,} tokens"
+                    ctx_str = f"{ctx_val:,} tokens"
+                elif ctx_val:
+                    ctx_str = str(ctx_val)
+                else:
+                    ctx_str = "Live API Model"
+                owner = str(item.get("owned_by", prov))
                 discovered.append(
                     {
                         "id": mid,
-                        "name": preset.get("name") or mid,
-                        "context_window": str(ctx_val),
-                        "capabilities": preset.get("capabilities")
-                        or f"Owner: {item.get('owned_by', prov)} • OpenAI /v1 Compatible",
-                        "owned_by": str(item.get("owned_by", prov)),
-                        "recommended": bool(preset.get("recommended", idx == 0)),
+                        "name": mid,
+                        "context_window": ctx_str,
+                        "capabilities": f"Owner: {owner} • Live /v1/models",
+                        "owned_by": owner,
+                        "recommended": False,
                     }
                 )
             latency_ms = int((time.perf_counter() - t0) * 1000)
             if discovered:
-                if prov == "openai":
-                    discovered.sort(
-                        key=lambda x: (
-                            0 if x["recommended"] else 1,
-                            (
-                                0
-                                if x["id"].startswith(
-                                    ("gpt-4.1", "gpt-4o", "o3", "o4", "o1")
-                                )
-                                else (1 if x["id"].startswith("gpt-4") else 2)
-                            ),
-                            x["id"],
-                        )
-                    )
-                else:
-                    discovered.sort(
-                        key=lambda x: (0 if x["recommended"] else 1, x["id"])
-                    )
+                discovered.sort(key=lambda x: x["id"])
                 return {
                     "status": "ok",
                     "source": "live_api",
                     "latency_ms": latency_ms,
                     "message": f"Discovered {len(discovered)} live models from {base_url}/models.",
-                    "models": discovered[:40],
+                    "models": discovered,
                 }
     except Exception as exc:
         latency_ms = int((time.perf_counter() - t0) * 1000)

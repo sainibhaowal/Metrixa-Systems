@@ -48,7 +48,7 @@ class Settings(BaseModel):
         )
     )
     llamacpp_model: str = Field(
-        default_factory=lambda: os.getenv("LLAMACPP_MODEL", "qwen2.5-14b-instruct")
+        default_factory=lambda: os.getenv("LLAMACPP_MODEL", "").strip()
     )
     llamacpp_api_key: str = Field(
         default_factory=lambda: os.getenv("LLAMACPP_API_KEY", "local-no-key")
@@ -60,7 +60,7 @@ class Settings(BaseModel):
         )
     )
     lmstudio_model: str = Field(
-        default_factory=lambda: os.getenv("LMSTUDIO_MODEL", "local-model")
+        default_factory=lambda: os.getenv("LMSTUDIO_MODEL", "").strip()
     )
     lmstudio_api_key: str = Field(
         default_factory=lambda: os.getenv("LMSTUDIO_API_KEY", "lm-studio")
@@ -76,7 +76,7 @@ class Settings(BaseModel):
         )
     )
     deepseek_model: str = Field(
-        default_factory=lambda: os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
+        default_factory=lambda: os.getenv("DEEPSEEK_MODEL", "").strip()
     )
 
     nvidia_nim_api_key: str = Field(
@@ -88,9 +88,7 @@ class Settings(BaseModel):
         )
     )
     nvidia_nim_model: str = Field(
-        default_factory=lambda: os.getenv(
-            "NVIDIA_NIM_MODEL", "meta/llama-3.3-70b-instruct"
-        )
+        default_factory=lambda: os.getenv("NVIDIA_NIM_MODEL", "").strip()
     )
 
     gemini_api_key: str = Field(
@@ -102,7 +100,7 @@ class Settings(BaseModel):
         )
     )
     gemini_model: str = Field(
-        default_factory=lambda: os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+        default_factory=lambda: os.getenv("GEMINI_MODEL", "").strip()
     )
 
     # 3. OpenAI & Ollama
@@ -115,7 +113,7 @@ class Settings(BaseModel):
         )
     )
     openai_model: str = Field(
-        default_factory=lambda: os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+        default_factory=lambda: os.getenv("OPENAI_MODEL", "").strip()
     )
 
     ollama_base_url: str = Field(
@@ -124,7 +122,7 @@ class Settings(BaseModel):
         )
     )
     ollama_model: str = Field(
-        default_factory=lambda: os.getenv("OLLAMA_MODEL", "llama3.2")
+        default_factory=lambda: os.getenv("OLLAMA_MODEL", "").strip()
     )
 
     # 3. Search Harness (Local SearXNG + Native Meta-Search + Tavily Fallback)

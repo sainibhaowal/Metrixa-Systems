@@ -384,9 +384,7 @@ export default function SettingsHubPage() {
 
       if (res.source === "live_api" && liveModels.length > 0) {
         setLlmModel((prev) =>
-          prev && liveModels.some((m: any) => m.id === prev)
-            ? prev
-            : liveModels[0].id,
+          prev && liveModels.some((m: any) => m.id === prev) ? prev : "",
         );
       } else {
         setLlmModel("");
@@ -1070,25 +1068,33 @@ export default function SettingsHubPage() {
                           })}
                         </div>
 
-                        {/* Active Model Spec Details */}
+                        {/* Active Model Spec Details (Only shown after user chooses a model) */}
                         {(() => {
-                          const activeSpec =
-                            discoveredModels.find((m) => m.id === llmModel) ||
-                            discoveredModels[0];
-                          if (!activeSpec) return null;
+                          const activeSpec = discoveredModels.find(
+                            (m) => m.id === llmModel,
+                          );
+                          if (!activeSpec) {
+                            return (
+                              <div className="pt-2 border-t border-zinc-800/80 text-[10px] font-mono text-amber-400/90">
+                                → Step 2: Choose a discovered model above, then
+                                click &quot;Test Connection&quot; and &quot;Save
+                                &amp; Set Active Provider&quot;.
+                              </div>
+                            );
+                          }
                           return (
                             <div className="pt-2 border-t border-zinc-800/80 grid grid-cols-1 sm:grid-cols-3 gap-2 text-[10px] font-mono">
                               <div className="px-2.5 py-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800/80">
                                 <span className="text-zinc-500 block">
-                                  Selected Model ID
+                                  Chosen Model ID
                                 </span>
                                 <strong className="text-emerald-400 truncate block">
-                                  {llmModel || activeSpec.id}
+                                  {activeSpec.id}
                                 </strong>
                               </div>
                               <div className="px-2.5 py-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800/80">
                                 <span className="text-zinc-500 block">
-                                  Context Window
+                                  Context / Type
                                 </span>
                                 <strong className="text-zinc-200 truncate block">
                                   {activeSpec.context_window}
@@ -1096,7 +1102,7 @@ export default function SettingsHubPage() {
                               </div>
                               <div className="px-2.5 py-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800/80">
                                 <span className="text-zinc-500 block">
-                                  Capabilities & Mode
+                                  Provider Metadata
                                 </span>
                                 <strong className="text-zinc-300 truncate block">
                                   {activeSpec.capabilities}
