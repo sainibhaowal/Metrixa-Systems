@@ -88,6 +88,15 @@ def test_api_provider_ping(client: TestClient) -> None:
     assert "PONG" in data["reply"]
     assert data["latency_ms"] >= 0
 
+    for prov in ("gemini", "openai", "deepseek"):
+        disc_resp = client.post("/api/providers/models", json={"provider": prov})
+        assert disc_resp.status_code == 200
+        disc_data = disc_resp.json()
+        assert disc_data["status"] == "ok"
+        assert len(disc_data["models"]) >= 2
+        assert "id" in disc_data["models"][0]
+        assert "context_window" in disc_data["models"][0]
+
 
 def test_api_artifacts_library_and_preview(client: TestClient) -> None:
     resp = client.get("/api/artifacts/files")

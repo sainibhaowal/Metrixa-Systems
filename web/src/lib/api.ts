@@ -125,6 +125,20 @@ export async function pingProvider(data: {
   return res.json();
 }
 
+export async function discoverProviderModels(data: {
+  provider: string;
+  base_url?: string;
+  api_key?: string;
+}) {
+  const res = await fetch(`${API_BASE}/api/providers/models`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to discover provider models");
+  return res.json();
+}
+
 export async function pingSearchProvider(data: {
   provider: string;
   base_url?: string;

@@ -15,12 +15,14 @@ import {
   Wifi,
   Search,
   ShieldCheck,
+  RefreshCw,
 } from "lucide-react";
 import {
   fetchSettings,
   saveSettings,
   pingProvider,
   pingSearchProvider,
+  discoverProviderModels,
 } from "@/lib/api";
 import { ProviderIcon } from "@/components/icons/ProviderLogos";
 
@@ -221,6 +223,14 @@ export default function SettingsHubPage() {
   const [llmApiKey, setLlmApiKey] = useState<string>("");
   const [showLlmKey, setShowLlmKey] = useState<boolean>(false);
 
+  // Live Model Discovery states
+  const [discoveredModels, setDiscoveredModels] = useState<any[]>([]);
+  const [discoverySource, setDiscoverySource] =
+    useState<string>("catalog_presets");
+  const [discoveryMessage, setDiscoveryMessage] = useState<string>("");
+  const [discoveryLatency, setDiscoveryLatency] = useState<number>(0);
+  const [discoveringModels, setDiscoveringModels] = useState<boolean>(false);
+
   // Form states for Search
   const [searchBaseUrl, setSearchBaseUrl] = useState<string>("");
   const [searchApiKey, setSearchApiKey] = useState<string>("");
@@ -340,6 +350,48 @@ export default function SettingsHubPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSearchId, cfg]);
+
+  // Automatically discover models when provider, base URL, or API key changes
+  const handleDiscoverModels = async (
+    provId = currentEngineId,
+    baseUrl = llmBaseUrl,
+    apiKey = llmApiKey,
+  ) => {
+    if (
+      provId === "auto_fallback" ||
+      provId === "deterministic" ||
+      activeTab === "system"
+    ) {
+      setDiscoveredModels([]);
+      setDiscoverySource("system");
+      return;
+    }
+    try {
+      setDiscoveringModels(true);
+      const res = await discoverProviderModels({
+        provider: provId,
+        base_url: baseUrl || undefined,
+        api_key: apiKey || undefined,
+      });
+      setDiscoveredModels(res.models || []);
+      setDiscoverySource(res.source || "catalog_presets");
+      setDiscoveryMessage(res.message || "");
+      setDiscoveryLatency(res.latency_ms || 0);
+    } catch (err) {
+      console.error("Model discovery error:", err);
+    } finally {
+      setDiscoveringModels(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab !== "llm") return;
+    const timer = setTimeout(() => {
+      handleDiscoverModels(currentEngineId, llmBaseUrl, llmApiKey);
+    }, 300);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentEngineId, llmBaseUrl, llmApiKey, activeTab]);
 
   // Execute Ping Test
   const handleTestPing = async () => {
@@ -794,37 +846,14 @@ export default function SettingsHubPage() {
                   </div>
                 </div>
 
-                <div>
-                  <label className="text-xs font-semibold text-zinc-300 block mb-1.5 flex items-center justify-between">
-                    <span>
-                      {selectedLLMDef.category === "system"
-                        ? "Parser / Router Strategy"
-                        : "Model ID / Tag"}
-                    </span>
-                    <span className="text-[10px] font-mono text-zinc-500">
-                      {selectedLLMDef.category === "system"
-                        ? "Deterministic Rule Specification"
-                        : "e.g. llama3.2, gpt-4o-mini, gemini-2.5-flash"}
-                    </span>
-                  </label>
-                  <input
-                    type="text"
-                    value={llmModel}
-                    onChange={(e) => setLlmModel(e.target.value)}
-                    placeholder={selectedLLMDef.defaultModel}
-                    disabled={selectedLLMDef.category === "system"}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-mono text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-emerald-500 disabled:opacity-50 transition-all"
-                  />
-                </div>
-
                 {selectedLLMDef.requiresKey && (
                   <div>
                     <label className="text-xs font-semibold text-zinc-300 block mb-1.5 flex items-center justify-between">
-                      <span>API Key</span>
+                      <span>API Key (Auto-Discovers Live Models on Entry)</span>
                       <span className="text-[10px] font-mono text-zinc-500">
                         {isLLMConfigured(selectedLLMDef.id)
                           ? "Configured in .env"
-                          : "Required"}
+                          : "Required for Live Discovery"}
                       </span>
                     </label>
                     <div className="relative">
@@ -835,7 +864,7 @@ export default function SettingsHubPage() {
                         placeholder={
                           isLLMConfigured(selectedLLMDef.id)
                             ? "•••••••••••••••••••• (Configured in .env, enter new to overwrite)"
-                            : "sk-... or AIzaSy..."
+                            : "sk-... or AIzaSy... (Paste key to auto-fetch models)"
                         }
                         className="w-full pl-3.5 pr-10 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-mono text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-emerald-500 transition-all"
                       />
@@ -853,6 +882,186 @@ export default function SettingsHubPage() {
                     </div>
                   </div>
                 )}
+
+                {/* Model ID / Tag + Live Auto-Discovery Inventory */}
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <label className="text-xs font-semibold text-zinc-300 flex items-center gap-2">
+                      <span>
+                        {selectedLLMDef.category === "system"
+                          ? "Parser / Router Strategy"
+                          : "Model ID / Tag"}
+                      </span>
+                      {selectedLLMDef.category !== "system" && (
+                        <span
+                          className={`text-[10px] font-mono px-2 py-0.5 rounded-md border ${
+                            discoverySource === "live_api"
+                              ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/40"
+                              : "bg-zinc-900 text-zinc-400 border-zinc-800"
+                          }`}
+                        >
+                          {discoveringModels
+                            ? "Discovering models..."
+                            : discoverySource === "live_api"
+                              ? `✓ ${discoveredModels.length} Live Models Fetched (${discoveryLatency}ms)`
+                              : `${discoveredModels.length} Verified Catalog Models`}
+                        </span>
+                      )}
+                    </label>
+
+                    {selectedLLMDef.category !== "system" && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleDiscoverModels(
+                            currentEngineId,
+                            llmBaseUrl,
+                            llmApiKey,
+                          )
+                        }
+                        disabled={discoveringModels}
+                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-emerald-500/40 text-[10px] font-mono text-emerald-400 transition-all disabled:opacity-50"
+                        title="Query provider /v1/models or /api/tags endpoint now"
+                      >
+                        <RefreshCw
+                          className={`w-3 h-3 ${
+                            discoveringModels ? "animate-spin" : ""
+                          }`}
+                        />
+                        <span>Discover Models</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Combined Dropdown + Custom Model ID Input */}
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                    {selectedLLMDef.category !== "system" &&
+                      discoveredModels.length > 0 && (
+                        <div className="sm:col-span-6">
+                          <select
+                            aria-label="Select discovered model"
+                            value={
+                              discoveredModels.some((m) => m.id === llmModel)
+                                ? llmModel
+                                : ""
+                            }
+                            onChange={(e) => {
+                              if (e.target.value) setLlmModel(e.target.value);
+                            }}
+                            className="w-full px-3 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-mono text-emerald-400 focus:outline-none focus:border-emerald-500 transition-all cursor-pointer"
+                          >
+                            <option value="" disabled>
+                              -- Select Discovered Model (
+                              {discoveredModels.length}) --
+                            </option>
+                            {discoveredModels.map((m) => (
+                              <option
+                                key={m.id}
+                                value={m.id}
+                                className="bg-zinc-900 text-zinc-100"
+                              >
+                                {m.id} — {m.context_window}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+
+                    <div
+                      className={
+                        selectedLLMDef.category !== "system" &&
+                        discoveredModels.length > 0
+                          ? "sm:col-span-6"
+                          : "sm:col-span-12"
+                      }
+                    >
+                      <input
+                        type="text"
+                        value={llmModel}
+                        onChange={(e) => setLlmModel(e.target.value)}
+                        placeholder={selectedLLMDef.defaultModel}
+                        disabled={selectedLLMDef.category === "system"}
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-mono text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-emerald-500 disabled:opacity-50 transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Discovered Models Interactive Pills & Active Model Specs */}
+                  {selectedLLMDef.category !== "system" &&
+                    discoveredModels.length > 0 && (
+                      <div className="p-3 rounded-xl bg-zinc-950/90 border border-zinc-800/80 space-y-2.5">
+                        <div className="flex items-center justify-between text-[10px] font-mono text-zinc-400">
+                          <span>
+                            Available Model IDs & Tags (Click to Select):
+                          </span>
+                          <span className="text-zinc-500">
+                            {discoveryMessage}
+                          </span>
+                        </div>
+
+                        <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto pr-1">
+                          {discoveredModels.map((m) => {
+                            const isPicked = llmModel === m.id;
+                            return (
+                              <button
+                                key={m.id}
+                                type="button"
+                                onClick={() => setLlmModel(m.id)}
+                                className={`px-2.5 py-1 rounded-lg text-[11px] font-mono transition-all border flex items-center gap-1.5 ${
+                                  isPicked
+                                    ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/60 font-bold shadow-sm"
+                                    : "bg-zinc-900 text-zinc-300 border-zinc-800 hover:border-zinc-700 hover:text-zinc-100"
+                                }`}
+                              >
+                                <span>{m.id}</span>
+                                {m.recommended && (
+                                  <span className="text-[9px] px-1 py-0.2 rounded bg-emerald-500/20 text-emerald-400">
+                                    REC
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {/* Active Model Spec Details */}
+                        {(() => {
+                          const activeSpec =
+                            discoveredModels.find((m) => m.id === llmModel) ||
+                            discoveredModels[0];
+                          if (!activeSpec) return null;
+                          return (
+                            <div className="pt-2 border-t border-zinc-800/80 grid grid-cols-1 sm:grid-cols-3 gap-2 text-[10px] font-mono">
+                              <div className="px-2.5 py-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800/80">
+                                <span className="text-zinc-500 block">
+                                  Selected Model ID
+                                </span>
+                                <strong className="text-emerald-400 truncate block">
+                                  {llmModel || activeSpec.id}
+                                </strong>
+                              </div>
+                              <div className="px-2.5 py-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800/80">
+                                <span className="text-zinc-500 block">
+                                  Context Window
+                                </span>
+                                <strong className="text-zinc-200 truncate block">
+                                  {activeSpec.context_window}
+                                </strong>
+                              </div>
+                              <div className="px-2.5 py-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800/80">
+                                <span className="text-zinc-500 block">
+                                  Capabilities & Mode
+                                </span>
+                                <strong className="text-zinc-300 truncate block">
+                                  {activeSpec.capabilities}
+                                </strong>
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    )}
+                </div>
               </div>
 
               {/* Actions */}

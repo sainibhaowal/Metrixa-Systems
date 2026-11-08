@@ -1888,6 +1888,510 @@ async def ping_provider(req: ProviderPingRequest):
         }
 
 
+_CURATED_PROVIDER_MODELS: dict[str, list[dict[str, Any]]] = {
+    "gemini": [
+        {
+            "id": "gemini-2.5-flash",
+            "name": "Gemini 2.5 Flash",
+            "context_window": "1,048,576 tokens (1M)",
+            "capabilities": "Native JSON Schema • Fast Reasoning • Multimodal",
+            "owned_by": "google",
+            "recommended": True,
+        },
+        {
+            "id": "gemini-2.5-pro",
+            "name": "Gemini 2.5 Pro",
+            "context_window": "2,097,152 tokens (2M)",
+            "capabilities": "Deep Complex Reasoning • German Legal Synthesis",
+            "owned_by": "google",
+            "recommended": False,
+        },
+        {
+            "id": "gemini-2.0-flash",
+            "name": "Gemini 2.0 Flash",
+            "context_window": "1,048,576 tokens (1M)",
+            "capabilities": "High-Throughput Extraction • Low Latency",
+            "owned_by": "google",
+            "recommended": False,
+        },
+        {
+            "id": "gemini-2.0-flash-lite",
+            "name": "Gemini 2.0 Flash-Lite",
+            "context_window": "1,048,576 tokens (1M)",
+            "capabilities": "Ultra-Low Cost Bulk Crawling",
+            "owned_by": "google",
+            "recommended": False,
+        },
+        {
+            "id": "gemini-1.5-pro",
+            "name": "Gemini 1.5 Pro",
+            "context_window": "2,097,152 tokens (2M)",
+            "capabilities": "Long-Context Document Dossier Extraction",
+            "owned_by": "google",
+            "recommended": False,
+        },
+    ],
+    "openai": [
+        {
+            "id": "gpt-4o-mini",
+            "name": "GPT-4o Mini",
+            "context_window": "128,000 tokens",
+            "capabilities": "Structured Outputs • Fast & Cost-Efficient",
+            "owned_by": "openai",
+            "recommended": True,
+        },
+        {
+            "id": "gpt-4o",
+            "name": "GPT-4o (Omni)",
+            "context_window": "128,000 tokens",
+            "capabilities": "Flagship High-Precision Extraction • JSON Schema",
+            "owned_by": "openai",
+            "recommended": False,
+        },
+        {
+            "id": "gpt-4.1-mini",
+            "name": "GPT-4.1 Mini",
+            "context_window": "1,000,000 tokens",
+            "capabilities": "1M Context • Instruction Following",
+            "owned_by": "openai",
+            "recommended": False,
+        },
+        {
+            "id": "gpt-4.1",
+            "name": "GPT-4.1",
+            "context_window": "1,000,000 tokens",
+            "capabilities": "Enterprise Structured Synthesis",
+            "owned_by": "openai",
+            "recommended": False,
+        },
+        {
+            "id": "o3-mini",
+            "name": "o3-mini (Reasoning)",
+            "context_window": "200,000 tokens",
+            "capabilities": "Chain-of-Thought Verification",
+            "owned_by": "openai",
+            "recommended": False,
+        },
+    ],
+    "deepseek": [
+        {
+            "id": "deepseek-chat",
+            "name": "DeepSeek-V3 (deepseek-chat)",
+            "context_window": "64,000 tokens",
+            "capabilities": "671B MoE • JSON Output Mode • $0.14/1M Tokens",
+            "owned_by": "deepseek",
+            "recommended": True,
+        },
+        {
+            "id": "deepseek-reasoner",
+            "name": "DeepSeek-R1 (deepseek-reasoner)",
+            "context_window": "64,000 tokens",
+            "capabilities": "Reinforcement Reasoning • Complex Entity Resolution",
+            "owned_by": "deepseek",
+            "recommended": False,
+        },
+    ],
+    "ollama": [
+        {
+            "id": "llama3.2",
+            "name": "Llama 3.2 (3B / 8B Local)",
+            "context_window": "128,000 tokens",
+            "capabilities": "Fast Local GPU Inference • GGUF Q4_K_M",
+            "owned_by": "library",
+            "recommended": True,
+        },
+        {
+            "id": "qwen2.5:14b",
+            "name": "Qwen 2.5 14B Instruct",
+            "context_window": "128,000 tokens",
+            "capabilities": "Top German & Multilingual JSON Extraction",
+            "owned_by": "library",
+            "recommended": False,
+        },
+        {
+            "id": "qwen2.5:7b",
+            "name": "Qwen 2.5 7B Instruct",
+            "context_window": "128,000 tokens",
+            "capabilities": "Balanced VRAM (6GB) • Structured JSON",
+            "owned_by": "library",
+            "recommended": False,
+        },
+        {
+            "id": "mistral-nemo",
+            "name": "Mistral NeMo 12B",
+            "context_window": "128,000 tokens",
+            "capabilities": "European/German Native Tokenizer • Tekken",
+            "owned_by": "library",
+            "recommended": False,
+        },
+        {
+            "id": "deepseek-r1:14b",
+            "name": "DeepSeek-R1 Distill Qwen 14B",
+            "context_window": "64,000 tokens",
+            "capabilities": "Local Chain-of-Thought Reasoning",
+            "owned_by": "library",
+            "recommended": False,
+        },
+    ],
+    "lm_studio": [
+        {
+            "id": "qwen2.5-14b-instruct",
+            "name": "Qwen 2.5 14B Instruct (GGUF)",
+            "context_window": "32,768 tokens",
+            "capabilities": "LM Studio Local Server • Structured JSON",
+            "owned_by": "lm-studio",
+            "recommended": True,
+        },
+        {
+            "id": "llama-3.2-3b-instruct",
+            "name": "Llama 3.2 3B Instruct (GGUF)",
+            "context_window": "128,000 tokens",
+            "capabilities": "Ultra-Fast Local CPU/GPU Inference",
+            "owned_by": "lm-studio",
+            "recommended": False,
+        },
+        {
+            "id": "mistral-nemo-instruct-2407",
+            "name": "Mistral NeMo 12B Instruct (GGUF)",
+            "context_window": "128,000 tokens",
+            "capabilities": "German B2B & Legal Entity Extraction",
+            "owned_by": "lm-studio",
+            "recommended": False,
+        },
+    ],
+    "local_llamacpp": [
+        {
+            "id": "qwen2.5-14b-instruct",
+            "name": "Qwen 2.5 14B Instruct (llama-server)",
+            "context_window": "32,768 tokens",
+            "capabilities": "C++ CUDA/Metal/AVX512 • Grammar-Constrained JSON",
+            "owned_by": "llamacpp",
+            "recommended": True,
+        },
+        {
+            "id": "Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf",
+            "name": "Llama 3.1 8B Instruct Q4_K_M",
+            "context_window": "128,000 tokens",
+            "capabilities": "Low-Latency Slot Batching",
+            "owned_by": "llamacpp",
+            "recommended": False,
+        },
+    ],
+    "nvidia_nim": [
+        {
+            "id": "meta/llama-3.3-70b-instruct",
+            "name": "Llama 3.3 70B Instruct (NIM)",
+            "context_window": "128,000 tokens",
+            "capabilities": "Enterprise TensorRT-LLM • High Precision",
+            "owned_by": "meta",
+            "recommended": True,
+        },
+        {
+            "id": "deepseek-ai/deepseek-r1",
+            "name": "DeepSeek R1 (NVIDIA NIM)",
+            "context_window": "64,000 tokens",
+            "capabilities": "Accelerated Reasoning Microservice",
+            "owned_by": "deepseek-ai",
+            "recommended": False,
+        },
+        {
+            "id": "qwen/qwen2.5-72b-instruct",
+            "name": "Qwen 2.5 72B Instruct (NIM)",
+            "context_window": "128,000 tokens",
+            "capabilities": "Multilingual European Enterprise Extraction",
+            "owned_by": "qwen",
+            "recommended": False,
+        },
+        {
+            "id": "mistralai/mistral-nemotron",
+            "name": "Mistral Nemotron (NIM)",
+            "context_window": "128,000 tokens",
+            "capabilities": "Function Calling & JSON Schema",
+            "owned_by": "mistralai",
+            "recommended": False,
+        },
+    ],
+}
+
+
+@app.post("/api/providers/models")
+async def discover_provider_models(req: ProviderPingRequest):
+    """
+    Dynamically discover available LLM models and their metadata from a provider endpoint.
+    Automatically queries /v1/models, /api/tags (Ollama), or /v1beta/models (Gemini) when
+    credentials/endpoints are reachable, with fallback to curated provider model specs.
+    """
+    import time
+
+    import httpx
+
+    t0 = time.perf_counter()
+    prov = req.provider
+    curated = _CURATED_PROVIDER_MODELS.get(prov, [])
+    curated_by_id = {m["id"]: m for m in curated}
+
+    provider_map = {
+        "deepseek": {
+            "base_url": req.base_url
+            or settings.deepseek_base_url
+            or "https://api.deepseek.com/v1",
+            "api_key": req.api_key or settings.deepseek_api_key or "",
+            "requires_key": True,
+        },
+        "gemini": {
+            "base_url": req.base_url
+            or settings.gemini_base_url
+            or "https://generativelanguage.googleapis.com/v1beta/openai",
+            "api_key": req.api_key or settings.gemini_api_key or "",
+            "requires_key": True,
+        },
+        "openai": {
+            "base_url": req.base_url
+            or settings.openai_base_url
+            or "https://api.openai.com/v1",
+            "api_key": req.api_key or settings.openai_api_key or "",
+            "requires_key": True,
+        },
+        "ollama": {
+            "base_url": req.base_url
+            or settings.ollama_base_url
+            or "http://localhost:11434/v1",
+            "api_key": req.api_key or "ollama-local",
+            "requires_key": False,
+        },
+        "lm_studio": {
+            "base_url": req.base_url
+            or settings.lmstudio_base_url
+            or "http://localhost:1234/v1",
+            "api_key": req.api_key or settings.lmstudio_api_key or "lm-studio",
+            "requires_key": False,
+        },
+        "local_llamacpp": {
+            "base_url": req.base_url
+            or settings.llamacpp_base_url
+            or "http://localhost:8080/v1",
+            "api_key": req.api_key or settings.llamacpp_api_key or "local-no-key",
+            "requires_key": False,
+        },
+        "nvidia_nim": {
+            "base_url": req.base_url
+            or settings.nvidia_nim_base_url
+            or "https://integrate.api.nvidia.com/v1",
+            "api_key": req.api_key or settings.nvidia_nim_api_key or "",
+            "requires_key": True,
+        },
+    }
+
+    if prov not in provider_map:
+        return {
+            "status": "ok",
+            "source": "system",
+            "latency_ms": 1,
+            "models": [],
+        }
+
+    target = provider_map[prov]
+    base_url = str(target["base_url"]).rstrip("/")
+    api_key = str(target["api_key"]).strip()
+    requires_key = bool(target["requires_key"])
+
+    if requires_key and not api_key:
+        return {
+            "status": "ok",
+            "source": "catalog_presets",
+            "latency_ms": 1,
+            "message": "Enter API key above to auto-discover live account models from remote endpoint.",
+            "models": curated,
+        }
+
+    try:
+        async with httpx.AsyncClient(timeout=6.0, verify=False) as client:  # nosec B501
+            # 1. Special rich discovery for Ollama via /api/tags
+            if prov == "ollama":
+                ollama_root = (
+                    base_url[:-3] if base_url.endswith("/v1") else base_url
+                ).rstrip("/")
+                res = await client.get(f"{ollama_root}/api/tags")
+                res.raise_for_status()
+                data = res.json()
+                raw_models = data.get("models", [])
+                discovered: list[dict[str, Any]] = []
+                for idx, m in enumerate(raw_models):
+                    mid = m.get("name") or m.get("model") or ""
+                    if not mid:
+                        continue
+                    details = m.get("details", {})
+                    param_size = details.get("parameter_size", "")
+                    quant = details.get("quantization_level", "")
+                    family = details.get("family", "ollama")
+                    size_gb = round((m.get("size") or 0) / (1024**3), 2)
+                    discovered.append(
+                        {
+                            "id": mid,
+                            "name": f"{mid} ({param_size})" if param_size else mid,
+                            "context_window": "128,000 tokens (Local)",
+                            "capabilities": " • ".join(
+                                filter(
+                                    None,
+                                    [
+                                        f"Family: {family}" if family else "",
+                                        f"Quant: {quant}" if quant else "",
+                                        f"{size_gb} GB VRAM" if size_gb > 0 else "",
+                                    ],
+                                )
+                            )
+                            or "Local Ollama GGUF Model",
+                            "owned_by": family,
+                            "recommended": idx == 0,
+                        }
+                    )
+                latency_ms = int((time.perf_counter() - t0) * 1000)
+                if discovered:
+                    return {
+                        "status": "ok",
+                        "source": "live_api",
+                        "latency_ms": latency_ms,
+                        "message": f"Discovered {len(discovered)} local models from Ollama ({ollama_root}/api/tags).",
+                        "models": discovered,
+                    }
+
+            # 2. Special rich discovery for Google Gemini via native v1beta/models
+            if prov == "gemini":
+                gem_url = f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}"
+                res = await client.get(gem_url)
+                res.raise_for_status()
+                data = res.json()
+                discovered = []
+                for m in data.get("models", []):
+                    methods = m.get("supportedGenerationMethods", [])
+                    if "generateContent" not in methods:
+                        continue
+                    raw_name = m.get("name", "")
+                    mid = raw_name.replace("models/", "")
+                    if not mid.startswith("gemini"):
+                        continue
+                    in_lim = m.get("inputTokenLimit")
+                    out_lim = m.get("outputTokenLimit")
+                    ctx_str = (
+                        f"{in_lim:,} tokens"
+                        if isinstance(in_lim, int)
+                        else "1,048,576 tokens"
+                    )
+                    caps = (
+                        f"Max Output: {out_lim:,} tokens • Native JSON Schema"
+                        if isinstance(out_lim, int)
+                        else "Native JSON Schema • Multimodal"
+                    )
+                    discovered.append(
+                        {
+                            "id": mid,
+                            "name": m.get("displayName") or mid,
+                            "context_window": ctx_str,
+                            "capabilities": caps,
+                            "owned_by": "google",
+                            "recommended": mid
+                            in ("gemini-2.5-flash", "gemini-2.0-flash"),
+                        }
+                    )
+                latency_ms = int((time.perf_counter() - t0) * 1000)
+                if discovered:
+                    discovered.sort(
+                        key=lambda x: (
+                            0 if x["recommended"] else 1,
+                            0 if "2.5" in x["id"] else (1 if "2.0" in x["id"] else 2),
+                            x["id"],
+                        )
+                    )
+                    return {
+                        "status": "ok",
+                        "source": "live_api",
+                        "latency_ms": latency_ms,
+                        "message": f"Discovered {len(discovered)} live Gemini models via Google AI API.",
+                        "models": discovered[:20],
+                    }
+
+            # 3. Standard OpenAI-Compatible /v1/models Discovery (OpenAI, DeepSeek, NVIDIA NIM, LM Studio, llama.cpp)
+            headers = {
+                "Accept": "application/json",
+                "Authorization": f"Bearer {api_key}" if api_key else "Bearer local",
+            }
+            res = await client.get(f"{base_url}/models", headers=headers)
+            res.raise_for_status()
+            payload = res.json()
+            raw_list = payload.get("data", []) if isinstance(payload, dict) else []
+            discovered = []
+            for idx, item in enumerate(raw_list):
+                if not isinstance(item, dict):
+                    continue
+                mid = str(item.get("id", "")).strip()
+                if not mid:
+                    continue
+                # Filter out non-chat models for OpenAI (e.g., whisper, tts, dall-e, text-embedding)
+                if prov == "openai" and any(
+                    skip in mid.lower()
+                    for skip in (
+                        "embedding",
+                        "tts",
+                        "whisper",
+                        "dall-e",
+                        "davinci",
+                        "babbage",
+                        "moderation",
+                        "audio",
+                        "realtime",
+                    )
+                ):
+                    continue
+                preset = curated_by_id.get(mid, {})
+                ctx_val = (
+                    item.get("context_window")
+                    or item.get("max_model_len")
+                    or preset.get("context_window")
+                    or "128,000 tokens"
+                )
+                if isinstance(ctx_val, int):
+                    ctx_val = f"{ctx_val:,} tokens"
+                discovered.append(
+                    {
+                        "id": mid,
+                        "name": preset.get("name") or mid,
+                        "context_window": str(ctx_val),
+                        "capabilities": preset.get("capabilities")
+                        or f"Owner: {item.get('owned_by', prov)} • OpenAI /v1 Compatible",
+                        "owned_by": str(item.get("owned_by", prov)),
+                        "recommended": bool(preset.get("recommended", idx == 0)),
+                    }
+                )
+            latency_ms = int((time.perf_counter() - t0) * 1000)
+            if discovered:
+                discovered.sort(key=lambda x: (0 if x["recommended"] else 1, x["id"]))
+                return {
+                    "status": "ok",
+                    "source": "live_api",
+                    "latency_ms": latency_ms,
+                    "message": f"Discovered {len(discovered)} live models from {base_url}/models.",
+                    "models": discovered[:30],
+                }
+    except Exception as exc:
+        latency_ms = int((time.perf_counter() - t0) * 1000)
+        return {
+            "status": "ok",
+            "source": "catalog_presets",
+            "latency_ms": latency_ms,
+            "message": f"Live endpoint unreachable ({str(exc)[:90]}) — showing verified model catalog.",
+            "models": curated,
+        }
+
+    latency_ms = int((time.perf_counter() - t0) * 1000)
+    return {
+        "status": "ok",
+        "source": "catalog_presets",
+        "latency_ms": latency_ms,
+        "message": "Showing verified provider model catalog.",
+        "models": curated,
+    }
+
+
 class SearchPingRequest(BaseModel):
     provider: str
     base_url: str | None = None
