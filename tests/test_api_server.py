@@ -87,3 +87,42 @@ def test_api_provider_ping(client: TestClient) -> None:
     assert data["status"] == "ok"
     assert "PONG" in data["reply"]
     assert data["latency_ms"] >= 0
+
+
+def test_api_artifacts_library_and_preview(client: TestClient) -> None:
+    resp = client.get("/api/artifacts/files")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "items" in data
+    assert len(data["items"]) >= 4
+    file_ids = [item["id"] for item in data["items"]]
+    assert "xlsx-master" in file_ids
+    assert "csv-master" in file_ids
+    assert "eval-report" in file_ids
+
+    # Test preview endpoint for Excel
+    prev_resp = client.get("/api/artifacts/preview/xlsx-master")
+    assert prev_resp.status_code == 200
+    prev_data = prev_resp.json()
+    assert prev_data["type"] == "xlsx"
+    assert "sheets" in prev_data
+    assert len(prev_data["sheets"]) >= 1
+
+    # Test preview endpoint for CSV
+    csv_prev = client.get("/api/artifacts/preview/csv-master")
+    assert csv_prev.status_code == 200
+    assert csv_prev.json()["type"] == "csv"
+
+    # Test artifact action (archive and restore)
+    act_resp = client.post(
+        "/api/artifacts/action",
+        json={"action": "archive", "file_ids": ["eval-report"]},
+    )
+    assert act_resp.status_code == 200
+    assert act_resp.json()["affected_count"] == 1
+
+    restore_resp = client.post(
+        "/api/artifacts/action",
+        json={"action": "restore", "file_ids": ["eval-report"]},
+    )
+    assert restore_resp.status_code == 200

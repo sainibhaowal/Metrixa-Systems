@@ -148,6 +148,10 @@ CREATE TABLE IF NOT EXISTS decision_makers (
 );
 
 CREATE INDEX IF NOT EXISTS idx_dm_company ON decision_makers(company_id);
+CREATE INDEX IF NOT EXISTS idx_dm_company_primary ON decision_makers(company_id, is_primary_contact DESC);
+CREATE INDEX IF NOT EXISTS idx_golden_tier ON companies_golden(lead_tier);
+CREATE INDEX IF NOT EXISTS idx_golden_district ON companies_golden(district);
+CREATE INDEX IF NOT EXISTS idx_kpi_erp ON kpi_extractions(detected_erp_proptech);
 
 CREATE TABLE IF NOT EXISTS llm_audit_logs (
     log_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -179,7 +183,11 @@ class Database:
         conn = sqlite3.connect(str(self.db_path), timeout=30.0)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA journal_mode = WAL;")
+        conn.execute("PRAGMA synchronous = NORMAL;")
         conn.execute("PRAGMA foreign_keys = ON;")
+        conn.execute("PRAGMA cache_size = -64000;")
+        conn.execute("PRAGMA mmap_size = 268435456;")
+        conn.execute("PRAGMA temp_store = MEMORY;")
         try:
             yield conn
             conn.commit()

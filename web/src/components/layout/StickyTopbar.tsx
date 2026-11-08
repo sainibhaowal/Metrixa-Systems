@@ -16,21 +16,21 @@ export function StickyTopbar() {
   const [loading, setLoading] = useState(false);
   const { isCollapsed, toggleSidebar } = useSidebar();
 
-  const loadData = async () => {
+  const loadData = async (isManual = false) => {
     try {
-      setLoading(true);
-      const data = await fetchMetrics();
+      if (isManual) setLoading(true);
+      const data = await fetchMetrics(isManual);
       setMetrics(data);
     } catch {
       // Backend may be starting up
     } finally {
-      setLoading(false);
+      if (isManual) setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadData();
-    const timer = setInterval(loadData, 12000);
+    loadData(false);
+    const timer = setInterval(() => loadData(false), 8000);
     return () => clearInterval(timer);
   }, []);
 
@@ -79,7 +79,7 @@ export function StickyTopbar() {
       {/* Right: Quick Action Buttons */}
       <div className="flex items-center gap-2.5">
         <button
-          onClick={loadData}
+          onClick={() => loadData(true)}
           disabled={loading}
           className="p-2 rounded-xl text-zinc-400 hover:text-zinc-100 hover:bg-zinc-850 border border-zinc-800 hover:border-zinc-700 transition-colors"
           title="Refresh Telemetry"

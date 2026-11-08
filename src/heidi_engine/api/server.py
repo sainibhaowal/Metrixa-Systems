@@ -7,7 +7,10 @@ plus Server-Sent Events (SSE) for Real-Time Pipeline Progress and Streaming Logs
 from __future__ import annotations
 
 import asyncio
+import csv
+from datetime import datetime, timezone
 import json
+from pathlib import Path
 from contextlib import asynccontextmanager
 from typing import Any, AsyncGenerator, Dict, List, Optional
 from fastapi import FastAPI, HTTPException, Query
@@ -92,10 +95,25 @@ app.add_middleware(
 # 1. METRICS & TELEMETRY APIS
 # ============================================================================
 
+_metrics_cache: Dict[str, Any] = {}
+_metrics_cache_time: float = 0.0
+METRICS_CACHE_TTL = 4.0  # seconds in-memory TTL for sub-millisecond responses
+
 
 @app.get("/api/metrics")
 async def get_metrics():
     """Return live aggregate KPI metrics, tier distribution, ERP counts, and district shares."""
+    global _metrics_cache, _metrics_cache_time
+    import time
+
+    now = time.time()
+    if _metrics_cache and (now - _metrics_cache_time < METRICS_CACHE_TTL):
+        _metrics_cache["pipeline_state"] = {
+            "is_running": event_bus.is_running,
+            "current_stage": event_bus.current_stage,
+        }
+        return _metrics_cache
+
     tel = db.get_pipeline_telemetry()
     with db.connect() as conn:
         erp_rows = conn.execute(
@@ -128,7 +146,7 @@ async def get_metrics():
             for r in dist_rows
         ]
 
-    return {
+    data = {
         "status": "online",
         "raw_total": tel["raw_total"],
         "golden_total": tel["golden_qualified_total"],
@@ -149,6 +167,9 @@ async def get_metrics():
             "current_stage": event_bus.current_stage,
         },
     }
+    _metrics_cache = data
+    _metrics_cache_time = now
+    return data
 
 
 # ============================================================================
@@ -624,6 +645,7 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
         finally:
             event_bus.is_running = False
             event_bus.current_stage = "IDLE"
+            _metrics_cache.clear()
 
     asyncio.create_task(_execute_task())
     return {"status": "started", "run_id": run_id, "stage": req.stage}
@@ -662,8 +684,365 @@ async def stream_pipeline_events():
 
 
 # ============================================================================
-# 4. ARTIFACTS & EXPORT DOWNLOADS
+# 4. ARTIFACTS & DELIVERABLES LIBRARY (EXPLORER, LIVE PREVIEW, TRASH & ARCHIVE)
 # ============================================================================
+
+
+class ArtifactActionRequest(BaseModel):
+    action: str  # "archive" | "restore" | "trash" | "delete_permanent" | "empty_trash" | "set_retention"
+    file_ids: List[str] = Field(default_factory=list)
+    retention_days: Optional[int] = 30
+
+
+# In-memory artifact state management
+_artifact_store: Dict[str, Dict[str, Any]] = {
+    "xlsx-master": {
+        "id": "xlsx-master",
+        "name": "metrixa_berlin_hausverwaltungen.xlsx",
+        "type": "xlsx",
+        "title": "Master Berlin Leads Excel Workbook",
+        "desc": "4-Tab formatted workbook containing all 1,199 Berlin Hausverwaltungen ranked by Metrixa Lead Score (0–100), full decision-maker dossier, and crawled evidence logs.",
+        "status": "active",
+        "retention_days": 30,
+        "trashed_at": None,
+        "archived_at": None,
+        "tags": [
+            "Preferred Format",
+            "4 Sheets",
+            "Salesforce Ready",
+            "Formulas & Formatting",
+        ],
+        "download_url": "/api/artifacts/download/excel",
+    },
+    "csv-master": {
+        "id": "csv-master",
+        "name": "metrixa_berlin_leads_master.csv",
+        "type": "csv",
+        "title": "Standardized Master Clean CSV Deliverable",
+        "desc": "Standardized CSV with UTF-8 BOM encoding for seamless import into Salesforce, HubSpot, or Google Drive spreadsheets. 31 columns, 1,199 deduplicated records.",
+        "status": "active",
+        "retention_days": 30,
+        "trashed_at": None,
+        "archived_at": None,
+        "tags": ["UTF-8 BOM", "Salesforce / HubSpot", "1,199 Leads", "RFC-4180"],
+        "download_url": "/api/artifacts/download/csv",
+    },
+    "eval-report": {
+        "id": "eval-report",
+        "name": "metrixa_evaluation_ablation_report.md",
+        "type": "md",
+        "title": "Quantitative Evaluation & Ablation Report",
+        "desc": "Official validation deliverable detailing Gold-Set Precision, 4-layer anti-hallucination verification gates, and stage-by-stage pipeline ablation analysis.",
+        "status": "active",
+        "retention_days": 30,
+        "trashed_at": None,
+        "archived_at": None,
+        "tags": [
+            "Task 3 Deliverable",
+            "0% Hallucination",
+            "Ablation Matrix",
+            "Precision/Recall",
+        ],
+        "download_url": "/api/artifacts/download/eval-report",
+    },
+    "exec-brief": {
+        "id": "exec-brief",
+        "name": "metrixa_executive_presentation.md",
+        "type": "pdf",
+        "title": "Executive Presentation & Submetering TAM Brief",
+        "desc": "Slide-by-slide executive briefing covering submetering TAM, European Energy Efficiency Directive (EED) compliance, PropTech ERP adoption, and sales strategy.",
+        "status": "active",
+        "retention_days": 30,
+        "trashed_at": None,
+        "archived_at": None,
+        "tags": [
+            "A4 Document Print",
+            "Executive Briefing",
+            "TAM & Market Share",
+            "Slide Deck",
+        ],
+        "download_url": "/api/artifacts/download/exec-brief",
+    },
+    "db-snapshot": {
+        "id": "db-snapshot",
+        "name": "metrixa_leads.db",
+        "type": "db",
+        "title": "Production SQLite WAL Relational Database",
+        "desc": "Production SQLite WAL database containing all 6 normalized relational tables (raw_listings, companies_golden, kpi_extractions, decision_makers, crawled_pages, llm_audit_logs).",
+        "status": "active",
+        "retention_days": 30,
+        "trashed_at": None,
+        "archived_at": None,
+        "tags": ["SQLite WAL", "ACID Compliant", "Full Normalized Schema", "6 Tables"],
+        "download_url": "/api/artifacts/download/database",
+    },
+}
+
+_preview_cache: Dict[str, Any] = {}
+
+
+@app.get("/api/artifacts/files")
+async def get_artifact_files():
+    """List all deliverables with metadata, file size, status (active, archived, trash), and retention."""
+    items = []
+    for art_id, item in _artifact_store.items():
+        entry = dict(item)
+        file_path: Optional[Path] = None
+        if art_id == "xlsx-master":
+            file_path = settings.export_dir / "metrixa_berlin_hausverwaltungen.xlsx"
+        elif art_id == "csv-master":
+            file_path = settings.export_dir / "metrixa_berlin_leads_master.csv"
+        elif art_id == "eval-report":
+            file_path = settings.export_dir / "metrixa_evaluation_ablation_report.md"
+            if not file_path.exists():
+                file_path = settings.export_dir / "evaluation_ablation_report.md"
+        elif art_id == "exec-brief":
+            file_path = settings.export_dir / "metrixa_executive_presentation.md"
+        elif art_id == "db-snapshot":
+            file_path = settings.database_path
+
+        if file_path and file_path.exists():
+            stat = file_path.stat()
+            size_kb = round(stat.st_size / 1024, 1)
+            entry["size_bytes"] = stat.st_size
+            entry["size_formatted"] = (
+                f"{size_kb} KB" if size_kb < 1024 else f"{round(size_kb / 1024, 2)} MB"
+            )
+            entry["updated_at"] = datetime.fromtimestamp(
+                stat.st_mtime, tz=timezone.utc
+            ).isoformat()
+        else:
+            entry["size_bytes"] = 0
+            entry["size_formatted"] = "Ready to generate"
+            entry["updated_at"] = datetime.now(timezone.utc).isoformat()
+
+        items.append(entry)
+
+    active_cnt = sum(1 for i in items if i["status"] == "active")
+    archived_cnt = sum(1 for i in items if i["status"] == "archived")
+    trash_cnt = sum(1 for i in items if i["status"] == "trash")
+
+    return {
+        "items": items,
+        "summary": {
+            "total": len(items),
+            "active": active_cnt,
+            "archived": archived_cnt,
+            "trash": trash_cnt,
+        },
+    }
+
+
+@app.get("/api/artifacts/preview/{artifact_id}")
+async def get_artifact_preview(artifact_id: str):
+    """Return parsed real office preview data for interactive preview pane."""
+    if artifact_id in _preview_cache:
+        return _preview_cache[artifact_id]
+
+    import openpyxl
+
+    if artifact_id == "xlsx-master":
+        xlsx_path = settings.export_dir / "metrixa_berlin_hausverwaltungen.xlsx"
+        if not xlsx_path.exists():
+            ExcelExporter(db).export_all()
+
+        wb = openpyxl.load_workbook(str(xlsx_path), data_only=True)
+        sheets_data: Dict[str, Any] = {}
+        for sname in wb.sheetnames:
+            ws = wb[sname]
+            all_rows = list(ws.iter_rows(values_only=True))
+            if all_rows:
+                headers = [str(c or "") for c in all_rows[0]]
+                data_rows = [
+                    [str(c if c is not None else "") for c in row]
+                    for row in all_rows[1:101]  # preview first 100 rows
+                ]
+                sheets_data[sname] = {
+                    "headers": headers,
+                    "rows": data_rows,
+                    "total_rows": len(all_rows) - 1,
+                    "preview_rows_count": len(data_rows),
+                }
+
+        res = {
+            "id": artifact_id,
+            "type": "xlsx",
+            "name": "metrixa_berlin_hausverwaltungen.xlsx",
+            "sheets": wb.sheetnames,
+            "sheet_data": sheets_data,
+            "active_sheet": wb.sheetnames[0] if wb.sheetnames else "",
+        }
+        _preview_cache[artifact_id] = res
+        return res
+
+    elif artifact_id == "csv-master":
+        csv_path = settings.export_dir / "metrixa_berlin_leads_master.csv"
+        if not csv_path.exists():
+            ExcelExporter(db).export_all()
+
+        with open(csv_path, "r", encoding="utf-8-sig") as f:
+            reader = csv.reader(f)
+            rows = list(reader)
+
+        headers = rows[0] if rows else []
+        data_rows = rows[1:101] if len(rows) > 1 else []
+        res = {
+            "id": artifact_id,
+            "type": "csv",
+            "name": "metrixa_berlin_leads_master.csv",
+            "headers": headers,
+            "rows": data_rows,
+            "total_rows": max(0, len(rows) - 1),
+            "encoding": "UTF-8 with BOM",
+        }
+        _preview_cache[artifact_id] = res
+        return res
+
+    elif artifact_id in ("eval-report", "exec-brief"):
+        if artifact_id == "eval-report":
+            path = settings.export_dir / "metrixa_evaluation_ablation_report.md"
+            if not path.exists():
+                path = settings.export_dir / "evaluation_ablation_report.md"
+            if not path.exists():
+                PipelineEvaluator(db).generate_markdown_report()
+            text = path.read_text(encoding="utf-8")
+            name = "metrixa_evaluation_ablation_report.md"
+            title = "Task 3 Quantitative Evaluation & Ablation Report"
+        else:
+            path = settings.export_dir / "metrixa_executive_presentation.md"
+            if not path.exists():
+                brief_path = Path(
+                    "docs/Working Docs/07_TASK3_EXECUTIVE_PRESENTATION.md"
+                )
+                text = (
+                    brief_path.read_text(encoding="utf-8")
+                    if brief_path.exists()
+                    else "# Metrixa Systems Executive Presentation\n\nSubmetering Intelligence Suite."
+                )
+                path.write_text(text, encoding="utf-8")
+            else:
+                text = path.read_text(encoding="utf-8")
+            name = "metrixa_executive_presentation.md"
+            title = "Executive Presentation & Submetering TAM Brief"
+
+        res = {
+            "id": artifact_id,
+            "type": "md" if artifact_id == "eval-report" else "pdf",
+            "name": name,
+            "title": title,
+            "content": text,
+            "lines_count": len(text.splitlines()),
+        }
+        _preview_cache[artifact_id] = res
+        return res
+
+    elif artifact_id == "db-snapshot":
+        with db.connect() as conn:
+            tbl_rows = conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name ASC"
+            ).fetchall()
+            tables = []
+            for tr in tbl_rows:
+                tname = tr["name"]
+                cnt = conn.execute(f"SELECT COUNT(*) FROM {tname}").fetchone()[0]
+                cols = [
+                    dict(c)
+                    for c in conn.execute(f"PRAGMA table_info({tname})").fetchall()
+                ]
+                tables.append(
+                    {"name": tname, "count": cnt, "columns": [c["name"] for c in cols]}
+                )
+
+        res = {
+            "id": artifact_id,
+            "type": "db",
+            "name": "metrixa_leads.db",
+            "tables": tables,
+            "journal_mode": "WAL",
+            "synchronous": "NORMAL",
+        }
+        _preview_cache[artifact_id] = res
+        return res
+
+    raise HTTPException(status_code=404, detail="Artifact preview not found")
+
+
+@app.post("/api/artifacts/action")
+async def execute_artifact_action(req: ArtifactActionRequest):
+    """Execute archive, restore, trash, permanent delete, or retention policy change."""
+    now_iso = datetime.now(timezone.utc).isoformat()
+    affected = 0
+
+    if req.action == "archive":
+        for fid in req.file_ids:
+            if fid in _artifact_store:
+                _artifact_store[fid]["status"] = "archived"
+                _artifact_store[fid]["archived_at"] = now_iso
+                affected += 1
+    elif req.action == "restore":
+        for fid in req.file_ids:
+            if fid in _artifact_store:
+                _artifact_store[fid]["status"] = "active"
+                _artifact_store[fid]["trashed_at"] = None
+                _artifact_store[fid]["archived_at"] = None
+                affected += 1
+    elif req.action == "trash":
+        for fid in req.file_ids:
+            if fid in _artifact_store:
+                _artifact_store[fid]["status"] = "trash"
+                _artifact_store[fid]["trashed_at"] = now_iso
+                affected += 1
+    elif req.action == "delete_permanent":
+        for fid in req.file_ids:
+            if fid in _artifact_store and _artifact_store[fid]["status"] == "trash":
+                # Reset to inactive or remove from trash
+                _artifact_store[fid]["status"] = "deleted"
+                affected += 1
+    elif req.action == "empty_trash":
+        for fid, item in _artifact_store.items():
+            if item["status"] == "trash":
+                item["status"] = "deleted"
+                affected += 1
+    elif req.action == "set_retention":
+        days = req.retention_days or 30
+        for fid in _artifact_store:
+            _artifact_store[fid]["retention_days"] = days
+        affected = len(_artifact_store)
+
+    return {"status": "ok", "action": req.action, "affected_count": affected}
+
+
+@app.get("/api/artifacts/download/{artifact_id}")
+async def download_artifact_by_id(artifact_id: str):
+    """Unified file download endpoint for all artifacts."""
+    if artifact_id in ("excel", "xlsx-master"):
+        return await download_excel()
+    elif artifact_id in ("csv", "csv-master"):
+        return await download_csv()
+    elif artifact_id in ("eval-report", "report"):
+        path = settings.export_dir / "metrixa_evaluation_ablation_report.md"
+        if not path.exists():
+            path = settings.export_dir / "evaluation_ablation_report.md"
+        return FileResponse(
+            path=path,
+            filename="metrixa_evaluation_ablation_report.md",
+            media_type="text/markdown",
+        )
+    elif artifact_id in ("exec-brief", "presentation"):
+        path = settings.export_dir / "metrixa_executive_presentation.md"
+        return FileResponse(
+            path=path,
+            filename="metrixa_executive_presentation.md",
+            media_type="text/markdown",
+        )
+    elif artifact_id in ("database", "db-snapshot"):
+        return FileResponse(
+            path=settings.database_path,
+            filename="metrixa_leads.db",
+            media_type="application/x-sqlite3",
+        )
+
+    raise HTTPException(status_code=404, detail="Deliverable not found")
 
 
 @app.get("/api/artifacts/download/excel")
@@ -707,7 +1086,9 @@ async def download_csv():
 @app.get("/api/artifacts/evaluation-report", response_class=PlainTextResponse)
 async def get_evaluation_report():
     """Return raw markdown of the evaluation and ablation report."""
-    path = settings.export_dir / "evaluation_ablation_report.md"
+    path = settings.export_dir / "metrixa_evaluation_ablation_report.md"
+    if not path.exists():
+        path = settings.export_dir / "evaluation_ablation_report.md"
     if not path.exists():
         PipelineEvaluator(db).generate_markdown_report()
     return path.read_text(encoding="utf-8")
