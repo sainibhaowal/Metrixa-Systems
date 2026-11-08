@@ -2197,11 +2197,11 @@ async def discover_provider_models(req: ProviderPingRequest):
 
     if requires_key and not api_key:
         return {
-            "status": "ok",
-            "source": "catalog_presets",
-            "latency_ms": 1,
-            "message": "Enter API key above to auto-discover live account models from remote endpoint.",
-            "models": curated,
+            "status": "awaiting_key",
+            "source": "awaiting_key",
+            "latency_ms": 0,
+            "message": "No API key configured — enter your API key above to auto-discover live models from the provider.",
+            "models": [],
         }
 
     try:
@@ -2375,20 +2375,20 @@ async def discover_provider_models(req: ProviderPingRequest):
     except Exception as exc:
         latency_ms = int((time.perf_counter() - t0) * 1000)
         return {
-            "status": "ok",
-            "source": "catalog_presets",
+            "status": "offline",
+            "source": "offline",
             "latency_ms": latency_ms,
-            "message": f"Live endpoint unreachable ({str(exc)[:90]}) — showing verified model catalog.",
-            "models": curated,
+            "message": f"Live endpoint unreachable or unauthorized ({str(exc)[:100]}).",
+            "models": [],
         }
 
     latency_ms = int((time.perf_counter() - t0) * 1000)
     return {
-        "status": "ok",
-        "source": "catalog_presets",
+        "status": "empty",
+        "source": "empty",
         "latency_ms": latency_ms,
-        "message": "Showing verified provider model catalog.",
-        "models": curated,
+        "message": "No models returned by remote endpoint.",
+        "models": [],
     }
 
 

@@ -286,40 +286,43 @@ export default function SettingsHubPage() {
   useEffect(() => {
     setPingResult(null);
     setShowLlmKey(false);
+    setDiscoveredModels([]);
     if (!cfg) {
       setLlmBaseUrl(selectedLLMDef.defaultBaseUrl);
-      setLlmModel(selectedLLMDef.defaultModel);
+      setLlmModel(
+        selectedLLMDef.category === "system" ? selectedLLMDef.defaultModel : "",
+      );
       setLlmApiKey("");
       return;
     }
 
     if (currentEngineId === "deepseek") {
       setLlmBaseUrl(cfg.deepseek_base_url || selectedLLMDef.defaultBaseUrl);
-      setLlmModel(cfg.deepseek_model || selectedLLMDef.defaultModel);
+      setLlmModel(cfg.deepseek_configured ? cfg.deepseek_model || "" : "");
       setLlmApiKey("");
     } else if (currentEngineId === "gemini") {
       setLlmBaseUrl(cfg.gemini_base_url || selectedLLMDef.defaultBaseUrl);
-      setLlmModel(cfg.gemini_model || selectedLLMDef.defaultModel);
+      setLlmModel(cfg.gemini_configured ? cfg.gemini_model || "" : "");
       setLlmApiKey("");
     } else if (currentEngineId === "openai") {
       setLlmBaseUrl(cfg.openai_base_url || selectedLLMDef.defaultBaseUrl);
-      setLlmModel(cfg.openai_model || selectedLLMDef.defaultModel);
+      setLlmModel(cfg.openai_configured ? cfg.openai_model || "" : "");
       setLlmApiKey("");
     } else if (currentEngineId === "ollama") {
       setLlmBaseUrl(cfg.ollama_base_url || selectedLLMDef.defaultBaseUrl);
-      setLlmModel(cfg.ollama_model || selectedLLMDef.defaultModel);
+      setLlmModel("");
       setLlmApiKey("");
     } else if (currentEngineId === "lm_studio") {
       setLlmBaseUrl(cfg.lmstudio_base_url || selectedLLMDef.defaultBaseUrl);
-      setLlmModel(cfg.lmstudio_model || selectedLLMDef.defaultModel);
+      setLlmModel("");
       setLlmApiKey("");
     } else if (currentEngineId === "local_llamacpp") {
       setLlmBaseUrl(cfg.llamacpp_base_url || selectedLLMDef.defaultBaseUrl);
-      setLlmModel(cfg.llamacpp_model || selectedLLMDef.defaultModel);
+      setLlmModel("");
       setLlmApiKey("");
     } else if (currentEngineId === "nvidia_nim") {
       setLlmBaseUrl(cfg.nvidia_nim_base_url || selectedLLMDef.defaultBaseUrl);
-      setLlmModel(cfg.nvidia_nim_model || selectedLLMDef.defaultModel);
+      setLlmModel(cfg.nvidia_nim_configured ? cfg.nvidia_nim_model || "" : "");
       setLlmApiKey("");
     } else {
       setLlmBaseUrl(selectedLLMDef.defaultBaseUrl);
@@ -373,12 +376,25 @@ export default function SettingsHubPage() {
         base_url: baseUrl || undefined,
         api_key: apiKey || undefined,
       });
-      setDiscoveredModels(res.models || []);
-      setDiscoverySource(res.source || "catalog_presets");
+      const liveModels: any[] = res.models || [];
+      setDiscoveredModels(liveModels);
+      setDiscoverySource(res.source || "awaiting_key");
       setDiscoveryMessage(res.message || "");
       setDiscoveryLatency(res.latency_ms || 0);
+
+      if (res.source === "live_api" && liveModels.length > 0) {
+        setLlmModel((prev) =>
+          prev && liveModels.some((m: any) => m.id === prev)
+            ? prev
+            : liveModels[0].id,
+        );
+      } else {
+        setLlmModel("");
+      }
     } catch (err) {
       console.error("Model discovery error:", err);
+      setDiscoveredModels([]);
+      setLlmModel("");
     } finally {
       setDiscoveringModels(false);
     }
@@ -895,16 +911,22 @@ export default function SettingsHubPage() {
                       {selectedLLMDef.category !== "system" && (
                         <span
                           className={`text-[10px] font-mono px-2 py-0.5 rounded-md border ${
-                            discoverySource === "live_api"
+                            discoverySource === "live_api" &&
+                            discoveredModels.length > 0
                               ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/40"
-                              : "bg-zinc-900 text-zinc-400 border-zinc-800"
+                              : discoverySource === "awaiting_key"
+                                ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
+                                : "bg-zinc-900 text-zinc-400 border-zinc-800"
                           }`}
                         >
                           {discoveringModels
-                            ? "Discovering models..."
-                            : discoverySource === "live_api"
+                            ? "Probing live endpoint..."
+                            : discoverySource === "live_api" &&
+                                discoveredModels.length > 0
                               ? `✓ ${discoveredModels.length} Live Models Fetched (${discoveryLatency}ms)`
-                              : `${discoveredModels.length} Verified Catalog Models`}
+                              : discoverySource === "awaiting_key"
+                                ? "Awaiting API Key — 0 Models Loaded"
+                                : "Endpoint Offline — 0 Models Loaded"}
                         </span>
                       )}
                     </label>
@@ -979,12 +1001,36 @@ export default function SettingsHubPage() {
                         type="text"
                         value={llmModel}
                         onChange={(e) => setLlmModel(e.target.value)}
-                        placeholder={selectedLLMDef.defaultModel}
+                        placeholder={
+                          selectedLLMDef.category === "system"
+                            ? selectedLLMDef.defaultModel
+                            : discoveredModels.length > 0
+                              ? "Select a discovered model or enter model ID..."
+                              : selectedLLMDef.requiresKey
+                                ? "No models loaded — enter API Key above to auto-discover live models"
+                                : "No models loaded — start local server to auto-discover models"
+                        }
                         disabled={selectedLLMDef.category === "system"}
                         className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-mono text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-emerald-500 disabled:opacity-50 transition-all"
                       />
                     </div>
                   </div>
+
+                  {/* Empty State Notice when No API Key / Offline */}
+                  {selectedLLMDef.category !== "system" &&
+                    discoveredModels.length === 0 && (
+                      <div className="px-3.5 py-2.5 rounded-xl bg-zinc-950/80 border border-zinc-800/80 flex items-center justify-between gap-2 text-[11px] font-mono text-zinc-400">
+                        <span>
+                          {discoveryMessage ||
+                            (selectedLLMDef.requiresKey
+                              ? "No API key configured — enter your API key above to auto-discover live models from the provider."
+                              : "Local server unreachable — start your local LLM server to auto-discover installed models.")}
+                        </span>
+                        <span className="text-[10px] text-zinc-500 shrink-0">
+                          Live Discovery Only
+                        </span>
+                      </div>
+                    )}
 
                   {/* Discovered Models Interactive Pills & Active Model Specs */}
                   {selectedLLMDef.category !== "system" &&
