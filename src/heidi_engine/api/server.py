@@ -990,6 +990,24 @@ _artifact_store: dict[str, dict[str, Any]] = {
         "tags": ["SQLite WAL", "ACID Compliant", "Full Normalized Schema", "6 Tables"],
         "download_url": "/api/artifacts/download/database",
     },
+    "pdf-casestudy": {
+        "id": "pdf-casestudy",
+        "name": "Case_Study_Heidi_Systems.pdf",
+        "type": "pdf",
+        "title": "Autonomous B2B Lead Intelligence Case Study Whitepaper (PDF)",
+        "desc": "Official publication-grade Case Study Whitepaper detailing Berlin TAM saturation, 5-Pillar Scorecard, 93.3% F1 benchmark, and nationwide expansion roadmap.",
+        "status": "active",
+        "retention_days": 30,
+        "trashed_at": None,
+        "archived_at": None,
+        "tags": [
+            "Official PDF Whitepaper",
+            "IEEEtran / APA 7th",
+            "93.3% F1 Benchmark",
+            "Executive Deliverable",
+        ],
+        "download_url": "/api/artifacts/download/pdf-casestudy",
+    },
 }
 
 _preview_cache: dict[str, tuple[float, dict[str, Any]]] = {}
@@ -1027,6 +1045,11 @@ def _resolve_artifact_path(art_id: str) -> Path | None:
         return settings.export_dir / "metrixa_executive_presentation.md"
     elif art_id == "db-snapshot":
         return settings.database_path
+    elif art_id == "pdf-casestudy":
+        p = settings.export_dir / "Case_Study_Heidi_Systems.pdf"
+        if p.exists():
+            return p
+        return Path("docs/Case Study/Case_Study_Heidi_Systems.pdf")
     return None
 
 
@@ -1399,6 +1422,15 @@ async def download_artifact_by_id(artifact_id: str):
             path=settings.database_path,
             filename="metrixa_leads.db",
             media_type="application/x-sqlite3",
+        )
+    elif artifact_id in ("pdf-casestudy", "casestudy", "pdf"):
+        path = settings.export_dir / "Case_Study_Heidi_Systems.pdf"
+        if not path.exists():
+            path = Path("docs/Case Study/Case_Study_Heidi_Systems.pdf")
+        return FileResponse(
+            path=path,
+            filename="Case_Study_Heidi_Systems.pdf",
+            media_type="application/pdf",
         )
 
     raise HTTPException(status_code=404, detail="Deliverable not found")
