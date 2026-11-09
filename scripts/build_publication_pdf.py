@@ -1092,29 +1092,31 @@ def build_full_html():
       </table>
     </div>
 
-    <h2 class="section-title">7. Architectural Scaling Blueprint: Nationwide Expansion (25,000+ Entities)</h2>
-    <p class="noindent">
-      Because German statutory disclosure laws (&sect; 5 DDG), commercial court conventions (<i>Handelsregister</i>), and real estate ERP platforms operate under uniform federal standards across all 16 federal states (<i>Bundesl&auml;nder</i>), expanding this architecture from Berlin (1,200 entities) to the entire German market (~25,000 to 30,000 property management companies across Munich, Hamburg, Frankfurt, Cologne, Stuttgart, and D&uuml;sseldorf) requires no structural modifications to the extraction, deduplication, or scoring logic:
-    </p>
-    <ul>
-      <li><b>Geographic Parameterization:</b> Expand the postal code boundary from Berlin (<code>10115-14199</code>) to the federal 5-digit registry (<code>01067-99998</code>) and incorporate the 10 remaining regional VDIV professional association directories.</li>
-      <li><b>Central Register Cross-Referencing:</b> Programmatically query the German Common Register Portal (<i>Gemeinsames Registerportal der L&auml;nder</i>) to verify legal status and executive appointments for entities lacking a public web presence.</li>
-      <li><b>Continuous Delta Ingestion:</b> Implement weekly change-detection crawlers hashing statutory disclosure pages to detect managing director transitions or enterprise software adoptions in near real time.</li>
-    </ul>
+    <div style="break-before: page; page-break-before: always;">
+      <h2 class="section-title" style="margin-top: 0;">7. Architectural Scaling Blueprint: Nationwide Expansion (25,000+ Entities)</h2>
+      <p class="noindent">
+        Because German statutory disclosure laws (&sect; 5 DDG), commercial court conventions (<i>Handelsregister</i>), and real estate ERP platforms operate under uniform federal standards across all 16 federal states (<i>Bundesl&auml;nder</i>), expanding this architecture from Berlin (1,200 entities) to the entire German market (~25,000 to 30,000 property management companies across Munich, Hamburg, Frankfurt, Cologne, Stuttgart, and D&uuml;sseldorf) requires no structural modifications to the extraction, deduplication, or scoring logic:
+      </p>
+      <ul>
+        <li><b>Geographic Parameterization:</b> Expand the postal code boundary from Berlin (<code>10115-14199</code>) to the federal 5-digit registry (<code>01067-99998</code>) and incorporate the 10 remaining regional VDIV professional association directories.</li>
+        <li><b>Central Register Cross-Referencing:</b> Programmatically query the German Common Register Portal (<i>Gemeinsames Registerportal der L&auml;nder</i>) to verify legal status and executive appointments for entities lacking a public web presence.</li>
+        <li><b>Continuous Delta Ingestion:</b> Implement weekly change-detection crawlers hashing statutory disclosure pages to detect managing director transitions or enterprise software adoptions in near real time.</li>
+      </ul>
 
-    <h2 class="section-title">References (APA 7th Edition)</h2>
-    <ol class="reference-list">
-      <li>Bundesministerium der Justiz. (2020). <i>Gesetz &uuml;ber das Wohnungseigentum und das Dauerwohnrecht (Wohnungseigentumsgesetz - WEG)</i> [German Condominium Ownership Act]. BGBl. I S. 2187. https://www.gesetze-im-internet.de/woeigg/</li>
-      <li>Bundesministerium f&uuml;r Wirtschaft und Klimaschutz. (2021). <i>Verordnung &uuml;ber die verbrauchsabh&auml;ngige Abrechnung der Heiz- und Warmwasserkosten (Heizkostenverordnung - HeizkostenV)</i> [German Heating Cost Ordinance]. BGBl. I S. 4964. https://www.gesetze-im-internet.de/heizkostenv/</li>
-      <li>Deutscher Bundestag. (2024). <i>Gesetz &uuml;ber digitale Dienste (Digitale-Dienste-Gesetz - DDG), &sect; 5 Allgemeine Informationspflichten</i> [German Digital Services Act, Section 5 Statutory Information Requirements]. BGBl. 2024 I Nr. 149. https://www.gesetze-im-internet.de/ddg/__5.html</li>
-      <li>European Parliament &amp; Council of the European Union. (2018). Directive (EU) 2018/2002 amending Directive 2012/27/EU on energy efficiency (EED). <i>Official Journal of the European Union</i>, L 328, 210-230.</li>
-      <li>Klensin, J. (2008). <i>Simple Mail Transfer Protocol</i> (RFC 5321). Internet Engineering Task Force (IETF). https://doi.org/10.17487/RFC5321</li>
-      <li>Levenshtein, V. I. (1966). Binary codes capable of correcting deletions, insertions, and reversals. <i>Soviet Physics Doklady</i>, 10(8), 707-710.</li>
-      <li>Navarro, G. (2001). A guided tour to approximate string matching. <i>ACM Computing Surveys (CSUR)</i>, 33(1), 31-88. https://doi.org/10.1145/375360.375365</li>
-      <li>Statistisches Bundesamt (Destatis). (2024). <i>Geb&auml;ude und Wohnungen: Bestand an Wohnungen und Wohngeb&auml;uden in Deutschland</i> [Buildings and Housing Stock in Germany]. Wiesbaden: Destatis.</li>
-      <li>Tarjan, R. E. (1975). Efficiency of a good but not linear set union algorithm. <i>Journal of the ACM (JACM)</i>, 22(2), 215-225. https://doi.org/10.1145/321879.321884</li>
-      <li>Verband der Immobilienverwalter Deutschland e.V. (VDIV). (2024). <i>Branchenbarometer der Immobilienverwaltungen in Deutschland</i> [Industry Barometer of Property Management Companies in Germany]. Berlin: VDIV Deutschland.</li>
-    </ol>
+      <h2 class="section-title">References (APA 7th Edition)</h2>
+      <ol class="reference-list">
+        <li>Bundesministerium der Justiz. (2020). <i>Gesetz &uuml;ber das Wohnungseigentum und das Dauerwohnrecht (Wohnungseigentumsgesetz - WEG)</i> [German Condominium Ownership Act]. BGBl. I S. 2187. https://www.gesetze-im-internet.de/woeigg/</li>
+        <li>Bundesministerium f&uuml;r Wirtschaft und Klimaschutz. (2021). <i>Verordnung &uuml;ber die verbrauchsabh&auml;ngige Abrechnung der Heiz- und Warmwasserkosten (Heizkostenverordnung - HeizkostenV)</i> [German Heating Cost Ordinance]. BGBl. I S. 4964. https://www.gesetze-im-internet.de/heizkostenv/</li>
+        <li>Deutscher Bundestag. (2024). <i>Gesetz &uuml;ber digitale Dienste (Digitale-Dienste-Gesetz - DDG), &sect; 5 Allgemeine Informationspflichten</i> [German Digital Services Act, Section 5 Statutory Information Requirements]. BGBl. 2024 I Nr. 149. https://www.gesetze-im-internet.de/ddg/__5.html</li>
+        <li>European Parliament &amp; Council of the European Union. (2018). Directive (EU) 2018/2002 amending Directive 2012/27/EU on energy efficiency (EED). <i>Official Journal of the European Union</i>, L 328, 210-230.</li>
+        <li>Klensin, J. (2008). <i>Simple Mail Transfer Protocol</i> (RFC 5321). Internet Engineering Task Force (IETF). https://doi.org/10.17487/RFC5321</li>
+        <li>Levenshtein, V. I. (1966). Binary codes capable of correcting deletions, insertions, and reversals. <i>Soviet Physics Doklady</i>, 10(8), 707-710.</li>
+        <li>Navarro, G. (2001). A guided tour to approximate string matching. <i>ACM Computing Surveys (CSUR)</i>, 33(1), 31-88. https://doi.org/10.1145/375360.375365</li>
+        <li>Statistisches Bundesamt (Destatis). (2024). <i>Geb&auml;ude und Wohnungen: Bestand an Wohnungen und Wohngeb&auml;uden in Deutschland</i> [Buildings and Housing Stock in Germany]. Wiesbaden: Destatis.</li>
+        <li>Tarjan, R. E. (1975). Efficiency of a good but not linear set union algorithm. <i>Journal of the ACM (JACM)</i>, 22(2), 215-225. https://doi.org/10.1145/321879.321884</li>
+        <li>Verband der Immobilienverwalter Deutschland e.V. (VDIV). (2024). <i>Branchenbarometer der Immobilienverwaltungen in Deutschland</i> [Industry Barometer of Property Management Companies in Germany]. Berlin: VDIV Deutschland.</li>
+      </ol>
+    </div>
 
   </div>
 
