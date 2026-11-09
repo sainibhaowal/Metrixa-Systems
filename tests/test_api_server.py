@@ -194,6 +194,27 @@ def test_api_pipeline_runs_and_comparison(client: TestClient) -> None:
     assert clear_resp.status_code == 200
     assert clear_resp.json()["status"] == "success"
 
+    # Test batch deletion endpoint
+    with db.connect() as conn:
+        conn.execute(
+            """
+            INSERT INTO pipeline_runs (
+                run_id, run_number, trigger_type, target_city, active_stage, status,
+                started_at, duration_seconds
+            ) VALUES
+                ('test-run-batch-1', 9997, 'MANUAL_STAGE', 'Berlin', 'ingest', 'COMPLETED', '2026-11-09T00:00:00Z', 1.0),
+                ('test-run-batch-2', 9996, 'MANUAL_STAGE', 'Berlin', 'ingest', 'COMPLETED', '2026-11-09T00:00:00Z', 1.0)
+            """
+        )
+        conn.commit()
+
+    batch_resp = client.post(
+        "/api/pipeline/runs/batch-delete",
+        json={"run_ids": ["test-run-batch-1", "test-run-batch-2"]},
+    )
+    assert batch_resp.status_code == 200
+    assert batch_resp.json()["deleted_count"] == 2
+
 
 def test_api_deliverables_and_google_sheets_sync(client: TestClient) -> None:
     # 1. Test deliverables status endpoint

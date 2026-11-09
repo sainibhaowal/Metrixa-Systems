@@ -32,6 +32,7 @@ import {
   Workflow,
   Eye,
   Check,
+  CheckSquare,
   Trash2,
   Calendar,
   ChevronsUpDown,
@@ -42,6 +43,7 @@ import {
   fetchPipelineRuns,
   deletePipelineRun,
   clearPipelineRuns,
+  batchDeletePipelineRuns,
   comparePipelineRuns,
   executeTool,
   pingProvider,
@@ -285,6 +287,11 @@ export default function MissionControlPage() {
   const [deletingRunId, setDeletingRunId] = useState<string | null>(null);
   const [clearingRuns, setClearingRuns] = useState<boolean>(false);
 
+  // Multi-Selection State for Bulk Actions
+  const [selectMode, setSelectMode] = useState<boolean>(false);
+  const [selectedRunIds, setSelectedRunIds] = useState<string[]>([]);
+  const [deletingSelected, setDeletingSelected] = useState<boolean>(false);
+
   // Telemetry Event Logs
   const [logs, setLogs] = useState<LogEntry[]>([
     {
@@ -365,6 +372,58 @@ export default function MissionControlPage() {
       alert("Failed to clear runs: " + err.message);
     } finally {
       setClearingRuns(false);
+    }
+  };
+
+  // Multi-selection helper handlers
+  const toggleRunSelection = (runId: string) => {
+    setSelectedRunIds((prev) =>
+      prev.includes(runId) ? prev.filter((id) => id !== runId) : [...prev, runId]
+    );
+  };
+
+  const handleSelectAll = () => {
+    setSelectedRunIds(runs.map((r) => r.run_id));
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedRunIds([]);
+  };
+
+  const toggleCategorySelection = (catRuns: PipelineRun[]) => {
+    const catRunIds = catRuns.map((r) => r.run_id);
+    const allSelected = catRunIds.every((id) => selectedRunIds.includes(id));
+    if (allSelected) {
+      setSelectedRunIds((prev) =>
+        prev.filter((id) => !catRunIds.includes(id))
+      );
+    } else {
+      setSelectedRunIds((prev) =>
+        Array.from(new Set([...prev, ...catRunIds]))
+      );
+    }
+  };
+
+  // Batch delete selected runs
+  const handleDeleteSelected = async () => {
+    if (selectedRunIds.length === 0) return;
+    const confirmMsg = `Are you sure you want to delete ${selectedRunIds.length} selected execution runs?`;
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      setDeletingSelected(true);
+      await batchDeletePipelineRuns(selectedRunIds);
+      const deletedSet = new Set(selectedRunIds);
+      setRuns((prev) => prev.filter((r) => !deletedSet.has(r.run_id)));
+      if (selectedRun && deletedSet.has(selectedRun.run_id)) {
+        setSelectedRun(null);
+      }
+      setSelectedRunIds([]);
+    } catch (err: any) {
+      console.error("Batch delete failed:", err);
+      alert("Failed to delete selected runs: " + err.message);
+    } finally {
+      setDeletingSelected(false);
     }
   };
 
@@ -766,6 +825,28 @@ export default function MissionControlPage() {
                 </span>
               </div>
               <div className="flex items-center gap-1">
+                {/* Multi-Select Mode Toggle */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = !selectMode;
+                    setSelectMode(next);
+                    if (!next) setSelectedRunIds([]);
+                  }}
+                  className={`p-1 rounded transition-colors ${
+                    selectMode
+                      ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                      : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
+                  }`}
+                  title={
+                    selectMode
+                      ? "Exit multi-select mode"
+                      : "Select multiple runs to delete"
+                  }
+                >
+                  <CheckSquare className="w-3.5 h-3.5" />
+                </button>
+
                 {/* Expand / Collapse All */}
                 <button
                   type="button"
@@ -835,6 +916,46 @@ export default function MissionControlPage() {
                 </button>
               </div>
             </div>
+
+            {/* Multi-Select Bulk Actions Toolbar */}
+            {(selectMode || selectedRunIds.length > 0) && (
+              <div className="p-2 rounded-xl bg-zinc-950/90 border border-emerald-500/30 flex items-center justify-between text-xs font-mono shrink-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-zinc-200 font-semibold text-[11px]">
+                    {selectedRunIds.length} of {runs.length} selected
+                  </span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={handleSelectAll}
+                    className="text-[10px] text-zinc-400 hover:text-zinc-200 px-1.5 py-0.5 rounded bg-zinc-900 border border-white/[0.06]"
+                  >
+                    All
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDeselectAll}
+                    className="text-[10px] text-zinc-400 hover:text-zinc-200 px-1.5 py-0.5 rounded bg-zinc-900 border border-white/[0.06]"
+                  >
+                    None
+                  </button>
+                  {selectedRunIds.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleDeleteSelected}
+                      disabled={deletingSelected}
+                      className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-rose-500 hover:bg-rose-400 text-white shadow-sm flex items-center gap-1 transition-all disabled:opacity-50"
+                      title="Delete all selected runs"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      <span>Delete ({selectedRunIds.length})</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Comparison Diff Toggle */}
             <div className="flex items-center justify-between p-2 rounded-xl bg-zinc-950/80 border border-white/[0.05] text-xs shrink-0">
@@ -953,6 +1074,22 @@ export default function MissionControlPage() {
                           </span>
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0 font-mono text-[10px]">
+                          {selectMode && (
+                            <span
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleCategorySelection(group.runs);
+                              }}
+                              className="px-1.5 py-0.5 rounded bg-zinc-800 hover:bg-emerald-500/20 hover:text-emerald-300 text-zinc-400 border border-white/[0.06] text-[9px] cursor-pointer"
+                              title="Toggle selection for all runs in this category"
+                            >
+                              {group.runs.every((r) =>
+                                selectedRunIds.includes(r.run_id)
+                              )
+                                ? "Deselect Group"
+                                : "Select Group"}
+                            </span>
+                          )}
                           <span className="px-1.5 py-0.2 rounded-md bg-zinc-800 text-zinc-400 border border-white/[0.05]">
                             {group.runs.length}{" "}
                             {group.runs.length === 1 ? "run" : "runs"}
@@ -965,35 +1102,73 @@ export default function MissionControlPage() {
                         <div className="space-y-1.5 pl-1.5">
                           {group.runs.map((r) => {
                             const isSelected = selectedRun?.run_id === r.run_id;
+                            const isChecked = selectedRunIds.includes(r.run_id);
                             const isSuccess = r.status === "COMPLETED";
 
                             return (
                               <div
                                 key={r.run_id}
-                                onClick={() => setSelectedRun(r)}
+                                onClick={() => {
+                                  if (selectMode) {
+                                    toggleRunSelection(r.run_id);
+                                  } else {
+                                    setSelectedRun(r);
+                                  }
+                                }}
                                 className={`p-2 rounded-xl cursor-pointer transition-all border text-left group relative ${
-                                  isSelected
-                                    ? "border-emerald-500/35 bg-zinc-900/90 shadow-[0_0_12px_rgba(16,185,129,0.06)] ring-1 ring-emerald-500/20"
-                                    : "border-white/[0.05] bg-[#141418] hover:bg-zinc-850 hover:border-white/[0.1]"
+                                  isChecked
+                                    ? "border-rose-500/50 bg-rose-950/20 shadow-[0_0_8px_rgba(244,63,94,0.1)] ring-1 ring-rose-500/30"
+                                    : isSelected
+                                      ? "border-emerald-500/35 bg-zinc-900/90 shadow-[0_0_12px_rgba(16,185,129,0.06)] ring-1 ring-emerald-500/20"
+                                      : "border-white/[0.05] bg-[#141418] hover:bg-zinc-850 hover:border-white/[0.1]"
                                 }`}
                               >
                                 <div className="flex items-center justify-between text-xs mb-0.5">
-                                  <span className="font-semibold font-mono text-zinc-200 flex items-center gap-1.5">
-                                    <span
-                                      className={`w-1.5 h-1.5 rounded-full ${
-                                        isSuccess
-                                          ? "bg-emerald-400"
-                                          : "bg-rose-400"
+                                  <div className="flex items-center gap-1.5 min-w-0">
+                                    {/* Multi-Select Checkbox */}
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (!selectMode) setSelectMode(true);
+                                        toggleRunSelection(r.run_id);
+                                      }}
+                                      className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-all shrink-0 ${
+                                        isChecked
+                                          ? "bg-rose-500 border-rose-400 text-white"
+                                          : selectMode
+                                            ? "border-zinc-600 bg-zinc-900 hover:border-zinc-400"
+                                            : "opacity-0 group-hover:opacity-100 border-zinc-700 bg-zinc-900 hover:border-zinc-400"
                                       }`}
-                                    />
-                                    Run #{r.run_number}
-                                    {r.started_at && (
-                                      <span className="text-[10px] text-zinc-500 font-normal">
-                                        {formatRunTime(r.started_at)}
-                                      </span>
-                                    )}
-                                  </span>
-                                  <div className="flex items-center gap-1.5">
+                                      title={
+                                        isChecked
+                                          ? "Deselect run"
+                                          : "Select run"
+                                      }
+                                    >
+                                      {isChecked && (
+                                        <Check className="w-2.5 h-2.5 text-white stroke-[3]" />
+                                      )}
+                                    </button>
+
+                                    <span className="font-semibold font-mono text-zinc-200 flex items-center gap-1.5 truncate">
+                                      <span
+                                        className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                                          isSuccess
+                                            ? "bg-emerald-400"
+                                            : "bg-rose-400"
+                                        }`}
+                                      />
+                                      Run #{r.run_number}
+                                      {r.started_at && (
+                                        <span className="text-[10px] text-zinc-500 font-normal">
+                                          {formatRunTime(r.started_at)}
+                                        </span>
+                                      )}
+                                    </span>
+                                  </div>
+
+                                  <div className="flex items-center gap-1.5 shrink-0">
                                     <span
                                       className={`text-[9px] font-mono px-1.5 py-0.2 rounded border ${
                                         isSuccess
@@ -1019,12 +1194,12 @@ export default function MissionControlPage() {
                                   </div>
                                 </div>
 
-                                <div className="flex items-center justify-between text-[11px] text-zinc-400 font-mono">
+                                <div className="flex items-center justify-between text-[11px] text-zinc-400 font-mono pl-5">
                                   <span>{r.active_stage.toUpperCase()}</span>
                                   <span>{r.duration_seconds}s</span>
                                 </div>
 
-                                <div className="flex items-center justify-between text-[10px] text-zinc-500 mt-0.5 font-mono">
+                                <div className="flex items-center justify-between text-[10px] text-zinc-500 mt-0.5 font-mono pl-5">
                                   <span>{r.target_city}</span>
                                   <span>{r.total_companies_out} leads</span>
                                 </div>

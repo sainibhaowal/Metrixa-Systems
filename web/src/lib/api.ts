@@ -295,6 +295,16 @@ export async function clearPipelineRuns(filter: "all" | "cancelled" = "all") {
   return res.json();
 }
 
+export async function batchDeletePipelineRuns(runIds: string[]) {
+  const res = await fetch(`${API_BASE}/api/pipeline/runs/batch-delete`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ run_ids: runIds }),
+  });
+  if (!res.ok) throw new Error("Failed to delete selected runs");
+  return res.json();
+}
+
 export async function comparePipelineRuns(runA: string, runB: string) {
   const res = await fetch(
     `${API_BASE}/api/pipeline/runs/compare?run_a=${encodeURIComponent(runA)}&run_b=${encodeURIComponent(runB)}`,

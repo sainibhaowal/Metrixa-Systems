@@ -920,6 +920,10 @@ async def get_pipeline_runs(limit: int = 100):
     return {"runs": runs, "total": len(runs)}
 
 
+class BatchDeleteRunsRequest(BaseModel):
+    run_ids: list[str] = Field(..., description="List of run_ids to delete")
+
+
 @app.delete("/api/pipeline/runs/{run_id}")
 async def delete_pipeline_run(run_id: str):
     """Delete a specific pipeline run from historical ledger."""
@@ -929,6 +933,24 @@ async def delete_pipeline_run(run_id: str):
             raise HTTPException(status_code=404, detail="Pipeline run not found")
         conn.commit()
     return {"status": "success", "deleted_run_id": run_id}
+
+
+@app.post("/api/pipeline/runs/batch-delete")
+async def batch_delete_pipeline_runs(payload: BatchDeleteRunsRequest):
+    """Delete multiple pipeline runs in a single transaction."""
+    if not payload.run_ids:
+        return {"status": "success", "deleted_count": 0, "run_ids": []}
+
+    with db.connect() as conn:
+        placeholders = ",".join("?" for _ in payload.run_ids)
+        cursor = conn.execute(
+            f"DELETE FROM pipeline_runs WHERE run_id IN ({placeholders})",
+            payload.run_ids,
+        )
+        count = cursor.rowcount
+        conn.commit()
+
+    return {"status": "success", "deleted_count": count, "run_ids": payload.run_ids}
 
 
 @app.delete("/api/pipeline/runs")
