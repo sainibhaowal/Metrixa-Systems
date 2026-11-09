@@ -59,7 +59,6 @@ interface PipelineStageDef {
   desc: string;
   details: string;
   tools: string[];
-  time: string;
 }
 
 const STAGES: PipelineStageDef[] = [
@@ -79,7 +78,6 @@ const STAGES: PipelineStageDef[] = [
       "OSMOverpass",
       "SearchDiscovery",
     ],
-    time: "~45s",
   },
   {
     id: "deduplicate",
@@ -96,7 +94,6 @@ const STAGES: PipelineStageDef[] = [
       "GermanLegalNormalizer",
       "PLZBezirkMapper",
     ],
-    time: "~5s",
   },
   {
     id: "crawl",
@@ -113,7 +110,6 @@ const STAGES: PipelineStageDef[] = [
       "MeteringSignalDetector",
       "SubpageResolver",
     ],
-    time: "~50s",
   },
   {
     id: "extract",
@@ -130,7 +126,6 @@ const STAGES: PipelineStageDef[] = [
       "AntiHallucinationGate",
       "PydanticSchemaValidator",
     ],
-    time: "~25s",
   },
   {
     id: "enrich",
@@ -147,7 +142,6 @@ const STAGES: PipelineStageDef[] = [
       "LeadScorerEngine",
       "TierClassifier",
     ],
-    time: "~10s",
   },
   {
     id: "export",
@@ -164,7 +158,6 @@ const STAGES: PipelineStageDef[] = [
       "AblationReportGenerator",
       "CSVStreamer",
     ],
-    time: "~5s",
   },
 ];
 
@@ -219,16 +212,16 @@ function getTimeCategory(startedAtStr: string | undefined): TimeCategoryInfo {
     const todayStart = new Date(
       now.getFullYear(),
       now.getMonth(),
-      now.getDate()
+      now.getDate(),
     ).getTime();
     const runStart = new Date(
       runDate.getFullYear(),
       runDate.getMonth(),
-      runDate.getDate()
+      runDate.getDate(),
     ).getTime();
 
     const diffDays = Math.floor(
-      (todayStart - runStart) / (1000 * 60 * 60 * 24)
+      (todayStart - runStart) / (1000 * 60 * 60 * 24),
     );
 
     if (diffDays <= 0) {
@@ -273,6 +266,14 @@ export default function MissionControlPage() {
   const [viewMode, setViewMode] = useState<"concise" | "deep">("concise");
   const [selectedCity, setSelectedCity] = useState<string>("Berlin");
 
+  // Real-Time Live Stage Timing State
+  const [stageDurations, setStageDurations] = useState<Record<string, number>>(
+    {},
+  );
+  const [activeStageElapsed, setActiveStageElapsed] = useState<number>(0);
+  const activeStageStartTimeRef = useRef<number | null>(null);
+  const currentStageRef = useRef<string | null>(null);
+
   // History & Comparison State
   const [runs, setRuns] = useState<PipelineRun[]>([]);
   const [selectedRun, setSelectedRun] = useState<PipelineRun | null>(null);
@@ -282,7 +283,9 @@ export default function MissionControlPage() {
   const [loadingRuns, setLoadingRuns] = useState<boolean>(false);
 
   // History Category Collapse & Deletion States
-  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+  const [collapsedGroups, setCollapsedGroups] = useState<
+    Record<string, boolean>
+  >({});
   const [showClearMenu, setShowClearMenu] = useState<boolean>(false);
   const [deletingRunId, setDeletingRunId] = useState<string | null>(null);
   const [clearingRuns, setClearingRuns] = useState<boolean>(false);
@@ -378,7 +381,9 @@ export default function MissionControlPage() {
   // Multi-selection helper handlers
   const toggleRunSelection = (runId: string) => {
     setSelectedRunIds((prev) =>
-      prev.includes(runId) ? prev.filter((id) => id !== runId) : [...prev, runId]
+      prev.includes(runId)
+        ? prev.filter((id) => id !== runId)
+        : [...prev, runId],
     );
   };
 
@@ -394,13 +399,9 @@ export default function MissionControlPage() {
     const catRunIds = catRuns.map((r) => r.run_id);
     const allSelected = catRunIds.every((id) => selectedRunIds.includes(id));
     if (allSelected) {
-      setSelectedRunIds((prev) =>
-        prev.filter((id) => !catRunIds.includes(id))
-      );
+      setSelectedRunIds((prev) => prev.filter((id) => !catRunIds.includes(id)));
     } else {
-      setSelectedRunIds((prev) =>
-        Array.from(new Set([...prev, ...catRunIds]))
-      );
+      setSelectedRunIds((prev) => Array.from(new Set([...prev, ...catRunIds])));
     }
   };
 
@@ -443,6 +444,50 @@ export default function MissionControlPage() {
     }
   }, [compareMode, selectedRun, compareRunId]);
 
+  const recordActiveStageDuration = () => {
+    const current = currentStageRef.current;
+    const start = activeStageStartTimeRef.current;
+    if (current && start) {
+      const elapsed = Number(((Date.now() - start) / 1000).toFixed(1));
+      setStageDurations((prev) => ({
+        ...prev,
+        [current.toLowerCase()]: elapsed,
+      }));
+    }
+  };
+
+  const switchActiveStage = (newStage: string | null) => {
+    const normNew = newStage ? newStage.toLowerCase() : null;
+    if (currentStageRef.current && currentStageRef.current !== normNew) {
+      recordActiveStageDuration();
+    }
+    if (normNew && normNew !== "idle" && normNew !== "full") {
+      currentStageRef.current = normNew;
+      activeStageStartTimeRef.current = Date.now();
+      setActiveStageElapsed(0);
+      setActiveStage(normNew);
+    } else if (!normNew || normNew === "idle") {
+      currentStageRef.current = null;
+      activeStageStartTimeRef.current = null;
+      setActiveStageElapsed(0);
+      setActiveStage(null);
+    }
+  };
+
+  // High-frequency live stopwatch counter (100ms precision)
+  useEffect(() => {
+    if (!running || !activeStage) {
+      return;
+    }
+    const interval = setInterval(() => {
+      if (activeStageStartTimeRef.current) {
+        const elapsed = (Date.now() - activeStageStartTimeRef.current) / 1000;
+        setActiveStageElapsed(elapsed);
+      }
+    }, 100);
+    return () => clearInterval(interval);
+  }, [running, activeStage]);
+
   // SSE Stream Listener (Persistent Single Connection)
   useEffect(() => {
     const sse = new EventSource("http://127.0.0.1:8000/api/pipeline/stream");
@@ -452,13 +497,42 @@ export default function MissionControlPage() {
         const data = JSON.parse(e.data);
         if (data.is_running) {
           setRunning(true);
-          if (data.stage && data.stage !== "IDLE") {
-            setActiveStage(data.stage.toLowerCase());
+          if (data.stage && data.stage !== "IDLE" && data.stage !== "FULL") {
+            const stg = data.stage.toLowerCase();
+            if (currentStageRef.current !== stg) {
+              switchActiveStage(stg);
+            }
+          }
+          if (data.stage_durations) {
+            setStageDurations((prev) => ({ ...prev, ...data.stage_durations }));
           }
         } else {
-          // Sync frontend when backend is idle
           setRunning(false);
-          setActiveStage(null);
+          switchActiveStage(null);
+        }
+      } catch {}
+    });
+
+    sse.addEventListener("STAGE_START", (e: any) => {
+      try {
+        const data = JSON.parse(e.data);
+        if (data.stage) {
+          switchActiveStage(data.stage.toLowerCase());
+        }
+      } catch {}
+    });
+
+    sse.addEventListener("STAGE_COMPLETE", (e: any) => {
+      try {
+        const data = JSON.parse(e.data);
+        if (data.stage && data.duration_seconds !== undefined) {
+          setStageDurations((prev) => ({
+            ...prev,
+            [data.stage.toLowerCase()]: Number(data.duration_seconds),
+          }));
+        }
+        if (data.stage_durations) {
+          setStageDurations((prev) => ({ ...prev, ...data.stage_durations }));
         }
       } catch {}
     });
@@ -502,11 +576,26 @@ export default function MissionControlPage() {
       try {
         const data = JSON.parse(e.data);
         if (data.pct !== undefined) setProgress(data.pct);
-        if (data.stage) setActiveStage(data.stage.toLowerCase());
+        if (data.stage && data.stage !== "IDLE" && data.stage !== "FULL") {
+          const stg = data.stage.toLowerCase();
+          if (currentStageRef.current !== stg) {
+            switchActiveStage(stg);
+          }
+        }
       } catch {}
     });
 
-    sse.addEventListener("COMPLETE", () => {
+    sse.addEventListener("COMPLETE", (e: any) => {
+      try {
+        const data = JSON.parse(e.data);
+        if (data.stage_durations) {
+          setStageDurations((prev) => ({ ...prev, ...data.stage_durations }));
+        }
+      } catch {}
+      recordActiveStageDuration();
+      currentStageRef.current = null;
+      activeStageStartTimeRef.current = null;
+      setActiveStageElapsed(0);
       setRunning(false);
       setActiveStage(null);
       setProgress(100);
@@ -523,6 +612,10 @@ export default function MissionControlPage() {
     });
 
     sse.addEventListener("CANCELLED", (e: any) => {
+      recordActiveStageDuration();
+      currentStageRef.current = null;
+      activeStageStartTimeRef.current = null;
+      setActiveStageElapsed(0);
       setRunning(false);
       setActiveStage(null);
       setProgress(0);
@@ -539,6 +632,10 @@ export default function MissionControlPage() {
     });
 
     sse.addEventListener("ERROR", (e: any) => {
+      recordActiveStageDuration();
+      currentStageRef.current = null;
+      activeStageStartTimeRef.current = null;
+      setActiveStageElapsed(0);
       setRunning(false);
       setActiveStage(null);
       setLogs((prev) => [
@@ -554,6 +651,7 @@ export default function MissionControlPage() {
     });
 
     return () => sse.close();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -565,6 +663,10 @@ export default function MissionControlPage() {
     try {
       setCancelling(true);
       await cancelPipelineRun();
+      recordActiveStageDuration();
+      currentStageRef.current = null;
+      activeStageStartTimeRef.current = null;
+      setActiveStageElapsed(0);
       setRunning(false);
       setActiveStage(null);
       setProgress(0);
@@ -589,7 +691,12 @@ export default function MissionControlPage() {
   const handleRun = async (stage: string) => {
     try {
       setRunning(true);
-      setActiveStage(stage);
+      setStageDurations({});
+      const initialStage = stage === "full" ? "ingest" : stage.toLowerCase();
+      currentStageRef.current = initialStage;
+      activeStageStartTimeRef.current = Date.now();
+      setActiveStageElapsed(0);
+      setActiveStage(initialStage);
       setProgress(5);
       setLogs((prev) => [
         ...prev,
@@ -602,7 +709,12 @@ export default function MissionControlPage() {
       ]);
       await triggerPipelineStage(stage, undefined, selectedCity);
     } catch (err: any) {
+      recordActiveStageDuration();
+      currentStageRef.current = null;
+      activeStageStartTimeRef.current = null;
+      setActiveStageElapsed(0);
       setRunning(false);
+      setActiveStage(null);
       setLogs((prev) => [
         ...prev,
         {
@@ -668,9 +780,7 @@ export default function MissionControlPage() {
   const areAllCollapsed =
     groupedRuns.length > 0 &&
     groupedRuns.every((g) =>
-      collapsedGroups[g.id] !== undefined
-        ? collapsedGroups[g.id]
-        : g.order > 2
+      collapsedGroups[g.id] !== undefined ? collapsedGroups[g.id] : g.order > 2,
     );
 
   const toggleCategory = (catId: string, currentCollapsed: boolean) => {
@@ -687,6 +797,64 @@ export default function MissionControlPage() {
       updated[g.id] = nextState;
     });
     setCollapsedGroups(updated);
+  };
+
+  const getStageDisplayTime = (
+    stageId: string,
+    isControlPanel: boolean = false,
+  ) => {
+    const normId = stageId.toLowerCase();
+    const isCurrentActive = running && activeStage?.toLowerCase() === normId;
+
+    if (isCurrentActive) {
+      return (
+        <span className="text-[10px] font-mono text-emerald-400 font-bold flex items-center justify-center gap-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          {activeStageElapsed.toFixed(1)}s
+        </span>
+      );
+    }
+
+    if (stageDurations[normId] !== undefined) {
+      return (
+        <span className="text-[10px] font-mono text-emerald-400 font-medium">
+          {Number(stageDurations[normId]).toFixed(1)}s
+        </span>
+      );
+    }
+
+    if (selectedRun) {
+      const historicalDurations = selectedRun.summary?.stage_durations;
+      if (historicalDurations && historicalDurations[normId] !== undefined) {
+        return (
+          <span className="text-[10px] font-mono text-zinc-300">
+            {Number(historicalDurations[normId]).toFixed(1)}s
+          </span>
+        );
+      }
+      if (
+        selectedRun.active_stage?.toLowerCase() === normId &&
+        selectedRun.duration_seconds > 0
+      ) {
+        return (
+          <span className="text-[10px] font-mono text-zinc-300">
+            {Number(selectedRun.duration_seconds).toFixed(1)}s
+          </span>
+        );
+      }
+    }
+
+    if (running) {
+      return (
+        <span className="text-[9px] font-mono text-zinc-500">Standby</span>
+      );
+    }
+
+    return (
+      <span className="text-[9px] font-mono text-zinc-500">
+        {isControlPanel ? "Ready (0.0s)" : "0.0s"}
+      </span>
+    );
   };
 
   return (
@@ -1084,7 +1252,7 @@ export default function MissionControlPage() {
                               title="Toggle selection for all runs in this category"
                             >
                               {group.runs.every((r) =>
-                                selectedRunIds.includes(r.run_id)
+                                selectedRunIds.includes(r.run_id),
                               )
                                 ? "Deselect Group"
                                 : "Select Group"}
@@ -1280,9 +1448,9 @@ export default function MissionControlPage() {
                     <strong className="text-[11px] block truncate font-medium">
                       {s.shortName}
                     </strong>
-                    <span className="text-[9px] font-mono text-zinc-500 block mt-0.5">
-                      {s.time}
-                    </span>
+                    <div className="mt-0.5 min-h-[16px] flex items-center justify-center">
+                      {getStageDisplayTime(s.id)}
+                    </div>
                   </div>
                 );
               })}
@@ -1461,9 +1629,11 @@ export default function MissionControlPage() {
                           {s.name}
                         </strong>
                       </div>
-                      <span className="text-[10px] font-mono text-zinc-500 block mt-0.5">
-                        Est: {s.time}
-                      </span>
+                      <div className="text-[10px] font-mono text-zinc-400 flex items-center gap-1.5 mt-0.5">
+                        <Clock className="w-3 h-3 text-zinc-500 shrink-0" />
+                        <span className="text-zinc-500">Runtime:</span>
+                        {getStageDisplayTime(s.id, true)}
+                      </div>
                     </div>
 
                     {isRunningThis ? (

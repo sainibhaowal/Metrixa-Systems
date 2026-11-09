@@ -50,6 +50,7 @@ class PipelineEventBus:
         self.is_running = False
         self.current_stage = "IDLE"
         self.current_run_id: str | None = None
+        self.stage_durations: dict[str, float] = {}
 
     def subscribe(self) -> asyncio.Queue:
         q: asyncio.Queue = asyncio.Queue()
@@ -491,9 +492,11 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
     run_id = f"run-{uuid.uuid4().hex[:8]}"
     event_bus.is_running = True
     event_bus.current_run_id = run_id
-    event_bus.current_stage = req.stage.upper()
+    event_bus.stage_durations = {}
+    event_bus.current_stage = "INGEST" if req.stage == "full" else req.stage.upper()
 
     async def _execute_task():
+        global active_pipeline_task
         await event_bus.emit(
             "LOG",
             {
@@ -505,6 +508,7 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
         started_ts = datetime.now(timezone.utc).isoformat()
         t_start = time.perf_counter()
         initial_golden_count = 0
+        stage_durations: dict[str, float] = {}
         try:
             with db.connect() as conn:
                 initial_golden_count = conn.execute(
@@ -535,6 +539,15 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
 
         try:
             if req.stage in ("full", "ingest"):
+                event_bus.current_stage = "INGEST"
+                t_ingest_start = time.perf_counter()
+                await event_bus.emit(
+                    "STAGE_START",
+                    {
+                        "stage": "INGEST",
+                        "started_at": datetime.now(timezone.utc).isoformat(),
+                    },
+                )
                 await event_bus.emit(
                     "PROGRESS",
                     {"stage": "INGEST", "completed": 0, "total": 5, "pct": 0},
@@ -570,8 +583,33 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                             "message": f"Scraped {len(items)} from {label} ({ins} new)",
                         },
                     )
+                stage_durations["ingest"] = round(
+                    time.perf_counter() - t_ingest_start, 2
+                )
+                event_bus.stage_durations = dict(stage_durations)
+                await event_bus.emit(
+                    "STAGE_COMPLETE",
+                    {
+                        "stage": "INGEST",
+                        "duration_seconds": stage_durations["ingest"],
+                        "stage_durations": dict(stage_durations),
+                    },
+                )
 
             if req.stage in ("full", "deduplicate"):
+                event_bus.current_stage = "DEDUPLICATE"
+                t_dedup_start = time.perf_counter()
+                await event_bus.emit(
+                    "STAGE_START",
+                    {
+                        "stage": "DEDUPLICATE",
+                        "started_at": datetime.now(timezone.utc).isoformat(),
+                    },
+                )
+                await event_bus.emit(
+                    "PROGRESS",
+                    {"stage": "DEDUPLICATE", "completed": 0, "total": 1, "pct": 0},
+                )
                 await event_bus.emit(
                     "LOG",
                     {
@@ -581,6 +619,22 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                 )
                 deduper = EntityDeduplicator(db)
                 stats = deduper.run_deduplication()
+                stage_durations["deduplicate"] = round(
+                    time.perf_counter() - t_dedup_start, 2
+                )
+                event_bus.stage_durations = dict(stage_durations)
+                await event_bus.emit(
+                    "PROGRESS",
+                    {"stage": "DEDUPLICATE", "completed": 1, "total": 1, "pct": 100},
+                )
+                await event_bus.emit(
+                    "STAGE_COMPLETE",
+                    {
+                        "stage": "DEDUPLICATE",
+                        "duration_seconds": stage_durations["deduplicate"],
+                        "stage_durations": dict(stage_durations),
+                    },
+                )
                 await event_bus.emit(
                     "LOG",
                     {
@@ -590,6 +644,15 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                 )
 
             if req.stage in ("full", "crawl"):
+                event_bus.current_stage = "CRAWL"
+                t_crawl_start = time.perf_counter()
+                await event_bus.emit(
+                    "STAGE_START",
+                    {
+                        "stage": "CRAWL",
+                        "started_at": datetime.now(timezone.utc).isoformat(),
+                    },
+                )
                 crawler = AsyncWebsiteCrawler(db)
                 await event_bus.emit(
                     "LOG",
@@ -616,6 +679,16 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                 res = await crawler.crawl_batch(
                     limit=req.limit, progress_callback=_crawl_cb
                 )
+                stage_durations["crawl"] = round(time.perf_counter() - t_crawl_start, 2)
+                event_bus.stage_durations = dict(stage_durations)
+                await event_bus.emit(
+                    "STAGE_COMPLETE",
+                    {
+                        "stage": "CRAWL",
+                        "duration_seconds": stage_durations["crawl"],
+                        "stage_durations": dict(stage_durations),
+                    },
+                )
                 await event_bus.emit(
                     "LOG",
                     {
@@ -625,6 +698,15 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                 )
 
             if req.stage in ("full", "extract"):
+                event_bus.current_stage = "EXTRACT"
+                t_extract_start = time.perf_counter()
+                await event_bus.emit(
+                    "STAGE_START",
+                    {
+                        "stage": "EXTRACT",
+                        "started_at": datetime.now(timezone.utc).isoformat(),
+                    },
+                )
                 pipeline = KPIExtractionPipeline(db)
                 await event_bus.emit(
                     "LOG",
@@ -654,6 +736,18 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                     reprocess_all=req.reprocess_all,
                     progress_callback=_extract_cb,
                 )
+                stage_durations["extract"] = round(
+                    time.perf_counter() - t_extract_start, 2
+                )
+                event_bus.stage_durations = dict(stage_durations)
+                await event_bus.emit(
+                    "STAGE_COMPLETE",
+                    {
+                        "stage": "EXTRACT",
+                        "duration_seconds": stage_durations["extract"],
+                        "stage_durations": dict(stage_durations),
+                    },
+                )
                 await event_bus.emit(
                     "LOG",
                     {
@@ -663,6 +757,15 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                 )
 
             if req.stage in ("full", "enrich"):
+                event_bus.current_stage = "ENRICH"
+                t_enrich_start = time.perf_counter()
+                await event_bus.emit(
+                    "STAGE_START",
+                    {
+                        "stage": "ENRICH",
+                        "started_at": datetime.now(timezone.utc).isoformat(),
+                    },
+                )
                 enricher = ContactEnricher(db)
                 scorer = LeadScorer(db)
                 await event_bus.emit(
@@ -691,6 +794,18 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                     web_search_top_n=5, progress_callback=_enrich_cb
                 )
                 tier_counts = scorer.score_all_companies()
+                stage_durations["enrich"] = round(
+                    time.perf_counter() - t_enrich_start, 2
+                )
+                event_bus.stage_durations = dict(stage_durations)
+                await event_bus.emit(
+                    "STAGE_COMPLETE",
+                    {
+                        "stage": "ENRICH",
+                        "duration_seconds": stage_durations["enrich"],
+                        "stage_durations": dict(stage_durations),
+                    },
+                )
                 await event_bus.emit(
                     "LOG",
                     {
@@ -700,6 +815,15 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                 )
 
             if req.stage in ("full", "export"):
+                event_bus.current_stage = "EXPORT"
+                t_export_start = time.perf_counter()
+                await event_bus.emit(
+                    "STAGE_START",
+                    {
+                        "stage": "EXPORT",
+                        "started_at": datetime.now(timezone.utc).isoformat(),
+                    },
+                )
                 exporter = ExcelExporter(db)
                 evaluator = PipelineEvaluator(db)
                 await event_bus.emit(
@@ -711,6 +835,18 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                 )
                 exp_res = exporter.export_all()
                 eval_path = evaluator.generate_markdown_report()
+                stage_durations["export"] = round(
+                    time.perf_counter() - t_export_start, 2
+                )
+                event_bus.stage_durations = dict(stage_durations)
+                await event_bus.emit(
+                    "STAGE_COMPLETE",
+                    {
+                        "stage": "EXPORT",
+                        "duration_seconds": stage_durations["export"],
+                        "stage_durations": dict(stage_durations),
+                    },
+                )
                 await event_bus.emit(
                     "LOG",
                     {
@@ -719,7 +855,14 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                     },
                 )
 
-            await event_bus.emit("COMPLETE", {"run_id": run_id, "stage": req.stage})
+            await event_bus.emit(
+                "COMPLETE",
+                {
+                    "run_id": run_id,
+                    "stage": req.stage,
+                    "stage_durations": dict(stage_durations),
+                },
+            )
             await event_bus.emit(
                 "LOG",
                 {
@@ -758,6 +901,7 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                                     "golden_companies": final_golden_count,
                                     "new_leads": new_leads,
                                     "duration_seconds": dur_sec,
+                                    "stage_durations": stage_durations,
                                 }
                             ),
                             run_id,
@@ -843,6 +987,7 @@ async def stream_pipeline_events():
                         "status": "connected",
                         "is_running": event_bus.is_running,
                         "stage": event_bus.current_stage,
+                        "stage_durations": getattr(event_bus, "stage_durations", {}),
                     }
                 ),
             }
@@ -862,6 +1007,9 @@ async def stream_pipeline_events():
                                 "status": "heartbeat",
                                 "is_running": event_bus.is_running,
                                 "stage": event_bus.current_stage,
+                                "stage_durations": getattr(
+                                    event_bus, "stage_durations", {}
+                                ),
                             }
                         ),
                     }
@@ -958,7 +1106,9 @@ async def clear_pipeline_runs(filter: str = "all"):
     """Clear historical pipeline runs (all or cancelled only)."""
     with db.connect() as conn:
         if filter.lower() == "cancelled":
-            cursor = conn.execute("DELETE FROM pipeline_runs WHERE status = 'CANCELLED'")
+            cursor = conn.execute(
+                "DELETE FROM pipeline_runs WHERE status = 'CANCELLED'"
+            )
         else:
             cursor = conn.execute("DELETE FROM pipeline_runs")
         count = cursor.rowcount
