@@ -88,6 +88,26 @@ def test_api_provider_ping(client: TestClient) -> None:
     assert "PONG" in data["reply"]
     assert data["latency_ms"] >= 0
 
+    # Test ping with unconfigured provider returns clean validation error
+    unconf_resp = client.post(
+        "/api/providers/ping",
+        json={"provider": "openai", "api_key": None, "model": None},
+    )
+    assert unconf_resp.status_code == 200
+    unconf_data = unconf_resp.json()
+    assert unconf_data["status"] == "error"
+    assert "No API Key configured" in unconf_data["error"]
+
+    # Test ping with key but no model returns clean model selection prompt
+    no_model_resp = client.post(
+        "/api/providers/ping",
+        json={"provider": "openai", "api_key": "sk-mock-key", "model": None},
+    )
+    assert no_model_resp.status_code == 200
+    no_model_data = no_model_resp.json()
+    assert no_model_data["status"] == "error"
+    assert "No model selected" in no_model_data["error"]
+
     for prov in ("gemini", "openai", "deepseek"):
         disc_resp = client.post("/api/providers/models", json={"provider": prov})
         assert disc_resp.status_code == 200

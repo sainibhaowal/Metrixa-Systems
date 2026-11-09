@@ -384,8 +384,12 @@ export default function SettingsHubPage() {
       setDiscoveryLatency(res.latency_ms || 0);
 
       if (res.source === "live_api" && liveModels.length > 0) {
+        const rec =
+          liveModels.find((m: any) => m.recommended) || liveModels[0];
         setLlmModel((prev) =>
-          prev && liveModels.some((m: any) => m.id === prev) ? prev : "",
+          prev && liveModels.some((m: any) => m.id === prev)
+            ? prev
+            : rec?.id || "",
         );
       } else {
         setLlmModel("");

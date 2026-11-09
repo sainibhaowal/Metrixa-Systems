@@ -413,7 +413,9 @@ class LLMRouter:
             return False
 
     def get_provider_config(self, provider: str) -> Optional[Dict[str, str]]:
-        p = provider.lower().strip()
+        if not provider:
+            return None
+        p = str(provider).lower().strip()
         if p == "openai" and settings.openai_api_key:
             return {
                 "provider": "openai",
@@ -468,7 +470,9 @@ class LLMRouter:
     async def resolve_active_provider(
         self, requested_provider: Optional[str] = None
     ) -> Optional[Dict[str, str]]:
-        target = (requested_provider or settings.default_llm_provider).lower().strip()
+        target = str(
+            requested_provider or settings.default_llm_provider or "deterministic"
+        ).lower().strip()
         if target == "deterministic":
             return None
 
@@ -579,11 +583,21 @@ class LLMRouter:
                 latency_ms = int((time.perf_counter() - t0) * 1000)
                 if resp.status_code == 200:
                     data = resp.json()
-                    msg_obj = data.get("choices", [{}])[0].get("message", {})
-                    content = msg_obj.get("content", "").strip()
-                    if not content:
+                    choices = data.get("choices") or []
+                    choice = choices[0] if choices else {}
+                    msg_obj = choice.get("message") if isinstance(choice, dict) else {}
+                    if not isinstance(msg_obj, dict):
+                        msg_obj = {}
+                    raw_content = msg_obj.get("content")
+                    if not raw_content:
                         # Handle reasoning models where output tokens are placed in reasoning_content
-                        content = msg_obj.get("reasoning_content", "").strip()
+                        raw_content = (
+                            msg_obj.get("reasoning_content")
+                            or choice.get("text")
+                            or ""
+                        )
+
+                    content = str(raw_content or "").strip()
 
                     usage = data.get("usage") or {}
                     p_tok = int(usage.get("prompt_tokens", len(user_prompt) // 4))

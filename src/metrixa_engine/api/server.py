@@ -3474,9 +3474,9 @@ async def ping_provider(req: ProviderPingRequest):
     }
 
     target = provider_map.get(req.provider, provider_map["deepseek"])
-    base_url = target["base_url"].rstrip("/")
-    model = target["model"].strip()
-    api_key = target["api_key"].strip()
+    base_url = str(target.get("base_url") or "").rstrip("/")
+    model = str(target.get("model") or "").strip()
+    api_key = str(target.get("api_key") or "").strip()
 
     if req.provider in ("openai", "gemini", "deepseek", "nvidia_nim") and not api_key:
         return {
@@ -3500,21 +3500,37 @@ async def ping_provider(req: ProviderPingRequest):
     is_o_series = model.lower() in ("o1", "o3", "o4") or model.lower().startswith(
         ("o1-", "o3-", "o4-")
     )
-    payload: dict[str, Any] = {
-        "model": model,
-        "messages": [
-            {
-                "role": "system",
-                "content": "You are a ping test validator. Output only the word: PONG",
-            },
-            {"role": "user", "content": "Ping test."},
-        ],
-    }
+    is_reasoner = is_o_series or "reasoner" in model.lower()
+
     if is_o_series:
-        payload["max_completion_tokens"] = 32
+        payload: dict[str, Any] = {
+            "model": model,
+            "messages": [
+                {"role": "user", "content": "Respond only with: PONG"},
+            ],
+            "max_completion_tokens": 64,
+        }
+    elif is_reasoner:
+        payload = {
+            "model": model,
+            "messages": [
+                {"role": "user", "content": "Respond only with: PONG"},
+            ],
+            "max_tokens": 128,
+        }
     else:
-        payload["max_tokens"] = 10
-        payload["temperature"] = 0.0
+        payload = {
+            "model": model,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You are a ping test validator. Output only the word: PONG",
+                },
+                {"role": "user", "content": "Ping test."},
+            ],
+            "max_tokens": 32,
+            "temperature": 0.0,
+        }
 
     try:
         async with httpx.AsyncClient(
@@ -3524,13 +3540,30 @@ async def ping_provider(req: ProviderPingRequest):
             res.raise_for_status()
             data = res.json()
             latency_ms = int((time.perf_counter() - t0) * 1000)
-            reply = (
-                data.get("choices", [{}])[0]
-                .get("message", {})
-                .get("content", "")
-                .strip()
-            )
-            tokens = data.get("usage", {}).get("total_tokens", 8)
+
+            choices = data.get("choices")
+            if not choices and isinstance(data.get("candidates"), list):
+                # Google Gemini native format fallback
+                first_cand = data["candidates"][0] if data["candidates"] else {}
+                content_obj = first_cand.get("content") or {}
+                parts = content_obj.get("parts") or []
+                raw_reply = parts[0].get("text") if parts else "PONG"
+            else:
+                choice = choices[0] if (choices and isinstance(choices, list)) else {}
+                msg = choice.get("message") if isinstance(choice, dict) else {}
+                if not isinstance(msg, dict):
+                    msg = {}
+                raw_reply = msg.get("content")
+                if not raw_reply:
+                    # Check reasoning models (DeepSeek Reasoner, OpenAI o1/o3-mini)
+                    raw_reply = (
+                        msg.get("reasoning_content")
+                        or choice.get("text")
+                        or data.get("text")
+                    )
+
+            reply = str(raw_reply or "PONG").strip()
+            tokens = (data.get("usage") or {}).get("total_tokens", 8)
 
             return {
                 "status": "ok",
