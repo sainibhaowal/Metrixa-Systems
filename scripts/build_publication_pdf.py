@@ -1,16 +1,8 @@
 """
-Compiles a formal, single-column computer science / systems research paper PDF.
-Adheres strictly to academic paper conventions:
-- NO internal repo paths or code file directories
-- NO internal UI concepts
-- NO company target customer hardcoding
-- Focuses entirely on general systems architecture: multi-source data ingestion, graph-based entity resolution,
-  verbatim evidence-grounded statutory information extraction (§ 5 DDG), DOM fingerprinting,
-  RFC 5321 DNS MX verification, and multi-criteria mathematical scoring.
-- Rigorous explanation of "autonomous": describes autonomous orchestration via distributed DAG pipelines
-  and programmatic feedback loops with human-in-the-loop audit gates.
-- Clean academic typography: Computer Modern / Latin Modern / Georgia serif, booktabs tables, numbered equations.
-- Absolutely ZERO em dashes.
+Production LaTeX-Grade Research Paper PDF Generator.
+Uses Computer Modern / Latin Modern typography, real KaTeX equation rendering,
+formal academic paper margins, booktabs tables, and clean single-column structure.
+Zero unrendered LaTeX raw code, zero em dashes, zero internal repository paths.
 """
 
 from pathlib import Path
@@ -25,14 +17,17 @@ RESEARCH_PAPER_HTML = r"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Scalable B2B Entity Intelligence and Statutory Disclosure Extraction for Segmented Real Estate Markets</title>
+<title>Autonomous B2B Lead Intelligence and Statutory Disclosure Verification</title>
+<link rel="stylesheet" href="vendor/katex.min.css">
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Libertinus+Serif:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Latin+Modern+Roman&display=swap');
+
   @page {
     size: A4 portrait;
-    margin: 24mm 22mm 24mm 22mm;
+    margin: 22mm 24mm 22mm 24mm;
     @bottom-center {
       content: counter(page);
-      font-family: "Latin Modern Roman", "Computer Modern", "Times New Roman", serif;
+      font-family: "Latin Modern Roman", "Libertinus Serif", "Times New Roman", serif;
       font-size: 9pt;
       color: #333333;
     }
@@ -45,112 +40,117 @@ RESEARCH_PAPER_HTML = r"""<!DOCTYPE html>
   }
 
   body {
-    font-family: "Latin Modern Roman", "Computer Modern", "Georgia", "Times New Roman", serif;
-    font-size: 10.5pt;
-    line-height: 1.52;
-    color: #1a1a1a;
+    font-family: "Latin Modern Roman", "Libertinus Serif", "Times New Roman", Georgia, serif;
+    font-size: 10pt;
+    line-height: 1.5;
+    color: #111111;
     margin: 0;
     padding: 0;
     background: #ffffff;
+    text-rendering: optimizeLegibility;
   }
 
-  .running-header {
+  .header-rule {
     display: flex;
     justify-content: space-between;
-    font-size: 8pt;
+    font-size: 7.5pt;
     text-transform: uppercase;
     letter-spacing: 0.8px;
     color: #555555;
-    border-bottom: 0.6px solid #222222;
-    padding-bottom: 4px;
-    margin-bottom: 22px;
+    border-bottom: 0.5pt solid #222222;
+    padding-bottom: 3px;
+    margin-bottom: 24px;
+    font-family: "Latin Modern Roman", "Libertinus Serif", serif;
   }
 
-  .paper-header {
+  .title-block {
     text-align: center;
     margin-bottom: 22px;
   }
 
   h1.paper-title {
-    font-size: 17pt;
+    font-size: 15.5pt;
     font-weight: 700;
-    line-height: 1.3;
-    margin: 0 0 12px 0;
+    line-height: 1.28;
+    margin: 0 0 10px 0;
     color: #000000;
-    letter-spacing: -0.2px;
+    letter-spacing: -0.1px;
+    font-family: "Latin Modern Roman", "Libertinus Serif", serif;
   }
 
-  .author-block {
+  .author-name {
     font-size: 11pt;
     font-weight: 600;
-    margin-bottom: 4px;
+    margin-bottom: 3px;
     color: #111111;
   }
 
-  .affiliation-block {
-    font-size: 9pt;
+  .author-affil {
+    font-size: 8.8pt;
     color: #444444;
-    margin-bottom: 16px;
     font-style: italic;
+    margin-bottom: 16px;
   }
 
-  .abstract-box {
-    margin: 0 20px 22px 20px;
-    padding: 12px 18px;
-    background-color: #f9fafb;
-    border-top: 1px solid #111111;
-    border-bottom: 1px solid #111111;
+  .abstract-pane {
+    margin: 0 24px 22px 24px;
+    padding: 10px 16px;
+    background-color: #fafbfc;
+    border-top: 0.8pt solid #222222;
+    border-bottom: 0.8pt solid #222222;
     text-align: justify;
-    font-size: 9.3pt;
-    line-height: 1.45;
+    font-size: 9pt;
+    line-height: 1.42;
   }
 
-  .abstract-label {
+  .abstract-heading {
     font-weight: 700;
     text-transform: uppercase;
-    font-size: 8.5pt;
-    letter-spacing: 0.6px;
+    font-size: 8.2pt;
+    letter-spacing: 0.5px;
     color: #000000;
   }
 
-  .keywords-block {
-    margin-top: 8px;
-    font-size: 8.8pt;
+  .keywords-row {
+    margin-top: 7px;
+    font-size: 8.5pt;
+    line-height: 1.35;
   }
 
   .keywords-label {
     font-weight: 700;
   }
 
-  .paper-body {
+  .article-body {
     width: 100%;
     text-align: justify;
   }
 
-  h2.sec-heading {
-    font-size: 12pt;
+  h2.section-title {
+    font-size: 11pt;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.4px;
-    border-bottom: 0.5px solid #cccccc;
-    padding-bottom: 3px;
-    margin: 22px 0 10px 0;
+    letter-spacing: 0.3px;
+    border-bottom: 0.4pt solid #999999;
+    padding-bottom: 2px;
+    margin: 20px 0 8px 0;
     color: #000000;
     break-after: avoid;
+    font-family: "Latin Modern Roman", "Libertinus Serif", serif;
   }
 
-  h3.subsec-heading {
-    font-size: 10.5pt;
+  h3.subsection-title {
+    font-size: 10pt;
     font-weight: 700;
     font-style: italic;
-    margin: 14px 0 6px 0;
-    color: #1a1a1a;
+    margin: 12px 0 5px 0;
+    color: #111111;
     break-after: avoid;
   }
 
   p {
-    margin: 0 0 9px 0;
-    text-indent: 1.6em;
+    margin: 0 0 8px 0;
+    text-indent: 1.4em;
   }
 
   p.noindent {
@@ -158,37 +158,35 @@ RESEARCH_PAPER_HTML = r"""<!DOCTYPE html>
   }
 
   ul, ol {
-    margin: 6px 0 12px 0;
-    padding-left: 26px;
+    margin: 5px 0 10px 0;
+    padding-left: 24px;
   }
 
   li {
-    margin-bottom: 5px;
+    margin-bottom: 4px;
     text-align: justify;
   }
 
-  .math-block {
+  .equation-container {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: #fbfcfd;
-    border: 0.5px solid #e5e7eb;
-    padding: 7px 16px;
+    background: #ffffff;
+    padding: 6px 12px;
     margin: 10px 0;
-    font-family: "Cambria Math", "Latin Modern Math", "Times New Roman", serif;
-    font-size: 10pt;
     break-inside: avoid;
   }
 
-  .math-equation {
+  .equation-math {
     flex-grow: 1;
     text-align: center;
   }
 
-  .math-tag {
-    font-size: 9.5pt;
-    color: #333333;
+  .equation-number {
+    font-size: 9pt;
+    color: #222222;
     margin-left: 14px;
+    font-family: "Latin Modern Roman", "Libertinus Serif", serif;
   }
 
   .table-box {
@@ -197,8 +195,8 @@ RESEARCH_PAPER_HTML = r"""<!DOCTYPE html>
   }
 
   .table-caption {
-    font-size: 9.3pt;
-    margin-bottom: 6px;
+    font-size: 8.8pt;
+    margin-bottom: 5px;
     text-align: left;
     color: #111111;
   }
@@ -210,31 +208,31 @@ RESEARCH_PAPER_HTML = r"""<!DOCTYPE html>
   table.booktabs {
     width: 100%;
     border-collapse: collapse;
-    font-size: 9pt;
-    line-height: 1.36;
-    border-top: 1.5px solid #000000;
-    border-bottom: 1.5px solid #000000;
+    font-size: 8.8pt;
+    line-height: 1.34;
+    border-top: 1.2pt solid #000000;
+    border-bottom: 1.2pt solid #000000;
   }
 
   table.booktabs th {
-    border-bottom: 1px solid #000000;
-    padding: 6px 8px;
+    border-bottom: 0.8pt solid #000000;
+    padding: 5px 7px;
     text-align: left;
     font-weight: 700;
-    background-color: #f8fafc;
+    background-color: #f9fafb;
   }
 
   table.booktabs td {
-    padding: 5px 8px;
-    border-bottom: 0.5px solid #e2e8f0;
+    padding: 4.5px 7px;
+    border-bottom: 0.4pt solid #e5e7eb;
     vertical-align: top;
   }
 
   table.booktabs tr.summary-row td {
-    border-top: 1px solid #000000;
+    border-top: 0.8pt solid #000000;
     border-bottom: none;
     font-weight: 700;
-    background-color: #f8fafc;
+    background-color: #f9fafb;
   }
 
   .num-col {
@@ -246,96 +244,102 @@ RESEARCH_PAPER_HTML = r"""<!DOCTYPE html>
     text-align: center !important;
   }
 
-  .diag-container {
-    border: 1px solid #333333;
+  .flow-box {
+    border: 0.75pt solid #333333;
     background: #fafbfc;
-    padding: 12px 16px;
-    margin: 14px 0;
+    padding: 10px 14px;
+    margin: 12px 0;
     break-inside: avoid;
   }
 
-  .diag-title {
-    font-size: 8.8pt;
+  .flow-title {
+    font-size: 8.4pt;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     text-align: center;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
     color: #111111;
   }
 
-  .diag-flow {
+  .flow-grid {
     display: grid;
     grid-template-columns: repeat(6, 1fr);
-    gap: 8px;
+    gap: 6px;
     text-align: center;
   }
 
-  .diag-card {
-    border: 0.8px solid #4b5563;
+  .flow-step {
+    border: 0.6pt solid #4b5563;
     background: #ffffff;
-    padding: 7px 4px;
-    border-radius: 2px;
+    padding: 6px 3px;
+    border-radius: 1px;
   }
 
-  .diag-card b {
+  .flow-step b {
     display: block;
-    font-size: 8.2pt;
+    font-size: 7.8pt;
     color: #000000;
-    margin-bottom: 3px;
+    margin-bottom: 2px;
     text-transform: uppercase;
   }
 
-  .diag-card span {
+  .flow-step span {
     display: block;
-    font-size: 7.6pt;
+    font-size: 7.2pt;
     color: #4b5563;
-    line-height: 1.25;
+    line-height: 1.22;
   }
 
-  .ref-list {
-    font-size: 8.8pt;
-    line-height: 1.4;
-    padding-left: 20px;
+  .reference-list {
+    font-size: 8.5pt;
+    line-height: 1.38;
+    padding-left: 18px;
     margin: 8px 0 0 0;
   }
 
-  .ref-list li {
-    margin-bottom: 6px;
+  .reference-list li {
+    margin-bottom: 5px;
     text-indent: 0;
   }
+
+  .katex-display {
+    margin: 0 !important;
+  }
 </style>
+<script src="vendor/katex.min.js"></script>
+<script src="vendor/auto-render.min.js"></script>
 </head>
 <body>
 
-  <div class="running-header">
+  <div class="header-rule">
     <span>Systems Architecture &amp; Empirical Research Report</span>
     <span>Autonomous B2B Data Engineering</span>
   </div>
 
-  <div class="paper-header">
+  <div class="title-block">
     <h1 class="paper-title">
       Autonomous B2B Lead Intelligence and Statutory Disclosure Verification:<br/>
       Market Saturation, Deterministic Qualification, and Decision-Maker Extraction<br/>
       for the German Property Management Ecosystem
     </h1>
-    <div class="author-block">Ravin Saini</div>
-    <div class="affiliation-block">
+    <div class="author-name">Ravin Saini</div>
+    <div class="author-affil">
       Autonomous LeadOps &amp; Distributed Systems Engineering
     </div>
 
-    <div class="abstract-box">
-      <span class="abstract-label">Abstract</span>:
+    <div class="abstract-pane">
+      <span class="abstract-heading">Abstract</span>:
       Extracting verified go-to-market (GTM) intelligence within European small and medium-sized enterprise (SME) ecosystems presents acute information-asymmetry hurdles for global data vendors. In the German property management sector (<i>Hausverwaltungen</i>), operational volume, managed housing portfolios, and enterprise software configurations are rarely published on commercial social networks. However, European public telemedia regulations and German statutory disclosure mandates (specifically Section 5 of the Digital Services Act, <i>Digitale-Dienste-Gesetz</i>, &sect; 5 DDG) legally compel commercial entities to disclose their registered legal form, commercial court registration number (<i>Handelsregister HRB/HRA</i>), and authorized executive representatives (<i>Gesch&auml;ftsf&uuml;hrer</i>) on an accessible digital disclosure subpage (<code>/impressum</code>). This research paper formalizes the architecture, algorithmic foundations, and empirical results of an end-to-end autonomous data pipeline designed to ingest, resolve, qualify, and verify commercial entities across a major metropolitan market (Berlin). Incorporating multi-source parallel harvesting, Disjoint-Set Union-Find graph entity deduplication, asynchronous Document Object Model (DOM) enterprise software fingerprinting, hybrid verbatim evidence-grounded attribute parsing, and RFC 5321 Mail Exchange (MX) verification, the architecture resolved <b>1,375 raw directory records</b> into <b>1,200 canonical property management entities</b>. A transparent 5-pillar mathematical qualification formula categorizes entities into three actionable commercial tiers: Tier A (35 entities, 2.9%), Tier B (409 entities, 34.1%), and Tier C (756 entities, 63.0%). Automated verification gates achieved <b>95.4% postal boundary precision</b>, <b>100.0% verbatim grounding on explicit portfolio claims</b>, and a <b>0.0% ungrounded hallucination rate</b>.
-      <div class="keywords-block">
+      <div class="keywords-row">
         <span class="keywords-label">Keywords:</span> B2B Entity Intelligence, Statutory Disclosure Extraction (&sect; 5 DDG), Disjoint-Set Union-Find, Entity Deduplication, PropTech ERP Fingerprinting, RFC 5321 DNS MX Validation, Autonomous LeadOps, Empirical Ablation.
       </div>
     </div>
   </div>
 
-  <div class="paper-body">
+  <div class="article-body">
 
-    <h2 class="sec-heading">1. Introduction and Problem Formulation</h2>
+    <h2 class="section-title">1. Introduction and Problem Formulation</h2>
     <p class="noindent">
       Enterprise software and smart metering hardware deployments within metropolitan multi-family housing face significant sales fragmentation. In Germany, over 53% of households nationwide, and approximately 85% within the federal state of Berlin, reside in multi-family rental apartments (<i>Mietwohnungen</i>) or condominium owner associations (<i>Wohnungseigent&uuml;mergemeinschaften</i>, WEG) (Statistisches Bundesamt, 2024). Under the European Energy Efficiency Directive (EED) and the German Heating Cost Ordinance (<i>Heizkostenverordnung</i>, HeizkostenV), building operators are legally mandated to deploy remotely readable submetering hardware (<i>Fernauslesung</i>) and supply monthly digital consumption data to occupants (Bundesministerium f&uuml;r Wirtschaft und Klimaschutz, 2021).
     </p>
@@ -351,30 +355,30 @@ RESEARCH_PAPER_HTML = r"""<!DOCTYPE html>
       <b>The Statutory Opportunity:</b> German commercial public law establishes a powerful mechanism for overcoming this opacity. Under <b>&sect; 5 Digitale-Dienste-Gesetz (DDG)</b> (formerly &sect; 5 Telemediengesetz, TMG), every commercial web operator in Germany is legally obligated to maintain an accessible, permanently available legal disclosure page (<code>/impressum</code>). This disclosure must state the complete corporate legal designation, authorized managing directors (<i>Gesch&auml;ftsf&uuml;hrer</i>), registered commercial court jurisdiction and HRB/HRA register ID, physical business address, and direct communication channels (Deutscher Bundestag, 2024). By engineering an autonomous system that harvests public directories, resolves duplicate entities, inspects corporate web infrastructure, extracts statutory disclosures with verbatim evidence validation, and verifies communication protocols, an authoritative market registry can be established without human intervention.
     </p>
 
-    <div class="diag-container">
-      <div class="diag-title">Figure 1: Six-Stage Autonomous Data Intelligence and Verification Architecture</div>
-      <div class="diag-flow">
-        <div class="diag-card">
+    <div class="flow-box">
+      <div class="flow-title">Figure 1: Six-Stage Autonomous Data Intelligence and Verification Architecture</div>
+      <div class="flow-grid">
+        <div class="flow-step">
           <b>1. Ingestion</b>
           <span>5 Parallel Shards<br/>1,375 Raw Records<br/>PLZ 10115 to 14199</span>
         </div>
-        <div class="diag-card">
+        <div class="flow-step">
           <b>2. Entity Resolution</b>
           <span>Union-Find Clustering<br/>Domain, Phone, Fuzzy<br/>1,200 Canonical Leads</span>
         </div>
-        <div class="diag-card">
+        <div class="flow-step">
           <b>3. Web Crawler</b>
           <span>Asynchronous HTTP/2<br/>885 Subpages Scanned<br/>DOM ERP Signature Scan</span>
         </div>
-        <div class="diag-card">
+        <div class="flow-step">
           <b>4. Attribute Parser</b>
           <span>&sect; 5 DDG Impressum<br/>Verbatim Evidence Gate<br/>0.0% Hallucinations</span>
         </div>
-        <div class="diag-card">
+        <div class="flow-step">
           <b>5. Enrichment</b>
           <span>Personal Mail Synthesis<br/>RFC 5321 DNS MX Check<br/>5-Pillar Score (0-100)</span>
         </div>
-        <div class="diag-card">
+        <div class="flow-step">
           <b>6. Verification</b>
           <span>4 Automated Gates<br/>Ablation Benchmark<br/>Relational Output</span>
         </div>
@@ -385,9 +389,9 @@ RESEARCH_PAPER_HTML = r"""<!DOCTYPE html>
       <b>Clarifying Autonomy:</b> We define the system as <i>autonomous</i> because, once configured with target geographic parameters (postal boundaries) and directory connectors, the entire progression from raw ingestion to deduplication, web crawling, ERP signature detection, statutory extraction, DNS MX verification, and multi-factor scoring executes end-to-end without manual intervention. The pipeline employs deterministic rules, asynchronous scheduling, and automated error-handling routines. Human involvement is strictly confined to an external oversight role, reviewing audit logs and sampling the automated anti-hallucination validation gates.
     </p>
 
-    <h2 class="sec-heading">2. Multi-Source Ingestion and Graph-Based Entity Resolution</h2>
+    <h2 class="section-title">2. Multi-Source Ingestion and Graph-Based Entity Resolution</h2>
 
-    <h3 class="subsec-heading">2.1 Parallel Harvesting Across Heterogeneous Directory Shards</h3>
+    <h3 class="subsection-title">2.1 Parallel Harvesting Across Heterogeneous Directory Shards</h3>
     <p class="noindent">
       To achieve comprehensive coverage of a regional market, relying on a single directory is insufficient due to publisher-specific curation biases. The ingestion engine deploys five independent connectors operating concurrently across all 12 Berlin administrative districts (Mitte, Friedrichshain-Kreuzberg, Pankow, Charlottenburg-Wilmersdorf, Spandau, Steglitz-Zehlendorf, Tempelhof-Sch&ouml;neberg, Neuk&ouml;lln, Treptow-K&ouml;penick, Marzahn-Hellersdorf, Lichtenberg, and Reinickendorf), bound by German postal codes <code>10115</code> through <code>14199</code>.
     </p>
@@ -409,7 +413,7 @@ RESEARCH_PAPER_HTML = r"""<!DOCTYPE html>
         </thead>
         <tbody>
           <tr>
-            <td>1. Telecommunication Directory (11880)</td>
+            <td>1. Directory 11880</td>
             <td>General Commercial B2B</td>
             <td class="num-col">838</td>
             <td class="num-col">60.9%</td>
@@ -461,7 +465,7 @@ RESEARCH_PAPER_HTML = r"""<!DOCTYPE html>
       </table>
     </div>
 
-    <h3 class="subsec-heading">2.2 Disjoint-Set Union-Find Graph Deduplication</h3>
+    <h3 class="subsection-title">2.2 Disjoint-Set Union-Find Graph Deduplication</h3>
     <p class="noindent">
       Because regional property management firms appear in multiple directories with orthographic discrepancies (such as <i>Beispiel Hausverwaltung GmbH</i> versus <i>Beispiel Hausverwaltungsgesellschaft mbH</i>), naive exact-string matching introduces unacceptable partitioning errors. The resolution engine performs multi-key graph clustering:
     </p>
@@ -473,24 +477,19 @@ RESEARCH_PAPER_HTML = r"""<!DOCTYPE html>
     <p>
       Entity deduplication is formalized as a graph connected-components problem and solved using Tarjan's Disjoint-Set Union-Find algorithm with path compression and rank optimization (Tarjan, 1975). An undirected edge $E(r_i, r_j) = 1$ is established between record $r_i$ and record $r_j$ if and only if any of three deterministic linking conditions is satisfied:
     </p>
-    <div class="math-block">
-      <div class="math-equation">
-        <i>E</i>(<i>r<sub>i</sub></i>, <i>r<sub>j</sub></i>) = 1 &nbsp;&iff;&nbsp;
-        \left( d_i = d_j \land d_i \notin D_{\text{excl}} \right)
-        \;\lor\;
-        \left( p_i = p_j \land p_i \neq \emptyset \right)
-        \;\lor\;
-        \left( \text{Sim}_{\text{JW}}(n_i, n_j) \ge 0.88 \;\land\; \text{PLZ}_i = \text{PLZ}_j \right)
+    <div class="equation-container">
+      <div class="equation-math">
+        $$E(r_i, r_j) = 1 \iff \left(d_i = d_j \land d_i \notin D_{\text{excl}}\right) \lor \left(p_i = p_j \land p_i \neq \emptyset\right) \lor \left(\text{Sim}_{\text{JW}}(n_i, n_j) \ge 0.88 \land \text{PLZ}_i = \text{PLZ}_j\right)$$
       </div>
-      <div class="math-tag">(1)</div>
+      <div class="equation-number">(1)</div>
     </div>
     <p class="noindent">
       where $d_i$ denotes the canonical corporate domain, $p_i$ is the E.164 phone number, and $\text{Sim}_{\text{JW}}(n_i, n_j)$ is the token-sort Jaro-Winkler string similarity between normalized corporate names within identical five-digit postal boundaries ($\text{PLZ}_i = \text{PLZ}_j$) (Navarro, 2001). Executing Equation (1) across all 1,375 raw directory records consolidated <b>175 redundant listings</b>, establishing an authoritative golden ledger of <b>1,200 unique operating entities</b>.
     </p>
 
-    <h2 class="sec-heading">3. Web Intelligence, PropTech ERP Fingerprinting, and Statutory Extraction</h2>
+    <h2 class="section-title">3. Web Intelligence, PropTech ERP Fingerprinting, and Statutory Extraction</h2>
 
-    <h3 class="subsec-heading">3.1 Asynchronous Web Crawling and DOM Software Fingerprinting</h3>
+    <h3 class="subsection-title">3.1 Asynchronous Web Crawling and DOM Software Fingerprinting</h3>
     <p class="noindent">
       Among the 1,200 resolved canonical entities, <b>243 entities (20.2%)</b> operate a dedicated corporate web domain. An asynchronous HTTP/2 crawler visits each domain, scanning the homepage and traversing prioritized subpage candidates (specifically <code>/impressum</code>, <code>/team</code>, <code>/ueber-uns</code>, <code>/leistungen</code>, and <code>/referenzen</code>). Across the reachable domains, the crawler retrieved and analyzed <b>885 web pages</b> across 196 HTTP 200 live endpoints.
     </p>
@@ -498,34 +497,34 @@ RESEARCH_PAPER_HTML = r"""<!DOCTYPE html>
       Software maturity is a primary indicator of operational sophistication. Property managers utilizing specialized enterprise resource planning (ERP) systems or digital tenant portals process utility data electronically and possess the capacity to integrate telemetry feeds. Before converting HTML documents to unstructured text, a Document Object Model (DOM) signature engine inspects script tags, iframe embeds, and external anchor references for eight dominant German real estate ERP platforms: <b>Casavi, Domus (DOMUS 4000 / DOMUS Navi), Wodis Sigma (Aareon), Haufe PowerHaus / axera, Immoware24, etg24, Facilioo</b>, and custom tenant login portals. In total, <b>41 companies (3.4% of all entities, 20.9% of reachable web domains)</b> exhibited active PropTech ERP or tenant portal signatures in their client-side DOM.
     </p>
 
-    <h3 class="subsec-heading">3.2 Verbatim Evidence-Grounded Statutory Attribute Extraction</h3>
+    <h3 class="subsection-title">3.2 Verbatim Evidence-Grounded Statutory Attribute Extraction</h3>
     <p class="noindent">
       Statutory disclosure pages are processed using a hybrid information extraction engine. Deterministic regular expressions parse structured statutory declarations: corporate registration details (e.g., <i>Amtsgericht Charlottenburg HRB...</i>), tax identifiers, founding dates, and explicit portfolio unit counts (e.g., <i>Verwaltung von &uuml;ber 2.500 Wohneinheiten</i>). Language models are subsequently deployed to interpret nuanced asset-class narratives (condominium WEG management, rental housing, commercial property, and individual tenancy administration).
     </p>
     <p>
       To prevent synthetic data generation or hallucination, all extracted quantitative portfolio claims ($\hat{u}_i$, representing reported units managed) must satisfy an exact <b>Verbatim Substring Evidence Gate</b>:
     </p>
-    <div class="math-block">
-      <div class="math-equation">
-        \text{Accept}(\hat{u}_i, q_i) = 1 &nbsp;\iff&nbsp; |q_i| \ge 5 \;\land\; \text{Norm}(q_i) \subseteq \text{Norm}(T_i)
+    <div class="equation-container">
+      <div class="equation-math">
+        $$\text{Accept}(\hat{u}_i, q_i) = 1 \iff |q_i| \ge 5 \land \text{Norm}(q_i) \subseteq \text{Norm}(T_i)$$
       </div>
-      <div class="math-tag">(2)</div>
+      <div class="equation-number">(2)</div>
     </div>
     <p class="noindent">
       where $q_i$ is the extracted supporting quote and $T_i$ is the raw unmanipulated HTML text crawled from company $i$. If the quote $q_i$ is missing or cannot be validated as a verbatim substring, the numeric assertion is discarded, and the entity is categorized using structural signals (corporate form and headcount estimates). Across the entire dataset, <b>36 entities</b> published explicit portfolio units, and <b>100.0% (36/36)</b> successfully passed verbatim quote verification with <b>0.0% ungrounded hallucinations</b>.
     </p>
 
-    <h2 class="sec-heading">4. Mathematical Qualification Scorecard and Commercial Tiering</h2>
+    <h2 class="section-title">4. Mathematical Qualification Scorecard and Commercial Tiering</h2>
 
-    <h3 class="subsec-heading">4.1 Five-Pillar Deterministic Scoring Model</h3>
+    <h3 class="subsection-title">4.1 Five-Pillar Deterministic Scoring Model</h3>
     <p class="noindent">
       Commercial qualification requires an objective, reproducible metric that scores entities based on operational scale, statutory alignment, technical maturity, corporate credibility, and executive reachability. We formalize a 5-pillar mathematical scoring function generating a normalized score $S_{\text{total}} \in [0, 100]$:
     </p>
-    <div class="math-block">
-      <div class="math-equation">
-        S_{\text{total}} = \min\left(100, \, S_{\text{scale}} + S_{\text{focus}} + S_{\text{digital}} + S_{\text{trust}} + S_{\text{contact}}\right)
+    <div class="equation-container">
+      <div class="equation-math">
+        $$S_{\text{total}} = \min\left(100, \, S_{\text{scale}} + S_{\text{focus}} + S_{\text{digital}} + S_{\text{trust}} + S_{\text{contact}}\right)$$
       </div>
-      <div class="math-tag">(3)</div>
+      <div class="equation-number">(3)</div>
     </div>
 
     <div class="table-box">
@@ -597,7 +596,7 @@ RESEARCH_PAPER_HTML = r"""<!DOCTYPE html>
       </table>
     </div>
 
-    <h3 class="subsec-heading">4.2 Empirical Market Segmentation</h3>
+    <h3 class="subsection-title">4.2 Empirical Market Segmentation</h3>
     <p class="noindent">
       Evaluating the 1,200 resolved entities across Equation (3) segments the regional market into three distinct, actionable commercial tiers:
     </p>
@@ -607,7 +606,7 @@ RESEARCH_PAPER_HTML = r"""<!DOCTYPE html>
       <li><b>Tier C (Long-Tail / Local Operators, $S_{\text{total}} < 45$): 756 entities (63.0%)</b>, exhibiting a mean score of <b>33.1</b> (range 27 to 44). These operators consist primarily of smaller local firms lacking digital footprints, suitable for automated informational outreach.</li>
     </ul>
 
-    <h2 class="sec-heading">5. Executive Contact Synthesis and RFC 5321 Mail Verification</h2>
+    <h2 class="section-title">5. Executive Contact Synthesis and RFC 5321 Mail Verification</h2>
     <p class="noindent">
       To circumvent generic mailboxes without violating data integrity, the system implements a four-stage executive resolution protocol:
     </p>
@@ -618,9 +617,9 @@ RESEARCH_PAPER_HTML = r"""<!DOCTYPE html>
       <li><b>RFC 5321 DNS MX Validation:</b> Each synthesized corporate email domain is submitted to an asynchronous DNS resolver to query Mail Exchange (MX) resource records (Klensin, 2008). Domains failing to return a responsive MX record are invalidated. Across the market, the pipeline established <b>102 entities (8.5%)</b> (comprising 118 executive contact records) with DNS MX-verified personal executive addresses (12 direct public personal addresses and 90 MX-verified corporate executive syntax patterns).</li>
     </ol>
 
-    <h2 class="sec-heading">6. Empirical Ablation Analysis and Data Validation</h2>
+    <h2 class="section-title">6. Empirical Ablation Analysis and Data Validation</h2>
 
-    <h3 class="subsec-heading">6.1 Pipeline Stage Ablation Study</h3>
+    <h3 class="subsection-title">6.1 Pipeline Stage Ablation Study</h3>
     <p class="noindent">
       To quantify the exact engineering value added by each architectural phase, an automated ablation evaluation was conducted across the live dataset ($N = 1,200$). Table 3 presents the incremental gains achieved over a single-directory baseline.
     </p>
@@ -683,7 +682,7 @@ RESEARCH_PAPER_HTML = r"""<!DOCTYPE html>
       </table>
     </div>
 
-    <h3 class="subsec-heading">6.2 Automated Multi-Layer Verification Results</h3>
+    <h3 class="subsection-title">6.2 Automated Multi-Layer Verification Results</h3>
     <p class="noindent">
       Prior to final data export, the system executes four programmatic verification gates across the entire 1,200 golden entity cohort (Table 4).
     </p>
@@ -728,7 +727,7 @@ RESEARCH_PAPER_HTML = r"""<!DOCTYPE html>
       </table>
     </div>
 
-    <h2 class="sec-heading">7. Architectural Scaling Blueprint: Nationwide Expansion (25,000+ Entities)</h2>
+    <h2 class="section-title">7. Architectural Scaling Blueprint: Nationwide Expansion (25,000+ Entities)</h2>
     <p class="noindent">
       Because German statutory disclosure laws (&sect; 5 DDG), commercial court conventions (<i>Handelsregister</i>), and real estate ERP platforms operate under uniform federal standards across all 16 federal states (<i>Bundesl&auml;nder</i>), expanding this architecture from Berlin (1,200 entities) to the entire German market (~25,000 to 30,000 property management companies across Munich, Hamburg, Frankfurt, Cologne, Stuttgart, and D&uuml;sseldorf) requires no structural modifications to the extraction, deduplication, or scoring logic:
     </p>
@@ -738,8 +737,8 @@ RESEARCH_PAPER_HTML = r"""<!DOCTYPE html>
       <li><b>Continuous Delta Ingestion:</b> Implement weekly change-detection crawlers hashing statutory disclosure pages to detect managing director transitions or enterprise software adoptions in near real time.</li>
     </ul>
 
-    <h2 class="sec-heading">References (APA 7th Edition)</h2>
-    <ol class="ref-list">
+    <h2 class="section-title">References (APA 7th Edition)</h2>
+    <ol class="reference-list">
       <li>Bundesministerium der Justiz. (2020). <i>Gesetz &uuml;ber das Wohnungseigentum und das Dauerwohnrecht (Wohnungseigentumsgesetz - WEG)</i> [German Condominium Ownership Act]. BGBl. I S. 2187. https://www.gesetze-im-internet.de/woeigg/</li>
       <li>Bundesministerium f&uuml;r Wirtschaft und Klimaschutz. (2021). <i>Verordnung &uuml;ber die verbrauchsabh&auml;ngige Abrechnung der Heiz- und Warmwasserkosten (Heizkostenverordnung - HeizkostenV)</i> [German Heating Cost Ordinance]. BGBl. I S. 4964. https://www.gesetze-im-internet.de/heizkostenv/</li>
       <li>Deutscher Bundestag. (2024). <i>Gesetz &uuml;ber digitale Dienste (Digitale-Dienste-Gesetz - DDG), &sect; 5 Allgemeine Informationspflichten</i> [German Digital Services Act, Section 5 Statutory Information Requirements]. BGBl. 2024 I Nr. 149. https://www.gesetze-im-internet.de/ddg/__5.html</li>
@@ -754,6 +753,17 @@ RESEARCH_PAPER_HTML = r"""<!DOCTYPE html>
 
   </div>
 
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    renderMathInElement(document.body, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '$', right: '$', display: false}
+      ],
+      throwOnError: false
+    });
+  });
+</script>
 </body>
 </html>
 """
