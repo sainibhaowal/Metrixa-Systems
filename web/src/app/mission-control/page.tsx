@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import {
   triggerPipelineStage,
+  cancelPipelineRun,
   fetchPipelineRuns,
   comparePipelineRuns,
   executeTool,
@@ -197,6 +198,7 @@ interface PipelineRun {
 export default function MissionControlPage() {
   // Global Pipeline State
   const [running, setRunning] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const [activeStage, setActiveStage] = useState<string | null>(null);
   const [progress, setProgress] = useState<number>(0);
   const [viewMode, setViewMode] = useState<"concise" | "deep">("concise");
@@ -268,7 +270,7 @@ export default function MissionControlPage() {
     }
   }, [compareMode, selectedRun, compareRunId]);
 
-  // SSE Stream Listener
+  // SSE Stream Listener (Persistent Single Connection)
   useEffect(() => {
     const sse = new EventSource("http://127.0.0.1:8000/api/pipeline/stream");
 
@@ -277,7 +279,13 @@ export default function MissionControlPage() {
         const data = JSON.parse(e.data);
         if (data.is_running) {
           setRunning(true);
-          setActiveStage(data.stage?.toLowerCase() || null);
+          if (data.stage && data.stage !== "IDLE") {
+            setActiveStage(data.stage.toLowerCase());
+          }
+        } else {
+          // Sync frontend when backend is idle
+          setRunning(false);
+          setActiveStage(null);
         }
       } catch {}
     });
@@ -308,7 +316,7 @@ export default function MissionControlPage() {
           id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
           time: now,
           level: lvl,
-          stage: data.stage || activeStage || undefined,
+          stage: data.stage || undefined,
           msg: msgText,
           details: data.details || (data.stats ? data.stats : undefined),
         };
@@ -341,6 +349,22 @@ export default function MissionControlPage() {
       loadRuns();
     });
 
+    sse.addEventListener("CANCELLED", (e: any) => {
+      setRunning(false);
+      setActiveStage(null);
+      setProgress(0);
+      setLogs((prev) => [
+        ...prev,
+        {
+          id: `cancel-${Date.now()}`,
+          time: new Date().toLocaleTimeString(),
+          level: "WARN",
+          msg: "Pipeline execution interrupted and cancelled.",
+        },
+      ]);
+      loadRuns();
+    });
+
     sse.addEventListener("ERROR", (e: any) => {
       setRunning(false);
       setActiveStage(null);
@@ -357,12 +381,36 @@ export default function MissionControlPage() {
     });
 
     return () => sse.close();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeStage]);
+  }, []);
 
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [logs]);
+
+  // Cancel / Interrupt Execution
+  const handleCancel = async () => {
+    try {
+      setCancelling(true);
+      await cancelPipelineRun();
+      setRunning(false);
+      setActiveStage(null);
+      setProgress(0);
+      setLogs((prev) => [
+        ...prev,
+        {
+          id: `cancel-${Date.now()}`,
+          time: new Date().toLocaleTimeString(),
+          level: "WARN",
+          msg: "Operator manually triggered pipeline interruption.",
+        },
+      ]);
+      loadRuns();
+    } catch (err: any) {
+      console.error("Cancel failed:", err);
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   // Trigger Execution
   const handleRun = async (stage: string) => {
@@ -509,8 +557,19 @@ export default function MissionControlPage() {
           </div>
         </div>
 
-        {/* Right Master Execution Button */}
+        {/* Right Master Execution Button & Emergency Interrupt */}
         <div className="flex items-center gap-2">
+          {running && (
+            <button
+              onClick={handleCancel}
+              disabled={cancelling}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/40 text-xs font-bold font-mono transition-all disabled:opacity-50 shrink-0"
+              title="Interrupt and cancel current execution"
+            >
+              <X className="w-3.5 h-3.5 text-rose-400" />
+              <span>{cancelling ? "Stopping..." : "Interrupt / Stop"}</span>
+            </button>
+          )}
           <button
             onClick={() => handleRun("full")}
             disabled={running}
@@ -519,7 +578,7 @@ export default function MissionControlPage() {
             <Play className="w-3.5 h-3.5 fill-zinc-950" />
             <span>
               {running
-                ? "Running Full DAG Cycle..."
+                ? `Running [${(activeStage || "DAG").toUpperCase()}]...`
                 : "Execute Full Pipeline (Stages 1-6)"}
             </span>
           </button>
@@ -927,17 +986,25 @@ export default function MissionControlPage() {
                       </span>
                     </div>
 
-                    <button
-                      onClick={() => handleRun(s.id)}
-                      disabled={running}
-                      className="px-2 py-1 rounded-lg bg-zinc-900 hover:bg-emerald-500 hover:text-zinc-950 text-emerald-400 border border-white/[0.06] hover:border-emerald-500 text-[10px] font-bold font-mono transition-all disabled:opacity-50 shrink-0"
-                    >
-                      {isRunningThis ? (
-                        <RefreshCw className="w-3 h-3 animate-spin" />
-                      ) : (
-                        "Run"
-                      )}
-                    </button>
+                    {isRunningThis ? (
+                      <button
+                        onClick={handleCancel}
+                        disabled={cancelling}
+                        className="px-2 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500 hover:text-white text-rose-300 border border-rose-500/40 text-[10px] font-bold font-mono transition-all flex items-center gap-1 shrink-0"
+                        title="Click to interrupt this stage"
+                      >
+                        <RefreshCw className="w-3 h-3 animate-spin text-rose-400" />
+                        <span>Cancel</span>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleRun(s.id)}
+                        disabled={running}
+                        className="px-2 py-1 rounded-lg bg-zinc-900 hover:bg-emerald-500 hover:text-zinc-950 text-emerald-400 border border-white/[0.06] hover:border-emerald-500 text-[10px] font-bold font-mono transition-all disabled:opacity-50 shrink-0"
+                      >
+                        Run
+                      </button>
+                    )}
                   </div>
                 );
               })}

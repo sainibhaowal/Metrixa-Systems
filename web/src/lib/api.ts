@@ -68,6 +68,15 @@ export async function triggerPipelineStage(
   return res.json();
 }
 
+export async function cancelPipelineRun() {
+  metricsCache = null;
+  const res = await fetch(`${API_BASE}/api/pipeline/cancel`, {
+    method: "POST",
+  });
+  if (!res.ok) throw new Error("Failed to cancel pipeline");
+  return res.json();
+}
+
 export async function fetchToolsCatalog() {
   const res = await fetch(`${API_BASE}/api/tools`, { cache: "no-store" });
   if (!res.ok) throw new Error("Failed to fetch tools");

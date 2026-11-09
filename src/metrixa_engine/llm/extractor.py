@@ -353,18 +353,25 @@ class KPIExtractionPipeline:
         progress_callback: Optional[Callable[[int, int], None]] = None,
     ) -> Dict[str, int]:
         with self.db.connect() as conn:
-            stage_filter = (
-                "pipeline_stage != 'DISQUALIFIED'"
-                if reprocess_all
-                else "pipeline_stage = 'CRAWLED'"
-            )
+            crawled_count = conn.execute(
+                "SELECT COUNT(*) FROM companies_golden WHERE pipeline_stage = 'CRAWLED'"
+            ).fetchone()[0]
+
+            if reprocess_all or crawled_count == 0:
+                stage_filter = "pipeline_stage != 'DISQUALIFIED'"
+                # When all leads are already scored and user triggers extract on-demand without explicit limit, process a batch of 10
+                effective_limit = limit if limit is not None else (10 if crawled_count == 0 and not reprocess_all else None)
+            else:
+                stage_filter = "pipeline_stage = 'CRAWLED'"
+                effective_limit = limit
+
             query = f"""
                 SELECT * FROM companies_golden
                 WHERE {stage_filter}
                 ORDER BY is_vdiv_member DESC, source_count DESC, company_id ASC
             """
-            if limit:
-                query += f" LIMIT {int(limit)}"
+            if effective_limit:
+                query += f" LIMIT {int(effective_limit)}"
             rows = [dict(r) for r in conn.execute(query).fetchall()]
 
         total = len(rows)
@@ -375,16 +382,32 @@ class KPIExtractionPipeline:
         with_dm = 0
         with_erp = 0
 
-        tasks = [
-            self.extract_single_company(r, requested_provider=requested_provider)
-            for r in rows
-        ]
+        # Concurrency throttle: local inference daemons (LM Studio, Ollama) require serial or max 2 concurrent requests
+        prov_str = (requested_provider or settings.default_llm_provider or "").lower()
+        max_concurrency = 2 if any(loc in prov_str for loc in ("local", "studio", "ollama", "lm_studio")) else 5
+        sem = asyncio.Semaphore(max_concurrency)
+
+        async def _bounded_extract(row: Dict[str, Any]) -> Dict[str, Any]:
+            async with sem:
+                try:
+                    return await self.extract_single_company(
+                        row, requested_provider=requested_provider
+                    )
+                except Exception as err:
+                    return {
+                        "company_id": row.get("company_id", 0),
+                        "provider": "error",
+                        "dms_found": 0,
+                        "has_erp": False,
+                    }
+
+        tasks = [_bounded_extract(r) for r in rows]
         for coro in asyncio.as_completed(tasks):
             res = await coro
             completed += 1
-            if res["dms_found"] > 0:
+            if res.get("dms_found", 0) > 0:
                 with_dm += 1
-            if res["has_erp"]:
+            if res.get("has_erp", False):
                 with_erp += 1
             if progress_callback:
                 progress_callback(completed, total)

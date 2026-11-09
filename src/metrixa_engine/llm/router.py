@@ -447,21 +447,21 @@ class LLMRouter:
                 "provider": "ollama",
                 "base_url": settings.ollama_base_url,
                 "api_key": "ollama-local",
-                "model": settings.ollama_model,
+                "model": settings.ollama_model or "llama3.2",
             }
         if p == "local_llamacpp":
             return {
                 "provider": "local_llamacpp",
                 "base_url": settings.llamacpp_base_url,
-                "api_key": settings.llamacpp_api_key,
-                "model": settings.llamacpp_model,
+                "api_key": settings.llamacpp_api_key or "llamacpp",
+                "model": settings.llamacpp_model or "local-model",
             }
         if p == "lm_studio":
             return {
                 "provider": "lm_studio",
                 "base_url": settings.lmstudio_base_url,
-                "api_key": settings.lmstudio_api_key,
-                "model": settings.lmstudio_model,
+                "api_key": settings.lmstudio_api_key or "lm-studio",
+                "model": settings.lmstudio_model or "lfm3-1.7b",
             }
         return None
 
@@ -568,27 +568,36 @@ class LLMRouter:
         if provider_cfg["provider"] in ("openai", "deepseek", "gemini"):
             payload["response_format"] = {"type": "json_object"}
 
+        timeout_sec = 18.0 if provider_cfg["provider"] in ("lm_studio", "ollama", "local_llamacpp") else 30.0
         try:
-            async with httpx.AsyncClient(timeout=35.0) as client:
+            async with httpx.AsyncClient(timeout=timeout_sec) as client:
                 resp = await client.post(endpoint, headers=headers, json=payload)
                 latency_ms = int((time.perf_counter() - t0) * 1000)
                 if resp.status_code == 200:
                     data = resp.json()
-                    content = (
-                        data.get("choices", [{}])[0]
-                        .get("message", {})
-                        .get("content", "")
-                        .strip()
-                    )
+                    msg_obj = data.get("choices", [{}])[0].get("message", {})
+                    content = msg_obj.get("content", "").strip()
+                    if not content:
+                        # Handle reasoning models where output tokens are placed in reasoning_content
+                        content = msg_obj.get("reasoning_content", "").strip()
+
                     usage = data.get("usage") or {}
                     p_tok = int(usage.get("prompt_tokens", len(user_prompt) // 4))
                     c_tok = int(usage.get("completion_tokens", len(content) // 4))
 
-                    # Strip markdown code fences if present
+                    # Strip markdown code fences if present or extract valid JSON
                     content_clean = re.sub(
                         r"^```(?:json)?\s*|\s*```$", "", content
                     ).strip()
-                    parsed_dict = json.loads(content_clean)
+                    try:
+                        parsed_dict = json.loads(content_clean)
+                    except Exception:
+                        json_match = re.search(r"\{.*\}", content_clean, re.DOTALL)
+                        if json_match:
+                            parsed_dict = json.loads(json_match.group(0))
+                        else:
+                            raise ValueError("No valid JSON found in model output")
+
                     llm_obj = CompanyKPIExtraction.model_validate(parsed_dict)
 
                     # ANTI-HALLUCINATION GATE: Verify units and decision maker surnames in text

@@ -424,21 +424,76 @@ class PipelineRunRequest(BaseModel):
     reprocess_all: bool = Field(default=False)
 
 
+active_pipeline_task: asyncio.Task | None = None
+
+
+@app.post("/api/pipeline/cancel")
+@app.post("/api/pipeline/stop")
+async def cancel_pipeline_run():
+    """Cancel / interrupt any actively running pipeline stage execution."""
+    global active_pipeline_task
+    run_id = event_bus.current_run_id
+
+    if not event_bus.is_running and not (
+        active_pipeline_task and not active_pipeline_task.done()
+    ):
+        return {
+            "status": "idle",
+            "message": "No pipeline execution currently in progress.",
+        }
+
+    if active_pipeline_task and not active_pipeline_task.done():
+        active_pipeline_task.cancel()
+
+    event_bus.is_running = False
+    event_bus.current_stage = "IDLE"
+
+    await event_bus.emit(
+        "CANCELLED",
+        {
+            "run_id": run_id,
+            "message": "Pipeline run was interrupted and cancelled by operator.",
+        },
+    )
+    await event_bus.emit(
+        "LOG",
+        {
+            "level": "WARN",
+            "message": "Pipeline execution interrupted and stopped by user.",
+        },
+    )
+
+    if run_id:
+        try:
+            with db.connect() as conn:
+                conn.execute(
+                    "UPDATE pipeline_runs SET status = 'CANCELLED', finished_at = ? WHERE run_id = ?",
+                    (datetime.now(timezone.utc).isoformat(), run_id),
+                )
+        except Exception:
+            pass
+
+    _metrics_cache.clear()
+    return {"status": "cancelled", "run_id": run_id}
+
+
 @app.post("/api/pipeline/run")
 async def trigger_pipeline_run(req: PipelineRunRequest):
     """Trigger background pipeline stage execution and stream updates via SSE."""
-    if event_bus.is_running:
+    global active_pipeline_task
+    if event_bus.is_running or (
+        active_pipeline_task and not active_pipeline_task.done()
+    ):
         raise HTTPException(status_code=409, detail="Pipeline run already in progress")
 
     import uuid
 
     run_id = f"run-{uuid.uuid4().hex[:8]}"
+    event_bus.is_running = True
+    event_bus.current_run_id = run_id
+    event_bus.current_stage = req.stage.upper()
 
     async def _execute_task():
-        event_bus.is_running = True
-        event_bus.current_run_id = run_id
-        event_bus.current_stage = req.stage.upper()
-
         await event_bus.emit(
             "LOG",
             {
@@ -711,6 +766,35 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
             except Exception:
                 pass
 
+        except asyncio.CancelledError:
+            await event_bus.emit(
+                "LOG",
+                {
+                    "level": "WARN",
+                    "message": f"Pipeline execution interrupted: {req.stage.upper()}",
+                },
+            )
+            await event_bus.emit(
+                "CANCELLED",
+                {"run_id": run_id, "stage": req.stage, "message": "Run cancelled"},
+            )
+            try:
+                finished_ts = datetime.now(timezone.utc).isoformat()
+                dur_sec = round(time.perf_counter() - t_start, 1)
+                with db.connect() as conn:
+                    conn.execute(
+                        """
+                        UPDATE pipeline_runs
+                        SET status = 'CANCELLED',
+                            duration_seconds = ?,
+                            finished_at = ?,
+                            error_message = 'Interrupted by operator'
+                        WHERE run_id = ?
+                        """,
+                        (dur_sec, finished_ts, run_id),
+                    )
+            except Exception:
+                pass
         except Exception as e:
             await event_bus.emit(
                 "LOG",
@@ -737,9 +821,10 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
         finally:
             event_bus.is_running = False
             event_bus.current_stage = "IDLE"
+            active_pipeline_task = None
             _metrics_cache.clear()
 
-    asyncio.create_task(_execute_task())
+    active_pipeline_task = asyncio.create_task(_execute_task())
     return {"status": "started", "run_id": run_id, "stage": req.stage}
 
 
@@ -762,11 +847,24 @@ async def stream_pipeline_events():
                 ),
             }
             while True:
-                msg = await q.get()
-                yield {
-                    "event": msg.get("type", "LOG"),
-                    "data": json.dumps(msg),
-                }
+                try:
+                    # Wait up to 10 seconds for next event; if none, yield keep-alive HEARTBEAT
+                    msg = await asyncio.wait_for(q.get(), timeout=10.0)
+                    yield {
+                        "event": msg.get("type", "LOG"),
+                        "data": json.dumps(msg),
+                    }
+                except asyncio.TimeoutError:
+                    yield {
+                        "event": "HEARTBEAT",
+                        "data": json.dumps(
+                            {
+                                "status": "heartbeat",
+                                "is_running": event_bus.is_running,
+                                "stage": event_bus.current_stage,
+                            }
+                        ),
+                    }
         except asyncio.CancelledError:
             pass
         finally:
