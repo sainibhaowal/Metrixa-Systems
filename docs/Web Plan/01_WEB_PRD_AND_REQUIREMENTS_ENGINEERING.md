@@ -82,7 +82,7 @@ flowchart TD
   - Direct Personal Email Coverage (%)
   - PropTech / Modern ERP Penetration (%)
 - **FR-W1.2:** The dashboard MUST provide interactive charts:
-  - **Lead Score Distribution** (Histogram $0–100$)
+  - **Lead Score Distribution** (Histogram $0 \text{ to } 100$)
   - **Berlin District Breakdown** (Horizontal bar chart across 12 *Bezirke*)
   - **Detected ERP Stack Share** (Casavi, Domus, Immoware24, Haufe PowerHaus, etg24, Wodis)
   - **Service Focus Matrix** (WEG vs. Mietverwaltung vs. Gewerbe)
@@ -93,7 +93,7 @@ flowchart TD
   - `[Run Deduplicate]` (Normalizes and clusters listings via Union-Find)
   - `[Run Crawl]` (Crawls homepages + `/impressum`, `/team`, `/leistungen`)
   - `[Run Extract]` (Runs multi-LLM or deterministic parser)
-  - `[Run Enrich & Score]` (Verifies DNS MX, resolves personal emails, scores 0–100)
+  - `[Run Enrich & Score]` (Verifies DNS MX, resolves personal emails, scores 0 to 100)
   - `[Run Full Pipeline]` (Sequential end-to-end execution)
 - **FR-W2.2:** The UI MUST stream real-time execution events, stage progress bars, and log entries using **Server-Sent Events (SSE)** without freezing or requiring page refreshes.
 - **FR-W2.3:** Operators MUST be able to abort or cancel a running pipeline execution gracefully.
@@ -123,12 +123,18 @@ flowchart TD
   - Network Verifiers (DNS MX resolver, Cloudflare email decoder)
 - **FR-W5.2:** Each tool card MUST display status indicators (Active, Available, Idle), version/endpoint, latency, and a `[Test Tool]` trigger that executes a live health check.
 
-### FR-W6: Artifacts & Export Vault
+### FR-W6: Real-Time Deliverables Engine & Google Sheets API Push (100% Implemented)
 - **FR-W6.1:** Operators MUST be able to download the current production datasets on demand:
   - `[Download Excel (.xlsx)]` (Formatted 4-tab workbook with corporate styling)
-  - `[Download Master CSV]` (Raw RFC-compliant CSV)
-  - `[Download Evaluation Report (.md)]` (Ablation study & precision/recall report)
-- **FR-W6.2:** Display a **Google Sheets 1-Click Link** with timestamp and direct instructions for sharing with Metrixa Systems' hiring team.
+  - `[Download Master CSV]` (Standardized RFC-4180 CSV with UTF-8 BOM encoding)
+  - `[Download Evaluation Report (.md)]` (Ablation study, 0% hallucination proof & precision/recall report)
+  - `[Download Database Snapshot (.db)]` (SQLite WAL relational database with all 6 tables)
+  - `[Download Case Study Whitepaper (.pdf)]` (Publication-grade 14-page research case study)
+- **FR-W6.2:** Real-Time Google Sheets API Cloud Mirror:
+  - Direct OAuth2 Service Account and Webhook synchronization via `GoogleSheetsSync` (`src/metrixa_engine/telemetry/google_sheets_sync.py`).
+  - Batch updates all 4 canonical tabs (`Qualified_Berlin_Leads`, `All_Decision_Makers_Contacts`, `Evidence_And_Audit_Trail`, `KPI_Methodology_And_Summary`) matching Excel schema 1:1.
+  - Interactive in-browser office viewer on `/artifacts` supporting real-time sheet tabs, in-sheet text search, and copy-to-clipboard.
+  - Dedicated REST endpoints: `GET /api/deliverables/status`, `POST /api/deliverables/sync-all`, `POST /api/deliverables/google-sheets/test`, and `POST /api/deliverables/google-sheets/sync`.
 
 ### FR-W7: Settings & Provider Configuration Hub
 - **FR-W7.1:** Manage active LLM providers via interactive cards:

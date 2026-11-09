@@ -6,7 +6,7 @@
 1. **Master Excel / Google Sheets Workbook:** [`data/exports/metrixa_berlin_hausverwaltungen.xlsx`](../data/exports/metrixa_berlin_hausverwaltungen.xlsx) *(4 Tabs: `Qualified_Berlin_Leads`, `All_Decision_Makers_Contacts`, `Evidence_And_Audit_Trail`, `KPI_Methodology_And_Summary`)*
 2. **Master CSV Export:** [`data/exports/metrixa_berlin_leads_master.csv`](../data/exports/metrixa_berlin_leads_master.csv)
 3. **Quantitative Evaluation & Ablation Report:** [`data/exports/evaluation_ablation_report.md`](../data/exports/evaluation_ablation_report.md)
-4. **Production Software Repository:** `metrixa-engine` (`src/metrixa_engine/` + `docs/01`–`07` + `tests/`)
+4. **Production Software Repository:** `metrixa-engine` (`src/metrixa_engine/` + `docs/01`-`07` + `tests/`)
 
 ---
 
@@ -19,8 +19,8 @@ Instead of manually copying companies into a spreadsheet or building a fragile o
 | **Raw Berlin Listings Scraped (Task 1)** | **1,375** | Sharded across 5 sources (*Gelbe Seiten, 11880.com, VDIV Berlin-Brandenburg, OpenStreetMap Overpass API, Search Discovery*) across Berlin postal codes |
 | **Deduplicated Berlin *Hausverwaltungen* (Task 1)** | **1,200** | Removed **175** duplicate records via Canonical Domain, E.164 Phone, RapidFuzz (`TokenSortRatio`), and `Union-Find` clustering |
 | **Corporate Websites & *Impressum* Pages Crawled (Task 2)** | **885 Pages** *(243 Domains)* | Async HTTP/2 crawler prioritizing `/`, `/impressum`, `/team`, `/leistungen`, `/referenzen`, `/kundenportal` with Cloudflare XOR email decoder |
-| **🟢 Tier A (`Score 70–100`) High-Priority Leads** | **35** | Institutional and mid-sized Berlin *WEG* & *Miet* managers (`1,000–53,300` units) with PropTech portals/ERPs and direct decision-maker contacts |
-| **🟡 Tier B (`Score 45–69`) Qualified Mid-Market Leads** | **409** | Established Berlin residential property managers ready for targeted outreach |
+| **🟢 Tier A (`Score 70-100`) High-Priority Leads** | **35** | Institutional and mid-sized Berlin *WEG* & *Miet* managers (`1,000-53,300` units) with PropTech portals/ERPs and direct decision-maker contacts |
+| **🟡 Tier B (`Score 45-69`) Qualified Mid-Market Leads** | **409** | Established Berlin residential property managers ready for targeted outreach |
 | **⚪ Tier C (`Score < 45`) Long-Tail / Small Leads** | **756** | Smaller local property managers across Berlin |
 | **Named Decision-Makers Extracted (Bonus)** | **104 Managing Directors** *(104 Firms)* | Legally mandated *Geschäftsführer*, *Inhaber*, *Vorstand*, and *Prokuristen* extracted from § 5 DDG *Impressum* & `/team` pages |
 | **Personal Decision-Maker Emails (`Non-info@`) (Bonus)** | **118 Contacts** *(102 Firms)* | Strictly separated from `info@` inboxes and verified against live **DNS `MX` servers** (`dnspython`) |
@@ -73,7 +73,7 @@ flowchart LR
 ## Slide 3: Task 1: Multi-Source Discovery & Entity Deduplication
 
 ### Why Single-Source Scraping Fails in Berlin
-Any single directory caps pagination or misses specialized *WEG-Verwaltung* and *Mietverwaltung* firms. We combined **5 complementary sources** and sharded queries across **all Berlin *Bezirke*** (`PLZ 10115–14199`):
+Any single directory caps pagination or misses specialized *WEG-Verwaltung* and *Mietverwaltung* firms. We combined **5 complementary sources** and sharded queries across **all Berlin *Bezirke*** (`PLZ 10115-14199`):
 1. **Gelbe Seiten (`405` listings):** Multi-keyword + 23 Berlin district shards + base64 `data-webseitelink` decoding.
 2. **11880.com (`835` listings):** HTML card + JSON-LD extraction + custom **Cloudflare `/cdn-cgi/l/email-protection` XOR hex decoder** that unlocked corporate emails and domains hidden from standard scrapers.
 3. **VDIV Berlin-Brandenburg (`30` flagship members):** Certified professional property managers.
@@ -120,7 +120,7 @@ To find the right contact person with a **personal email address (not `info@`)**
 ## Slide 6: Data Validation, Anti-Hallucination & Stage Ablation Study
 
 ### 4-Layer Validation Gate
-* **Layer 1 (Geography):** `95.4%` strict 5-digit Berlin PLZ (`10115–14199`) mapped to all 12 official Berlin *Bezirke*.
+* **Layer 1 (Geography):** `95.4%` strict 5-digit Berlin PLZ (`10115-14199`) mapped to all 12 official Berlin *Bezirke*.
 * **Layer 2 (Anti-Hallucination Evidence Gate):** Every extracted unit count and *Geschäftsführer* name is programmatically verified as a literal substring of the crawled webpage text (`100.0%` grounded quote match, **`0.0%` hallucination rate**).
 * **Layer 3 (Inbox Separation):** `100.0%` of the personal email column is non-generic (`0` `info@` addresses leaked into the personal column).
 * **Layer 4 (DNS `MX` Network Check):** Live DNS `MX` resolution confirms active corporate mail servers.

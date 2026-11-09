@@ -169,6 +169,20 @@ class Settings(BaseModel):
         == "true"
     )
 
+    # 5. Real-Time Google Sheets API & Deliverables Settings
+    google_sheet_id: str = Field(
+        default_factory=lambda: os.getenv("GOOGLE_SHEET_ID", "").strip()
+    )
+    google_service_account_file: str = Field(
+        default_factory=lambda: os.getenv("GOOGLE_SERVICE_ACCOUNT_FILE", "").strip()
+    )
+    google_service_account_json: str = Field(
+        default_factory=lambda: os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON", "").strip()
+    )
+    google_sheets_webhook_url: str = Field(
+        default_factory=lambda: os.getenv("GOOGLE_SHEETS_WEBHOOK_URL", "").strip()
+    )
+
     def ensure_dirs(self) -> None:
         self.database_path.parent.mkdir(parents=True, exist_ok=True)
         self.export_dir.mkdir(parents=True, exist_ok=True)

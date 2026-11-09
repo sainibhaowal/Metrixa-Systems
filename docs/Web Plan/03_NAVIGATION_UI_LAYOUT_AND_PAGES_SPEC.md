@@ -60,7 +60,7 @@ Gives sales directors and executives an instant, 10-second overview of market pe
    - **Personal Email Coverage:** `118` verified email contacts across `102` unique companies (`8.5%`).
    - **PropTech ERP Penetration:** `41` companies using Casavi, Immoware24, Domus, Haufe, or etg24.
 2. **Chart Matrix (Middle Row, 2 Columns):**
-   - **Left: Lead Score Distribution:** Histogram plotting lead counts across score brackets (`90–100`, `80–89`, `70–79`, `50–69`, `<50`).
+   - **Left: Lead Score Distribution:** Histogram plotting lead counts across score brackets (`90-100`, `80-89`, `70-79`, `50-69`, `<50`).
    - **Right: Berlin District Penetration (Top 12 Bezirke):** Horizontal bar chart showing Charlottenburg-Wilmersdorf, Mitte, Pankow, Tempelhof-Schöneberg, etc.
 3. **Strategic Breakdown Cards (Bottom Row, 3 Columns):**
    - **ERP & Portal Adoption:** Progress bars displaying Casavi (`14`), Domus (`11`), Immoware24 (`8`), Haufe (`5`), Customer Portal (`38`).
@@ -108,7 +108,7 @@ The primary workhorse for sales reps and researchers. Allows instantaneous searc
 2. **Virtualized TanStack Data Grid:**
    - Columns:
      - `Tier` (Color-coded badge)
-     - `Score` (Bold score badge $0–100$)
+     - `Score` (Bold score badge $0-100$)
      - `Company Name` (With legal form badge: `GmbH`, `AG`, `e.K.`)
      - `District & PLZ` (e.g., `Mitte (10117)`)
      - `Units Managed` (Explicit count or size tier badge: `11,500 Units`, `1,000-5,000`)

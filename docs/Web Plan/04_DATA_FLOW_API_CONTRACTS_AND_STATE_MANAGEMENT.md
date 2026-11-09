@@ -204,10 +204,21 @@ All endpoints are hosted at `http://127.0.0.1:8000` with CORS enabled for `http:
 - **`POST /api/pipeline/abort`**
   - Cancels current running task.
 
-### 2.4 Artifacts & Exports
+### 2.4 Artifacts, Real-Time Deliverables & Google Sheets API
+- **`GET /api/artifacts/files`**: Returns live deliverables catalog with dynamic SHA-256 digests, file sizes, timestamps, and record counts.
+- **`POST /api/artifacts/sync`**: Regenerates Excel, CSV, Markdown evaluation report, and Google Sheets directly from live SQLite DB.
+- **`GET /api/artifacts/preview/{artifact_id}`**: Returns parsed office preview data for Excel, CSV, Google Sheets, Markdown, and SQLite database explorer.
+- **`POST /api/artifacts/action`**: Executes lifecycle actions on deliverables (`archive`, `restore`, `trash`, `empty_trash`, `set_retention`).
+- **`GET /api/artifacts/download/{artifact_id}`**: Unified file download router supporting Excel (.xlsx), CSV, DB, Markdown, and PDF whitepaper.
 - **`GET /api/artifacts/download/excel`**: Streams `metrixa_berlin_hausverwaltungen.xlsx`.
 - **`GET /api/artifacts/download/csv`**: Streams `metrixa_berlin_leads_master.csv`.
 - **`GET /api/artifacts/evaluation-report`**: Returns Markdown text of `evaluation_ablation_report.md`.
+- **`GET /api/deliverables/status`**: Audits all local and cloud deliverables (Excel, CSV, SQLite, PDF, Google Sheets) with connection and sync timestamps.
+- **`POST /api/deliverables/sync-all`**: Synchronizes all deliverables across Excel, CSV, and Google Sheets in one atomic workflow.
+- **`POST /api/deliverables/google-sheets/test`**: Tests Google Sheets API authentication, permissions, and spreadsheet reachability.
+- **`POST /api/deliverables/google-sheets/sync`**: Pushes all 4 canonical tabs (1,200 leads, contacts, crawl logs, methodology) directly to Google Sheets API v4.
+- **`GET /api/deliverables/google-sheets/preview`**: Returns tabular preview rows and headers for Google Sheets integration.
+- **`GET /api/deliverables/google-sheets/url`**: Returns the target Google Sheets spreadsheet URL for 1-click cloud access.
 
 ### 2.5 Settings & Provider Hub
 - **`GET /api/settings`**: Returns current runtime configuration (safe fields, masked API keys).

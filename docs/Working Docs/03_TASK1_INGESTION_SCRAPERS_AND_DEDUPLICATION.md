@@ -8,7 +8,7 @@
 
 ## 1. Why Single-Source Scraping Fails in Berlin (And How We Solve It)
 
-A naive scraper that runs a single query (`"Hausverwaltung Berlin"`) on one directory or search engine will cap out at 100–300 results because:
+A naive scraper that runs a single query (`"Hausverwaltung Berlin"`) on one directory or search engine will cap out at 100-300 results because:
 1. Directories paginate up to a maximum depth per query.
 2. Many Berlin property managers register under specific sub-terms:
    * *Hausverwaltung* (General Property Management)
@@ -23,7 +23,7 @@ To achieve **maximum market recall across Berlin**, we combine **5 orthogonal so
 flowchart TD
     subgraph Sharding["Berlin Search & District Matrix"]
         TERMS["Search Keywords:\n• Hausverwaltung\n• Immobilienverwaltung\n• WEG-Verwaltung\n• Mietverwaltung\n• Grundstücksverwaltung"]
-        DISTRICTS["12 Berlin Bezirke (PLZ 10115–14199):\nMitte, Friedrichshain-Kreuzberg, Pankow,\nCharlottenburg-Wilmersdorf, Spandau,\nSteglitz-Zehlendorf, Tempelhof-Schöneberg,\nNeukölln, Treptow-Köpenick, Marzahn-Hellersdorf,\nLichtenberg, Reinickendorf"]
+        DISTRICTS["12 Berlin Bezirke (PLZ 10115-14199):\nMitte, Friedrichshain-Kreuzberg, Pankow,\nCharlottenburg-Wilmersdorf, Spandau,\nSteglitz-Zehlendorf, Tempelhof-Schöneberg,\nNeukölln, Treptow-Köpenick, Marzahn-Hellersdorf,\nLichtenberg, Reinickendorf"]
     end
 
     subgraph Scrapers["5 Complementary Ingestion Scrapers"]
@@ -50,7 +50,7 @@ flowchart TD
 
 ### 2.1 Scraper 1: Gelbe Seiten (`gelbeseiten.de`)
 * **File:** `src/metrixa_engine/scrapers/gelbe_seiten.py`
-* **Why we include it:** Gelbe Seiten is Germany's largest commercial directory (~700–1,000+ Berlin property management entries) with high website URL and phone number completeness.
+* **Why we include it:** Gelbe Seiten is Germany's largest commercial directory (~700-1,000+ Berlin property management entries) with high website URL and phone number completeness.
 * **How it works:**
   1. Queries `/suche/{keyword}/berlin` across our 5 core keywords (`hausverwaltung`, `immobilienverwaltung`, `weg-verwaltung`, `mietverwaltung`, `grundstuecksverwaltung`) and optionally per Berlin district.
   2. Parses `<article class="mod mod-Treffer">` listing blocks using `selectolax`.
@@ -72,9 +72,9 @@ flowchart TD
 
 ### 2.3 Scraper 3: VDIV Berlin-Brandenburg (`vdiv.de` / Regional Member Directory)
 * **File:** `src/metrixa_engine/scrapers/vdiv.py`
-* **Why we include it:** The *Verband der Immobilienverwalter (VDIV)* is the premier German industry association for professional property managers. VDIV members are **Tier-A targets** for Metrixa Systems because membership requires professional certification, insurance, and typically indicates an established portfolio (`500–20,000+` units).
+* **Why we include it:** The *Verband der Immobilienverwalter (VDIV)* is the premier German industry association for professional property managers. VDIV members are **Tier-A targets** for Metrixa Systems because membership requires professional certification, insurance, and typically indicates an established portfolio (`500-20,000+` units).
 * **How it works:**
-  1. Queries the VDIV / VDIV Berlin-Brandenburg member directory (`verwaltersuche` filtered to `Berlin` / PLZ `10...–14...`).
+  1. Queries the VDIV / VDIV Berlin-Brandenburg member directory (`verwaltersuche` filtered to `Berlin` / PLZ `10...-14...`).
   2. Uses `httpx` (with `playwright` fallback if dynamic JS filtering is active) to extract member company names, addresses, phone numbers, websites, and stated management specialties (*WEG-Verwaltung*, *Mietverwaltung*, *Gewerbeverwaltung*).
   3. Sets a boolean flag `is_vdiv_member = True` on all matched records (which boosts their Lead Qualification Score in Task 2).
 
@@ -98,7 +98,7 @@ flowchart TD
 
 ### 2.5 Scraper 5: Search Discovery via Local SearXNG & Tavily (`search_discovery.py`)
 * **File:** `src/metrixa_engine/scrapers/search_discovery.py`
-* **Why we include it:** Modern digital-first property managers (launched in the last 3–5 years) may not pay for yellow-page directory listings, but rank on Google/Bing/DuckDuckGo for queries like `"WEG Verwaltung Berlin GmbH Impressum"`.
+* **Why we include it:** Modern digital-first property managers (launched in the last 3-5 years) may not pay for yellow-page directory listings, but rank on Google/Bing/DuckDuckGo for queries like `"WEG Verwaltung Berlin GmbH Impressum"`.
 * **How it works:**
   Runs systematic search dorks across Berlin districts using our **Local SearXNG** instance (`http://127.0.0.1:8888/search?format=json`) with **Tavily API** fallback:
   * `"Hausverwaltung" "Berlin" "Impressum" "Geschäftsführer"`
@@ -159,7 +159,7 @@ If Record A matches Record B (via phone), and Record B matches Record C (via web
 * **Golden Record Survivorship Rules:** For each connected cluster, we synthesize one `GoldenCompany` row by selecting the highest-trust attribute across the cluster:
   * **Name:** Prefer `VDIV` > `Impressum Legal Name` > `Gelbe Seiten` > `11880` > `OSM`.
   * **Website URL:** Prefer valid non-redirect corporate domain.
-  * **Address & Phone:** Prefer complete address with valid 5-digit Berlin PLZ (`10115–14199`) and valid E.164 phone.
+  * **Address & Phone:** Prefer complete address with valid 5-digit Berlin PLZ (`10115-14199`) and valid E.164 phone.
   * **Provenance Tracking:** Populate `source_list` (e.g., `"gelbe_seiten, 11880, vdiv"`) and `source_count` (e.g., `3`).
 
 ---

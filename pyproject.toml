@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "metrixa-engine"
 version = "1.0.0"
-description = "Autonomous B2B Lead Discovery, Website/Impressum Crawler, Multi-LLM KPI Extractor & Qualification Engine for Metrixa Systems (Berlin Hausverwaltungen)"
+description = "Automated B2B Lead Intelligence, Website/Impressum Crawler, Multi-LLM KPI Extractor & Qualification Engine for Metrixa Systems (Berlin Hausverwaltungen)"
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [
@@ -29,6 +29,8 @@ dependencies = [
     "rich>=13.7.1",
     "openpyxl>=3.1.5",
     "tenacity>=8.5.0",
+    "gspread>=6.1.0",
+    "google-auth>=2.30.0",
 ]
 
 [project.optional-dependencies]
@@ -46,3 +48,10 @@ where = ["src"]
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["F"]

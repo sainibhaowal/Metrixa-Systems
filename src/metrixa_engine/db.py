@@ -184,7 +184,19 @@ CREATE TABLE IF NOT EXISTS pipeline_runs (
     summary_metrics_json TEXT
 );
 
+CREATE TABLE IF NOT EXISTS deliverables_sync_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    deliverable_type TEXT NOT NULL,
+    target_destination TEXT NOT NULL,
+    status TEXT NOT NULL,
+    records_count INTEGER NOT NULL,
+    duration_ms INTEGER NOT NULL,
+    details_json TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE INDEX IF NOT EXISTS idx_pipeline_runs_num ON pipeline_runs(run_number DESC);
+CREATE INDEX IF NOT EXISTS idx_deliv_sync_created ON deliverables_sync_log(created_at DESC);
 """
 
 

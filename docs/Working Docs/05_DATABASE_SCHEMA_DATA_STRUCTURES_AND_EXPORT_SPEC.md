@@ -126,6 +126,35 @@ erDiagram
         boolean hallucination_blocked
         datetime created_at
     }
+
+    PIPELINE_RUNS {
+        string run_id PK
+        int run_number
+        string trigger_type "cli | manual_ui | automated_cron"
+        string target_city "Berlin"
+        string active_stage
+        string status "IDLE | RUNNING | COMPLETED | FAILED"
+        int total_companies_in
+        int total_companies_out
+        int new_companies_found
+        int changed_kpis_count
+        float duration_seconds
+        datetime started_at
+        datetime finished_at
+        string error_message
+        string summary_metrics_json
+    }
+
+    DELIVERABLES_SYNC_LOG {
+        int id PK
+        string deliverable_type "excel | csv | google_sheets | eval_report | db"
+        string target_destination
+        string status "SUCCESS | PARTIAL | FAILED"
+        int records_count
+        int duration_ms
+        string details_json
+        datetime created_at
+    }
 ```
 
 ---
@@ -144,19 +173,21 @@ stateDiagram-v2
     EXTRACTED --> DISQUALIFIED: LLM confirms not a Hausverwaltung
     EXTRACTED --> ENRICHED: Stage 5 (SearXNG/Tavily LinkedIn + DNS MX Email Verifier)
     ENRICHED --> SCORED: Stage 5b (Deterministic 0-100 Metrixa Lead Scorer)
-    SCORED --> [*]: Stage 6 (Export to Multi-Tab .xlsx & Evaluation Report)
+    SCORED --> [*]: Stage 6 (Export to Multi-Tab .xlsx, Google Sheets API & Evaluation Report)
 ```
 
 ---
 
-## 3. Exact Specification of the Final Excel (`.xlsx`) & Google Sheets Deliverable
+## 3. Exact Specification of the Final Excel (`.xlsx`) & Real-Time Google Sheets Deliverable
 
-Since we have no web frontend, the **Excel / Google Sheet workbook (`data/exports/metrixa_berlin_hausverwaltungen.xlsx`)** is the centerpiece visual deliverable that Metrixa Systems will inspect.
+Metrixa Engine provides a **dual synchronized deliverables pipeline**:
+1. **Local Enterprise Workbooks:** Formatted 4-Tab Excel (`data/exports/metrixa_berlin_hausverwaltungen.xlsx`), RFC-4180 UTF-8 BOM CSV (`data/exports/metrixa_berlin_leads_master.csv`), and Markdown Evaluation Reports.
+2. **Live Cloud Google Sheets API Mirror:** Automated 4-tab synchronization powered by `GoogleSheetsSync` (`src/metrixa_engine/telemetry/google_sheets_sync.py`) via Google Sheets API v4 (Service Account OAuth2 or Webhook), complete with programmatic batch updates and live in-browser preview.
 
-Our `ExcelExporter` (`src/metrixa_engine/telemetry/excel_exporter.py`) automatically builds a **4-Tab Workbook** with corporate styling (dark navy headers `#1B365D`, frozen top row, auto-fitted column widths, color-coded `Tier A/B/C` badges, and clickable URLs):
+Our `ExcelExporter` (`src/metrixa_engine/telemetry/excel_exporter.py`) and `GoogleSheetsSync` automatically build and synchronize the identical **4-Tab Data Model** with corporate styling (navy headers `#1B365D`, frozen top row, auto-fitted column widths, color-coded `Tier A/B/C` badges, and clickable URLs):
 
 ### 3.1 Tab 1: `Qualified_Berlin_Leads` (Primary Master Table)
-Sorted by `Metrixa Lead Score (0–100)` descending so the very best leads appear at the top.
+Sorted by `Metrixa Lead Score (0 to 100)` descending so the very best institutional leads appear at the top. Contains 1,200 canonical deduplicated records.
 
 | Col # | Column Header in Sheet | Source / Calculation | Example Value |
 | :---: | :--- | :--- | :--- |
@@ -201,5 +232,14 @@ Shows the exact URLs crawled (`impressum_url`, `team_url`, `services_url`), HTTP
 
 ### 3.4 Tab 4: `KPI_Methodology_And_Summary` (Executive Dashboard inside the Sheet)
 Automatically populated summary table right inside Excel/Google Sheets explaining:
-1. Why each KPI was chosen for Metrixa Systems and how the `0–100` Lead Score is weighted.
-2. Live dataset statistics (Total Raw Scraped → Total Deduplicated Berlin Companies → Tier A / B / C counts → % with Verified Website → % with Named Decision Maker → % with Personal Email / LinkedIn).
+1. Why each KPI was chosen for Metrixa Systems and how the `0 to 100` Lead Score is weighted.
+2. Live dataset statistics (Total Raw Scraped: 1,375 -> Total Deduplicated Berlin Companies: 1,200 -> Tier A: 35 / Tier B: 409 / Tier C: 756 -> 104 Named Decision Makers -> 118 Verified Personal Emails across 102 companies).
+
+### 3.5 Real-Time Google Sheets API Push & Synchronization Endpoints
+The live Google Sheets mirror is exposed via FastAPI endpoints and the Next.js Artifacts library:
+- **`GET /api/deliverables/status`**: Audits real-time availability across local files (Excel, CSV, SQLite DB, PDF whitepaper) and cloud Google Sheets.
+- **`POST /api/deliverables/sync-all`**: Triggers full synchronous refresh across Excel (.xlsx), CSV, Markdown reports, and Google Sheets API.
+- **`POST /api/deliverables/google-sheets/test`**: Validates Google service account JSON or OAuth2 credentials and checks spreadsheet read/write permissions.
+- **`POST /api/deliverables/google-sheets/sync`**: Batch pushes all 4 canonical tabs directly to Google Sheets API v4 or webhook.
+- **`GET /api/deliverables/google-sheets/preview`**: Returns top 25 records and headers for each of the 4 tabs formatted for instant table rendering.
+- **`GET /api/deliverables/google-sheets/url`**: Returns the target Google Sheets spreadsheet URL for 1-click cloud access.

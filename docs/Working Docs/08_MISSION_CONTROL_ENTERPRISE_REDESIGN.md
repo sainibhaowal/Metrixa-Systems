@@ -52,7 +52,7 @@ The user has reviewed the existing Mission Control page and identified critical 
   - Card 2: Entity Deduplication (`Union-Find` + `RapidFuzz` PLZ blocking)
   - Card 3: Async Impressum & DOM Crawler (`httpx` HTTP/2 + Playwright SPA fallback)
   - Card 4: Multi-LLM KPI Extraction (Deterministic § 5 DDG + Live API LLM router)
-  - Card 5: MX Verification & Lead Scoring (`DNS MX` + 0–100 commercial scoring)
+  - Card 5: MX Verification & Lead Scoring (`DNS MX` + 0-100 commercial scoring)
   - Card 6: Excel Deliverables & Eval (`4-Tab Excel`, CSV, Gold-Set Ablation Report)
   - Each card has an independent "Run Stage" trigger and parameter options (batch size, city filter).
 - **Embedded Real-Time Tool Benches:**

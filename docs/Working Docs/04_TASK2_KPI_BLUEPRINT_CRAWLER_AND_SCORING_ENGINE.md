@@ -22,7 +22,7 @@ flowchart TD
         P5["Pillar 5: Decision-Maker Reachability (Bonus)\n• Named Geschäftsführer / Prokurist (from Impressum)\n• Verified Personal Email (non-info@)\n• Personal LinkedIn Profile URL"]
     end
 
-    SCORE["Metrixa Deterministic Lead Score (0–100)\n+ Lead Tier (Tier A / Tier B / Tier C)"]
+    SCORE["Metrixa Deterministic Lead Score (0-100)\n+ Lead Tier (Tier A / Tier B / Tier C)"]
     P1 & P2 & P3 & P4 & P5 --> SCORE
 ```
 
@@ -32,7 +32,7 @@ flowchart TD
 | :--- | :--- | :--- | :--- | :--- |
 | **1. Scale** | `exact_units_managed` | `Integer \| Null` | Submetering revenue scales directly per apartment unit (*Wohneinheit*). Many proud *Hausverwaltungen* state on their site: *"Wir verwalten über 3.500 Wohneinheiten"*. | Website Crawler (`/`, `/ueber-uns`, `/referenzen`) + LLM Extractor |
 | **1. Scale** | `estimated_units_tier` | `Enum` (`<250`, `250-1,000`, `1,000-5,000`, `5,000+`) | When exact units aren't stated, sales still needs a reliable size bracket inferred from employee count, reference buildings, and legal structure. | Deterministic Heuristic + LLM Evidence Inference |
-| **1. Scale** | `employee_count_est` | `Integer \| String` | In Germany, 1 property manager (*Objektbetreuer*) typically manages ~300–500 residential units. A team of 10 employees implies ~3,000–5,000 units. | `/team` page photo/name count + LinkedIn company size |
+| **1. Scale** | `employee_count_est` | `Integer \| String` | In Germany, 1 property manager (*Objektbetreuer*) typically manages ~300-500 residential units. A team of 10 employees implies ~3,000-5,000 units. | `/team` page photo/name count + LinkedIn company size |
 | **1. Scale** | `legal_form` | `Enum` (`GmbH`, `GmbH & Co. KG`, `AG`, `UG`, `e.K.`, `GbR`) | Corporations (`GmbH`, `AG`, `GmbH & Co. KG`) have institutional portfolios; sole proprietors (`e.K.`, `GbR`) typically manage smaller portfolios. | Regex + *Impressum* Parser (`HRB` / `HRA` check) |
 | **2. Focus** | `manages_weg` | `Boolean` | **WEG-Verwaltung** (Homeowner Associations) vote on changing metering providers at annual owners' meetings (*Eigentümerversammlung*). Huge volume driver. | Website `/leistungen` analysis |
 | **2. Focus** | `manages_miet` | `Boolean` | **Mietverwaltung / Zinshaus** (Multi-family rental buildings) have a single landlord decision-maker, fastest sales cycle for submetering installation! | Website `/leistungen` analysis |
@@ -41,16 +41,16 @@ flowchart TD
 | **3. Digital** | `has_customer_portal` | `Boolean` | If a *Hausverwaltung* offers a digital tenant/owner portal (*Kundenportal / Eigentümerportal*), they value digital automation and EED monthly consumption apps. | DOM Link Scanner + Website Text |
 | **3. Digital** | `detected_erp_proptech` | `String (CSV)` | Detecting **Casavi, etg24, Facilioo, Domus, Wodis Sigma, Haufe PowerHaus, Immoware24, Karthago** proves tech adoption and allows Metrixa Systems to pitch seamless billing data integration! | Raw HTML/Script/Subdomain Regex Scanner + LLM |
 | **3. Digital** | `incumbent_metering_signal` | `String \| Null` | Mentions of legacy providers (*Techem, Ista, Brunata, Kalorimeta, Minol*) in tenant downloads/service pages reveal who Metrixa Systems is displacing. | DOM/PDF link & text scanner |
-| **3. Digital** | `digital_maturity_score` | `Integer (1–5)` | Composite score of website modernity, SSL, portal presence, PropTech stack, and online service forms. | Deterministic Formula |
+| **3. Digital** | `digital_maturity_score` | `Integer (1-5)` | Composite score of website modernity, SSL, portal presence, PropTech stack, and online service forms. | Deterministic Formula |
 | **4. Trust** | `is_vdiv_member` | `Boolean` | VDIV Berlin-Brandenburg members are vetted, professional property managers with high compliance needs. | VDIV Scraper + Website Badge Detection |
-| **4. Trust** | `founding_year` | `Integer \| Null` | Established companies (e.g., founded 1995) have large legacy building stocks due for submetering hardware replacement (every 5–6 years under *Eichfrist*). | Website `/ueber-uns` + LLM Extractor |
+| **4. Trust** | `founding_year` | `Integer \| Null` | Established companies (e.g., founded 1995) have large legacy building stocks due for submetering hardware replacement (every 5-6 years under *Eichfrist*). | Website `/ueber-uns` + LLM Extractor |
 | **5. Contact** | `decision_maker_name` | `String` | Full name of *Geschäftsführer* (Managing Director), *Inhaber* (Owner), or *Leiter Hausverwaltung*. | *Impressum* (§ 5 DDG) + `/team` + LinkedIn |
 | **5. Contact** | `decision_maker_role` | `String` | Exact title (`Geschäftsführer`, `Vorstand`, `Inhaber`, `Prokurist`, `Teamleitung`). | *Impressum* + `/team` + LinkedIn |
 | **5. Contact** | `personal_email` | `String \| Null` | Direct decision-maker email (strictly excluding `info@`, `kontakt@`, `service@`). | `/team`, `/impressum`, SearXNG/Tavily, or MX-verified pattern |
 | **5. Contact** | `email_status` | `Enum` | `VERIFIED_PUBLIC_DIRECT` (found on web), `PATTERN_INFERRED_MX_VALID` (derived from name + verified MX), or `GENERIC_ONLY` (only `info@` found). | Email Verification Engine |
 | **5. Contact** | `linkedin_url` | `URL \| Null` | Direct LinkedIn profile of the decision-maker or company page. | Website social links + SearXNG / Tavily LinkedIn search |
-| **6. Score** | `metrixa_lead_score` | `Integer (0–100)` | Final weighted qualification score ranking every company from `0` to `100`. | Scoring Engine (`scorer.py`) |
-| **6. Score** | `lead_tier` | `Enum` (`Tier A`, `Tier B`, `Tier C`) | Actionable sales bucket (`Tier A`: ≥70 Immediate Outreach, `Tier B`: 45–69 Nurture, `Tier C`: <45 Low Priority). | Scoring Engine (`scorer.py`) |
+| **6. Score** | `metrixa_lead_score` | `Integer (0-100)` | Final weighted qualification score ranking every company from `0` to `100`. | Scoring Engine (`scorer.py`) |
+| **6. Score** | `lead_tier` | `Enum` (`Tier A`, `Tier B`, `Tier C`) | Actionable sales bucket (`Tier A`: ≥70 Immediate Outreach, `Tier B`: 45-69 Nurture, `Tier C`: <45 Low Priority). | Scoring Engine (`scorer.py`) |
 
 ---
 
@@ -191,7 +191,7 @@ $$\text{MetrixaLeadScore} = S_{\text{scale}} (35) + S_{\text{focus}} (25) + S_{\
 | **5. Contact Reachability ($S_{\text{contact}}$)** | **10 pts** | • Named Decision Maker (*Geschäftsführer* / *Inhaber*) extracted → **+4 pts**<br>• Personal email (`PUBLIC_DIRECT_VERIFIED` or `PATTERN_MX_VERIFIED`) → **+4 pts**<br>• Decision-maker or Company LinkedIn URL found → **+2 pts** |
 
 ### 5.2 Qualification Tiers
-* **🟢 `Tier A: High-Priority Target` (`Score 70 – 100`):** Mid-to-large Berlin *Hausverwaltung* (`GmbH`/`AG`), manages multi-family *WEG* + *Mietverwaltung*, digitally mature (or VDIV member), with named decision-maker & direct contact. **Action:** Immediate personalized sales outreach by Metrixa Systems Account Executives.
-* **🟡 `Tier B: Qualified Mid-Market` (`Score 45 – 69`):** Solid residential property manager in Berlin with verified operations and decision-maker name, moderate size or moderate digital footprint. **Action:** Automated outbound sequence + LinkedIn outreach.
-* **⚪ `Tier C: Long-Tail / Small Portfolio` (`Score 20 – 44`):** Very small local manager, missing website, or limited portfolio data. **Action:** Low-touch marketing nurture.
+* **🟢 `Tier A: High-Priority Target` (`Score 70 - 100`):** Mid-to-large Berlin *Hausverwaltung* (`GmbH`/`AG`), manages multi-family *WEG* + *Mietverwaltung*, digitally mature (or VDIV member), with named decision-maker & direct contact. **Action:** Immediate personalized sales outreach by Metrixa Systems Account Executives.
+* **🟡 `Tier B: Qualified Mid-Market` (`Score 45 - 69`):** Solid residential property manager in Berlin with verified operations and decision-maker name, moderate size or moderate digital footprint. **Action:** Automated outbound sequence + LinkedIn outreach.
+* **⚪ `Tier C: Long-Tail / Small Portfolio` (`Score 20 - 44`):** Very small local manager, missing website, or limited portfolio data. **Action:** Low-touch marketing nurture.
 * **🔴 `Disqualified` (`Score < 20` or `is_actual_hausverwaltung == False`):** Pure real estate broker, facility cleaner, or non-Berlin entity. Excluded from main sales sheet.

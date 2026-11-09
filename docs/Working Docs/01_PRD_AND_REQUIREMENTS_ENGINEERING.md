@@ -67,7 +67,7 @@ flowchart LR
   3. **VDIV Berlin-Brandenburg** (`vdiv.de` / regional association directory): High-value certified professional property managers.
   4. **OpenStreetMap (Overpass API)** & **Search Discovery (`SearXNG` / `Tavily`)**: Geographic and long-tail web discovery.
 * **FR-1.2:** Every raw scraped record MUST be stored immutably in a staging table (`raw_listings`) with its source URL, scrape timestamp, and raw payload before deduplication.
-* **FR-1.3:** The system MUST filter out non-Berlin companies (verifying Berlin postal codes `10115`–`14199` or explicit Berlin locality/branch presence) and non-property-management businesses (e.g., pure real estate brokers/*Immobilienmakler* who do not manage properties, facility cleaners, or construction firms).
+* **FR-1.3:** The system MUST filter out non-Berlin companies (verifying Berlin postal codes `10115`-`14199` or explicit Berlin locality/branch presence) and non-property-management businesses (e.g., pure real estate brokers/*Immobilienmakler* who do not manage properties, facility cleaners, or construction firms).
 
 ### FR-2: Entity Resolution & Deduplication (Task 1)
 * **FR-2.1:** The system MUST normalize company names (stripping legal suffixes like `GmbH`, `UG (haftungsbeschränkt)`, `GmbH & Co. KG`, `AG`, `e.K.`, and standardizing German umlauts `ä/ö/ü/ß`).
@@ -98,7 +98,7 @@ flowchart LR
 * **FR-5.3:** When a decision-maker's name and company domain are known, but only an `info@` email is listed on the website, the system MUST search via **Local SearXNG / Tavily** for public personal emails and LinkedIn profiles (`site:linkedin.com/in`), and optionally generate standard German corporate email candidates verified against the domain's **DNS MX records** (clearly flagging `VERIFIED_PUBLIC` vs. `PATTERN_INFERRED_MX_VALID` so sales knows the exact provenance).
 
 ### FR-6: Deterministic Lead Scoring & Tiering (Task 2)
-* **FR-6.1:** Every company MUST receive a deterministic, reproducible **Metrixa Lead Score (`0–100`)** and a **Qualification Tier (`Tier A`, `Tier B`, `Tier C`, or `Disqualified`)** based on a transparent weighted formula combining Portfolio Scale, Residential/WEG Focus, Digital Maturity, and Contact Reachability.
+* **FR-6.1:** Every company MUST receive a deterministic, reproducible **Metrixa Lead Score (`0-100`)** and a **Qualification Tier (`Tier A`, `Tier B`, `Tier C`, or `Disqualified`)** based on a transparent weighted formula combining Portfolio Scale, Residential/WEG Focus, Digital Maturity, and Contact Reachability.
 
 ### FR-7: Auditable Export & Evaluation Suite (Task 3)
 * **FR-7.1:** The system MUST export a formatted multi-tab `.xlsx` workbook (ready for instant upload to Google Sheets) and CSV files without requiring any frontend web application.
@@ -125,6 +125,6 @@ To avoid confusion or scattered notes, our entire system is documented across **
 1. **`01_PRD_AND_REQUIREMENTS_ENGINEERING.md`** *(This file)*: Business context, requirements mapping, functional/non-functional specs.
 2. **`02_SYSTEM_ARCHITECTURE_AND_TECH_STACK.md`**: End-to-end architecture blueprints, multi-LLM & search harness design, complete tech stack explanation, and repository directory structure.
 3. **`03_TASK1_INGESTION_SCRAPERS_AND_DEDUPLICATION.md`**: Detailed scraper designs for Gelbe Seiten, 11880, VDIV, OSM, and SearXNG, plus the Entity Resolution & Deduplication algorithm.
-4. **`04_TASK2_KPI_BLUEPRINT_CRAWLER_AND_SCORING_ENGINE.md`**: Systematic KPI definitions for Metrixa Systems, async Website/*Impressum* crawler, LLM prompt & Pydantic schema, Decision-Maker/Email/LinkedIn enrichment, and the `0–100` Lead Scoring formula.
+4. **`04_TASK2_KPI_BLUEPRINT_CRAWLER_AND_SCORING_ENGINE.md`**: Systematic KPI definitions for Metrixa Systems, async Website/*Impressum* crawler, LLM prompt & Pydantic schema, Decision-Maker/Email/LinkedIn enrichment, and the `0-100` Lead Scoring formula.
 5. **`05_DATABASE_SCHEMA_DATA_STRUCTURES_AND_EXPORT_SPEC.md`**: SQLite ER diagram, SQL table schemas, core data structures, and exact Google Sheet / Excel column & tab layout.
 6. **`06_TASK3_VALIDATION_EVALUATION_ABLATION_AND_PRESENTATION_BLUEPRINT.md`**: 4-layer data validation rules, Gold-Set evaluation metrics, ablation study tables, native local SearXNG setup (no Docker), and the slide-by-slide blueprint for your Task 3 presentation.

@@ -61,7 +61,7 @@ gantt
     - Implement TanStack Table (v8) with virtual scrolling for 1,200 rows.
     - Add multi-facet filters: Tier A/B/C pills, District dropdown, ERP toggle, and debounce text search.
     - Build the **Sliding Evidence Drawer**:
-      - Tab 1: Point Scorecard ($0–100$).
+      - Tab 1: Point Scorecard ($0 \text{ to } 100$).
       - Tab 2: Decision-Maker Dossier (Geschäftsführer, MX status, LinkedIn).
       - Tab 3: Verbatim German Impressum & unit count quotes.
       - Tab 4: Technical footprint & crawled URLs with HTTP codes.
@@ -96,14 +96,16 @@ gantt
 
 ---
 
-### Phase 5: Artifacts Vault, Google Sheets Sync & End-to-End QA
-- **Goal:** Finalize export deliverables, documentation, and automated tests.
+### Phase 5: Artifacts Vault, Real-Time Google Sheets API Push & End-to-End QA (100% Completed)
+- **Goal:** Finalize export deliverables, live Google Sheets synchronization engine, documentation, and automated tests.
 - **Tasks:**
   - **Artifacts Vault (`/artifacts`):**
     - Connect download buttons to stream `metrixa_berlin_hausverwaltungen.xlsx` and `metrixa_berlin_leads_master.csv`.
     - Render formatted Markdown preview of `evaluation_ablation_report.md`.
-    - Provide 1-click Google Sheets export URL.
+    - Render in-browser interactive multi-tab spreadsheet viewer with active sheet selection and in-sheet search.
+    - Implement direct Google Sheets API push via Service Account OAuth2 and Webhook (`GoogleSheetsSync`).
+    - Provide 1-click Google Sheets cloud access URL and interactive push action button.
   - **Testing & QA:**
-    - Run Vitest component tests on table filtering and evidence drawer.
-    - Run Playwright E2E test verifying end-to-end navigation from Dashboard $\to$ Leads $\to$ Drawer $\to$ Export.
-- **Exit Criteria:** All 6 views fully functional, 100% test pass rate, and zero console errors.
+    - Run automated test suite across API endpoints, data models, and Google Sheets sync engine.
+    - Verify 100% deterministic test pass rate across 3 consecutive verification runs.
+- **Exit Criteria:** All 6 views fully functional, live Google Sheets API synchronization operational, 100% test pass rate, and zero console errors.

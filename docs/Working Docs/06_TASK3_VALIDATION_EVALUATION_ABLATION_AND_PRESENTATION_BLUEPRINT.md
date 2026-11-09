@@ -135,10 +135,10 @@ When submitting to Metrixa Systems, we will generate a polished, executive-ready
 3. **Slide 3: Task 1: Multi-Source Berlin Discovery & Entity Resolution:**
    * Why combining *Gelbe Seiten, 11880, VDIV Berlin-Brandenburg, OpenStreetMap,* and *SearXNG/Tavily* beat single-source scraping, and how our Union-Find + RapidFuzz deduplicator merged duplicate listings.
 4. **Slide 4: Task 2: Qualifying KPI Framework & Lead Scoring for Metering:**
-   * Why **Portfolio Units (*Wohneinheiten*)**, **WEG/Miet Focus**, and **Digital Maturity / ERP Stack (*Casavi, Domus, Wodis, etg24*)** are the strongest buying signals for Metrixa Systems, plus the `0–100` scoring formula.
+   * Why **Portfolio Units (*Wohneinheiten*)**, **WEG/Miet Focus**, and **Digital Maturity / ERP Stack (*Casavi, Domus, Wodis, etg24*)** are the strongest buying signals for Metrixa Systems, plus the `0-100` scoring formula.
 5. **Slide 5: Bonus Task: Decision-Maker & Personal Email Resolution:**
    * Leveraging German § 5 DDG *Impressum* law to extract *Geschäftsführer* names, combined with LinkedIn dorking and DNS `MX` verification to separate personal emails from generic `info@` addresses.
 6. **Slide 6: Data Validation & Anti-Hallucination Engineering:**
    * How the 4-layer validation gate guarantees 0% hallucinated unit counts or fake contacts via mandatory verbatim evidence quotes.
 7. **Slide 7: Quantitative Evaluation, Ablation Study & Unit Economics:**
-   * Real Precision/Recall/F1 numbers on the 30-company Gold Set, the Stage 1–5 Ablation table, and total compute/API cost per 1,000 leads (`<$1.50`).
+   * Real Precision/Recall/F1 numbers on the 30-company Gold Set, the Stage 1-5 Ablation table, and total compute/API cost per 1,000 leads (`<$1.50`).

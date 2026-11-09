@@ -159,3 +159,58 @@ def test_api_pipeline_runs_and_comparison(client: TestClient) -> None:
     assert "diff" in cmp_data
     assert "leads_delta" in cmp_data["diff"]
     assert "duration_delta_seconds" in cmp_data["diff"]
+
+
+def test_api_deliverables_and_google_sheets_sync(client: TestClient) -> None:
+    # 1. Test deliverables status endpoint
+    status_resp = client.get("/api/deliverables/status")
+    assert status_resp.status_code == 200
+    status_data = status_resp.json()
+    assert status_data["canonical_leads"] == 1200
+    assert status_data["deliverables_count"] >= 5
+    deliv_ids = [d["id"] for d in status_data["deliverables"]]
+    assert "excel_master" in deliv_ids
+    assert "csv_master" in deliv_ids
+    assert "sqlite_db" in deliv_ids
+    assert "google_sheets_live" in deliv_ids
+
+    # 2. Test Google Sheets connectivity test endpoint
+    test_conn = client.post("/api/deliverables/google-sheets/test", json={})
+    assert test_conn.status_code == 200
+    conn_data = test_conn.json()
+    assert conn_data["status"] in ("READY_STANDBY", "CONNECTED", "AUTHENTICATED")
+    assert conn_data["prepared_rows_count"] >= 1200
+
+    # 3. Test Google Sheets sync endpoint
+    sync_resp = client.post("/api/deliverables/google-sheets/sync", json={})
+    assert sync_resp.status_code == 200
+    sync_data = sync_resp.json()
+    assert sync_data["success"] is True
+    assert sync_data["qualified_leads_synced"] == 1200
+    assert len(sync_data["tabs_updated"]) == 4
+
+    # 4. Test Google Sheets preview endpoint
+    preview_resp = client.get("/api/deliverables/google-sheets/preview")
+    assert preview_resp.status_code == 200
+    preview_data = preview_resp.json()
+    assert "tabs" in preview_data
+    assert "Qualified_Berlin_Leads" in preview_data["tabs"]
+    assert preview_data["tabs"]["Qualified_Berlin_Leads"]["total_rows"] == 1200
+
+    # 5. Test Google Sheets URL endpoint
+    url_resp = client.get("/api/deliverables/google-sheets/url")
+    assert url_resp.status_code == 200
+    assert "spreadsheet_url" in url_resp.json()
+
+    # 6. Test artifacts preview for google-sheets-live
+    art_prev = client.get("/api/artifacts/preview/google-sheets-live")
+    assert art_prev.status_code == 200
+    art_data = art_prev.json()
+    assert art_data["type"] == "xlsx"
+    assert len(art_data["sheets"]) == 4
+    assert "Qualified_Berlin_Leads" in art_data["sheets"]
+
+    # 7. Test sync all deliverables endpoint
+    sync_all = client.post("/api/deliverables/sync-all")
+    assert sync_all.status_code == 200
+    assert sync_all.json()["success"] is True

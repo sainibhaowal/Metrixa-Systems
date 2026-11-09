@@ -192,6 +192,62 @@ export async function syncArtifactDeliverables() {
   return res.json();
 }
 
+export async function fetchDeliverablesStatus() {
+  const res = await fetch(`${API_BASE}/api/deliverables/status`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error("Failed to fetch deliverables status");
+  return res.json();
+}
+
+export async function syncAllDeliverables() {
+  const res = await fetch(`${API_BASE}/api/deliverables/sync-all`, {
+    method: "POST",
+  });
+  if (!res.ok) throw new Error("Failed to synchronize all deliverables");
+  return res.json();
+}
+
+export async function testGoogleSheetsConnection(data?: {
+  sheet_id?: string;
+  service_account_file?: string;
+  service_account_json?: string;
+}) {
+  const res = await fetch(`${API_BASE}/api/deliverables/google-sheets/test`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data || {}),
+  });
+  if (!res.ok) throw new Error("Google Sheets test failed");
+  return res.json();
+}
+
+export async function syncGoogleSheets(data?: {
+  sheet_id?: string;
+  service_account_file?: string;
+  service_account_json?: string;
+  webhook_url?: string;
+}) {
+  const res = await fetch(`${API_BASE}/api/deliverables/google-sheets/sync`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data || {}),
+  });
+  if (!res.ok) throw new Error("Google Sheets sync failed");
+  return res.json();
+}
+
+export async function fetchGoogleSheetsPreview() {
+  const res = await fetch(
+    `${API_BASE}/api/deliverables/google-sheets/preview`,
+    {
+      cache: "no-store",
+    },
+  );
+  if (!res.ok) throw new Error("Failed to fetch Google Sheets preview");
+  return res.json();
+}
+
 export async function fetchPipelineRuns(limit: number = 25) {
   const res = await fetch(`${API_BASE}/api/pipeline/runs?limit=${limit}`, {
     cache: "no-store",

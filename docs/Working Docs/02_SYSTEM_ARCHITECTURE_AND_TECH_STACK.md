@@ -124,11 +124,11 @@ Every library in this stack has a specific engineering purpose. We include **no 
   * **What it is:** Headless browser automation library.
   * **Why we use it:** Used selectively (only when `httpx` hits JavaScript-rendered SPAs, VDIV dynamic member lists, or anti-bot protections). Keeping Playwright as a fallback keeps the pipeline fast and lightweight.
 * **`selectolax` (Lexbor C-engine) + `beautifulsoup4`**
-  * **What it is:** Ultra-fast HTML/CSS selector parser (`selectolax` is 10–30x faster than BeautifulSoup).
+  * **What it is:** Ultra-fast HTML/CSS selector parser (`selectolax` is 10-30x faster than BeautifulSoup).
   * **Why we use it:** Extracts structured listing cards from `Gelbe Seiten` and `11880.com`, parses internal navigation links (`/impressum`, `/team`), and inspects raw DOM for PropTech ERP scripts (`casavi`, `etg24`, `domus`).
 * **`trafilatura`**
   * **What it is:** Specialized web text & boilerplate removal library.
-  * **Why we use it:** Strips navigation bars, cookie banners, CSS, and scripts from company websites, converting raw HTML into clean, compact Markdown. This reduces LLM prompt token usage by **75–85%** while preserving headings, lists, and tables.
+  * **Why we use it:** Strips navigation bars, cookie banners, CSS, and scripts from company websites, converting raw HTML into clean, compact Markdown. This reduces LLM prompt token usage by **75-85%** while preserving headings, lists, and tables.
 
 ### 3.3 Entity Resolution, Data Validation & Email Verification Stack
 * **`rapidfuzz`**
@@ -244,5 +244,5 @@ Because there is no web frontend to maintain, the entire system is operated via 
 | **4. Crawl Websites** | `python -m metrixa_engine crawl` | Resolves missing URLs via SearXNG, crawls homepage + `/impressum` + `/team` + `/leistungen`, detects ERP/portal signatures (`Casavi`, `Domus`, etc.). |
 | **5. Extract KPIs** | `python -m metrixa_engine extract --provider deepseek` *(or `local`, `nim`, `gemini`)* | Runs the LLM extraction harness over crawled pages to populate portfolio units, WEG/Miet focus, and *Geschäftsführer* names with evidence quotes. |
 | **6. Enrich Contacts** | `python -m metrixa_engine enrich-contacts` | Searches SearXNG/Tavily for decision-maker LinkedIn URLs and personal emails; verifies DNS `MX` records. |
-| **7. Score & Export** | `python -m metrixa_engine export` | Computes the `0–100` Metrixa Lead Score, assigns Tiers (`A`, `B`, `C`), and generates `data/exports/metrixa_berlin_hausverwaltungen.xlsx`. |
+| **7. Score & Export** | `python -m metrixa_engine export` | Computes the `0-100` Metrixa Lead Score, assigns Tiers (`A`, `B`, `C`), and generates `data/exports/metrixa_berlin_hausverwaltungen.xlsx`. |
 | **8. Evaluate (Task 3)** | `python -m metrixa_engine evaluate` | Runs precision/recall evaluation and stage ablation metrics, writing `data/exports/evaluation_ablation_report.md`. |
