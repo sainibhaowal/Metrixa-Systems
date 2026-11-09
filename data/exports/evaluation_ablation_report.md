@@ -1,6 +1,6 @@
 # Metrixa Engine :  Task 3 Evaluation, Data Validation & Ablation Report
 
-**Generated At:** `2026-11-09 21:54 UTC`
+**Generated At:** `2026-11-09 22:11 UTC`
 **Database:** `data/metrixa_leads.db`
 **Primary Excel Deliverable:** `data/exports/metrixa_berlin_hausverwaltungen.xlsx`
 

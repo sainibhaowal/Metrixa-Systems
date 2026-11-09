@@ -245,7 +245,6 @@ class Database:
     def init_schema(self) -> None:
         with self.connect() as conn:
             conn.executescript(SCHEMA_DDL)
-        self.seed_initial_pipeline_runs()
 
     def insert_raw_listings(self, listings: List[RawListing]) -> int:
         """Insert a batch of raw scraped listings, skipping exact duplicate (source_name, raw_company_name, raw_postal_code)."""
