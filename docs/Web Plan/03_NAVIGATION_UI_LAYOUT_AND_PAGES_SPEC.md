@@ -1,6 +1,6 @@
-# 03 — Navigation Layout, UI Blueprint & Page Specifications: Metrixa Cockpit
+# 03: Navigation Layout, UI Blueprint & Page Specifications: Metrixa Cockpit
 
-**Project Name:** Metrixa Cockpit — Autonomous LeadOps & Metering Intelligence Suite
+**Project Name:** Metrixa Cockpit: Automated B2B Lead Intelligence & Metering Suite
 **Document Order:** `03 of 06` in `docs/Web Plan/`
 **Location:** `C:\Users\Ravin\Projects\Projetcs Alpha\Metrixa Systems\docs\Web Plan\03_NAVIGATION_UI_LAYOUT_AND_PAGES_SPEC.md`
 
@@ -12,7 +12,7 @@ Metrixa Cockpit uses a modern **Fixed Sidebar + Sticky Topbar + Dynamic Viewport
 
 ```text
 +----------------------------------------------------------------------------------------------------+
-|  [LOGO] METRIXA COCKPIT | B2B Berlin Hausverwaltungen    [Global Live Status: READY]  [DB: 1,199 Leads]  |
+|  [LOGO] METRIXA COCKPIT | B2B Berlin Hausverwaltungen    [Global Live Status: READY]  [DB: 1,200 Leads]  |
 +-------------------+--------------------------------------------------------------------------------+
 |  SIDEBAR NAV      |  PAGE HEADER: Breadcrumbs & Primary Actions (e.g., [Run Stage] [Export XLSX])   |
 |                   +--------------------------------------------------------------------------------+
@@ -30,7 +30,7 @@ Metrixa Cockpit uses a modern **Fixed Sidebar + Sticky Topbar + Dynamic Viewport
 ### 1.1 Sticky Topbar Elements
 - **Brand Identity:** Metrixa Systems minimalist submetering badge + "Metrixa Cockpit" wordmark.
 - **System Heartbeat:** Live pill indicator (`ONLINE` green pulse, `RUNNING` cyan animation, or `IDLE` slate).
-- **Target Counter:** Live metric showing `1,199 Deduplicated Berlin Companies`.
+- **Target Counter:** Live metric showing `1,200 Deduplicated Berlin Companies`.
 - **Quick Action Bar:** Direct 1-click button: `[Download Excel]` and `[Sync Pipeline]`.
 
 ### 1.2 Sidebar Navigation Items
@@ -54,11 +54,11 @@ Gives sales directors and executives an instant, 10-second overview of market pe
 
 #### Key Components
 1. **Summary KPI Cards (Top Row, 5 Columns):**
-   - **Total Market TAM:** `1,199` Qualified Berlin *Hausverwaltungen*.
-   - **Tier A Priority Leads:** `33` companies (Managing `1,000` to `53,300+` units, score $\ge 70$).
-   - **Decision-Maker Reachability:** `118` named *Geschäftsführer* (`101` unique companies).
-   - **Personal Email Coverage:** `99` companies with verified non-generic corporate emails (`8.3%`).
-   - **PropTech ERP Penetration:** `38` companies using Casavi, Immoware24, Domus, Haufe, or etg24.
+   - **Total Market TAM:** `1,200` Qualified Berlin *Hausverwaltungen*.
+   - **Tier A Priority Leads:** `35` companies (Managing `1,000` to `53,300+` units, score $\ge 70$).
+   - **Decision-Maker Reachability:** `104` named managing directors across unique companies.
+   - **Personal Email Coverage:** `118` verified email contacts across `102` unique companies (`8.5%`).
+   - **PropTech ERP Penetration:** `41` companies using Casavi, Immoware24, Domus, Haufe, or etg24.
 2. **Chart Matrix (Middle Row, 2 Columns):**
    - **Left: Lead Score Distribution:** Histogram plotting lead counts across score brackets (`90–100`, `80–89`, `70–79`, `50–69`, `<50`).
    - **Right: Berlin District Penetration (Top 12 Bezirke):** Horizontal bar chart showing Charlottenburg-Wilmersdorf, Mitte, Pankow, Tempelhof-Schöneberg, etc.
@@ -96,12 +96,12 @@ Provides real-time interactive execution of the 6 pipeline stages with zero term
 ### View 3: Master Lead Explorer & Data Grid (`/leads`)
 
 #### Purpose
-The primary workhorse for sales reps and researchers. Allows instantaneous searching, filtering, and inspection of all 1,199 companies.
+The primary workhorse for sales reps and researchers. Allows instantaneous searching, filtering, and inspection of all 1,200 companies.
 
 #### Key Components
 1. **Filter & Search Toolbar (Top):**
    - **Global Search Input:** Live debounce search across Company Name, *Geschäftsführer*, Street, and Domain.
-   - **Tier Filter:** Multi-select pills: `[🟢 Tier A (33)]`, `[🟡 Tier B (409)]`, `[⚪ Tier C (757)]`.
+   - **Tier Filter:** Multi-select pills: `[🟢 Tier A (35)]`, `[🟡 Tier B (409)]`, `[⚪ Tier C (756)]`.
    - **Bezirk Dropdown:** Filter by any of the 12 Berlin districts (e.g., Charlottenburg-Wilmersdorf, Mitte).
    - **Feature Toggles:** `[Has Decision Maker]`, `[Has Personal Email]`, `[Uses PropTech ERP]`, `[VDIV Member]`.
    - **Actions:** `[Export Filtered View to CSV]`, `[Reset Filters]`.

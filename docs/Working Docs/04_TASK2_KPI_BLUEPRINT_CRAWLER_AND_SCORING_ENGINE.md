@@ -1,6 +1,6 @@
-# 04 — Task 2 & Bonus Specification: Qualifying KPIs, Website/Impressum Crawler, LLM Extraction & Lead Scoring
+# 04: Task 2 & Bonus Specification: Qualifying KPIs, Website/Impressum Crawler, LLM Extraction & Lead Scoring
 
-**Project Name:** Metrixa Engine — Autonomous B2B Lead Discovery, Enrichment & Qualification System
+**Project Name:** Metrixa Engine: Automated B2B Lead Discovery, Enrichment & Qualification System
 **Document Order:** `04 of 06`
 **Purpose:** Complete specification for **Task 2** (*"Define and fill in qualifying KPIs"*) and the **Bonus Task** (*"Find the right contact person including their personal email address and LinkedIn profile"*).
 
@@ -35,7 +35,7 @@ flowchart TD
 | **1. Scale** | `employee_count_est` | `Integer \| String` | In Germany, 1 property manager (*Objektbetreuer*) typically manages ~300–500 residential units. A team of 10 employees implies ~3,000–5,000 units. | `/team` page photo/name count + LinkedIn company size |
 | **1. Scale** | `legal_form` | `Enum` (`GmbH`, `GmbH & Co. KG`, `AG`, `UG`, `e.K.`, `GbR`) | Corporations (`GmbH`, `AG`, `GmbH & Co. KG`) have institutional portfolios; sole proprietors (`e.K.`, `GbR`) typically manage smaller portfolios. | Regex + *Impressum* Parser (`HRB` / `HRA` check) |
 | **2. Focus** | `manages_weg` | `Boolean` | **WEG-Verwaltung** (Homeowner Associations) vote on changing metering providers at annual owners' meetings (*Eigentümerversammlung*). Huge volume driver. | Website `/leistungen` analysis |
-| **2. Focus** | `manages_miet` | `Boolean` | **Mietverwaltung / Zinshaus** (Multi-family rental buildings) have a single landlord decision-maker—fastest sales cycle for submetering installation! | Website `/leistungen` analysis |
+| **2. Focus** | `manages_miet` | `Boolean` | **Mietverwaltung / Zinshaus** (Multi-family rental buildings) have a single landlord decision-maker, fastest sales cycle for submetering installation! | Website `/leistungen` analysis |
 | **2. Focus** | `manages_gewerbe` | `Boolean` | Commercial multi-tenant buildings require complex thermal/electricity submetering. | Website `/leistungen` analysis |
 | **2. Focus** | `manages_sev` | `Boolean` | *Sondereigentumsverwaltung* (single apartments inside a WEG managed by someone else). Note: A company doing *only* SEV cannot switch the whole building's metering provider! | Website `/leistungen` analysis |
 | **3. Digital** | `has_customer_portal` | `Boolean` | If a *Hausverwaltung* offers a digital tenant/owner portal (*Kundenportal / Eigentümerportal*), they value digital automation and EED monthly consumption apps. | DOM Link Scanner + Website Text |
@@ -146,7 +146,7 @@ After the LLM returns `CompanyKPIExtraction`:
 
 ---
 
-## 4. Stage 5 Design: Bonus Task — Decision-Maker LinkedIn & Personal Email Enrichment (`src/metrixa_engine/enrichment/`)
+## 4. Stage 5 Design: Bonus Task: Decision-Maker LinkedIn & Personal Email Enrichment (`src/metrixa_engine/enrichment/`)
 
 The Bonus prompt asks: *"Find the right contact person including their email address, meaning not an info@ address but a personal and relevant one. LinkedIn profiles or similar are also very welcome."*
 
@@ -191,7 +191,7 @@ $$\text{MetrixaLeadScore} = S_{\text{scale}} (35) + S_{\text{focus}} (25) + S_{\
 | **5. Contact Reachability ($S_{\text{contact}}$)** | **10 pts** | • Named Decision Maker (*Geschäftsführer* / *Inhaber*) extracted → **+4 pts**<br>• Personal email (`PUBLIC_DIRECT_VERIFIED` or `PATTERN_MX_VERIFIED`) → **+4 pts**<br>• Decision-maker or Company LinkedIn URL found → **+2 pts** |
 
 ### 5.2 Qualification Tiers
-* **🟢 `Tier A — High-Priority Target` (`Score 70 – 100`):** Mid-to-large Berlin *Hausverwaltung* (`GmbH`/`AG`), manages multi-family *WEG* + *Mietverwaltung*, digitally mature (or VDIV member), with named decision-maker & direct contact. **Action:** Immediate personalized sales outreach by Metrixa Systems Account Executives.
-* **🟡 `Tier B — Qualified Mid-Market` (`Score 45 – 69`):** Solid residential property manager in Berlin with verified operations and decision-maker name, moderate size or moderate digital footprint. **Action:** Automated outbound sequence + LinkedIn outreach.
-* **⚪ `Tier C — Long-Tail / Small Portfolio` (`Score 20 – 44`):** Very small local manager, missing website, or limited portfolio data. **Action:** Low-touch marketing nurture.
+* **🟢 `Tier A: High-Priority Target` (`Score 70 – 100`):** Mid-to-large Berlin *Hausverwaltung* (`GmbH`/`AG`), manages multi-family *WEG* + *Mietverwaltung*, digitally mature (or VDIV member), with named decision-maker & direct contact. **Action:** Immediate personalized sales outreach by Metrixa Systems Account Executives.
+* **🟡 `Tier B: Qualified Mid-Market` (`Score 45 – 69`):** Solid residential property manager in Berlin with verified operations and decision-maker name, moderate size or moderate digital footprint. **Action:** Automated outbound sequence + LinkedIn outreach.
+* **⚪ `Tier C: Long-Tail / Small Portfolio` (`Score 20 – 44`):** Very small local manager, missing website, or limited portfolio data. **Action:** Low-touch marketing nurture.
 * **🔴 `Disqualified` (`Score < 20` or `is_actual_hausverwaltung == False`):** Pure real estate broker, facility cleaner, or non-Berlin entity. Excluded from main sales sheet.

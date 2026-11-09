@@ -1,6 +1,6 @@
-# 04 — Data Flow, API Contracts & State Management: Metrixa Cockpit
+# 04: Data Flow, API Contracts & State Management: Metrixa Cockpit
 
-**Project Name:** Metrixa Cockpit — Autonomous LeadOps & Metering Intelligence Suite
+**Project Name:** Metrixa Cockpit: Automated B2B Lead Intelligence & Metering Suite
 **Document Order:** `04 of 06` in `docs/Web Plan/`
 **Location:** `C:\Users\Ravin\Projects\Projetcs Alpha\Metrixa Systems\docs\Web Plan\04_DATA_FLOW_API_CONTRACTS_AND_STATE_MANAGEMENT.md`
 
@@ -60,19 +60,19 @@ All endpoints are hosted at `http://127.0.0.1:8000` with CORS enabled for `http:
   - **Response Schema:**
     ```json
     {
-      "total_raw": 1371,
-      "total_qualified": 1199,
+      "total_raw": 1375,
+      "total_qualified": 1200,
       "tiers": {
-        "Tier A (High Priority)": 33,
+        "Tier A (High Priority)": 35,
         "Tier B (Qualified Mid-Market)": 409,
-        "Tier C (Long-Tail / Small)": 757
+        "Tier C (Long-Tail / Small)": 756
       },
       "coverage": {
-        "with_website": 242,
-        "with_portal_or_erp": 38,
-        "with_decision_maker": 101,
-        "with_personal_email": 99,
-        "crawled_pages": 866
+        "with_website": 243,
+        "with_portal_or_erp": 41,
+        "with_decision_maker": 104,
+        "with_personal_email": 102,
+        "crawled_pages": 885
       },
       "erp_breakdown": {
         "Casavi": 14,
@@ -205,14 +205,14 @@ All endpoints are hosted at `http://127.0.0.1:8000` with CORS enabled for `http:
   - Cancels current running task.
 
 ### 2.4 Artifacts & Exports
-- **`GET /api/artifacts/download/excel`** — Streams `metrixa_berlin_hausverwaltungen.xlsx`.
-- **`GET /api/artifacts/download/csv`** — Streams `metrixa_berlin_leads_master.csv`.
-- **`GET /api/artifacts/evaluation-report`** — Returns Markdown text of `evaluation_ablation_report.md`.
+- **`GET /api/artifacts/download/excel`**: Streams `metrixa_berlin_hausverwaltungen.xlsx`.
+- **`GET /api/artifacts/download/csv`**: Streams `metrixa_berlin_leads_master.csv`.
+- **`GET /api/artifacts/evaluation-report`**: Returns Markdown text of `evaluation_ablation_report.md`.
 
 ### 2.5 Settings & Provider Hub
-- **`GET /api/settings`** — Returns current runtime configuration (safe fields, masked API keys).
-- **`POST /api/settings`** — Updates `.env` and runtime configuration.
-- **`POST /api/settings/test-provider`** — Tests connection to LLM or Search endpoint with live ping latency.
+- **`GET /api/settings`**: Returns current runtime configuration (safe fields, masked API keys).
+- **`POST /api/settings`**: Updates `.env` and runtime configuration.
+- **`POST /api/settings/test-provider`**: Tests connection to LLM or Search endpoint with live ping latency.
 
 ---
 

@@ -1,6 +1,6 @@
-# 02 — System Architecture, Tech Stack & Codebase Blueprint
+# 02: System Architecture, Tech Stack & Codebase Blueprint
 
-**Project Name:** Metrixa Engine — Autonomous B2B Lead Discovery, Enrichment & Qualification System
+**Project Name:** Metrixa Engine: Automated B2B Lead Discovery, Enrichment & Qualification System
 **Document Order:** `02 of 06`
 **Purpose:** Complete end-to-end production system design, multi-provider LLM & search harness architecture, technology stack justification (*what* each tool is and *why* we use it), and exact repository directory layout.
 
@@ -8,7 +8,7 @@
 
 ## 1. High-Level End-to-End System Architecture
 
-Metrixa Engine is designed as a **6-Stage Stateful Agentic Pipeline** backed by a local **SQLite Database (`metrixa_leads.db`)**. Every stage reads from and writes to SQLite so that the pipeline is 100% resumable, deterministic where possible, and auditable at every step.
+Metrixa Engine is organized across **5 Operational Architectural Layers** executing through modular stateful pipeline stages backed by a local **SQLite Database (`metrixa_leads.db`)**. Every layer reads from and writes to SQLite so that the pipeline is 100% resumable, deterministic where possible, and auditable at every step.
 
 ```mermaid
 flowchart TB
@@ -65,8 +65,8 @@ flowchart TB
 ## 2. Multi-Provider LLM & Search Harness Architecture
 
 A key requirement of our production system is **zero vendor lock-in** and **maximum cost/throughput control**. We implement two unified abstraction layers:
-1. **`LLMRouter`** — Seamlessly switches or falls back across local models (`llama.cpp`, `LM Studio`) and cloud APIs (`NVIDIA NIM`, `DeepSeek API`, `Gemini API`).
-2. **`SearchRouter`** — Prioritizes your **local self-hosted SearXNG** (native Python, no Docker required, unlimited free searches) and uses **Tavily API** strictly as a high-precision fallback when local search returns insufficient results.
+1. **`LLMRouter`**: Seamlessly switches or falls back across local models (`llama.cpp`, `LM Studio`) and cloud APIs (`NVIDIA NIM`, `DeepSeek API`, `Gemini API`).
+2. **`SearchRouter`**: Prioritizes your **local self-hosted SearXNG** (native Python, no Docker required, unlimited free searches) and uses **Tavily API** strictly as a high-precision fallback when local search returns insufficient results.
 
 ```mermaid
 flowchart LR
@@ -153,7 +153,7 @@ Every library in this stack has a specific engineering purpose. We include **no 
   * **Why we use it:** Gives you live progress bars, color-coded terminal tables, real-time stage metrics, and clean commands (`ingest`, `dedupe`, `crawl`, `enrich`, `score`, `export`, `evaluate`).
 * **`openpyxl`**
   * **What it is:** Excel `.xlsx` workbook generator with full styling support.
-  * **Why we use it:** Automatically builds the final multi-tab, color-coded, filter-enabled Excel workbook (`.xlsx`) with frozen headers, column widths, hyperlinks, and KPI summary tabs—ready for direct upload to Google Sheets.
+  * **Why we use it:** Automatically builds the final multi-tab, color-coded, filter-enabled Excel workbook (`.xlsx`) with frozen headers, column widths, hyperlinks, and KPI summary tabs, ready for direct upload to Google Sheets.
 
 ---
 

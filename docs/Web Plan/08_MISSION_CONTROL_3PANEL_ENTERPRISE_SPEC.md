@@ -1,6 +1,6 @@
-# 08 — Next-Gen 3-Panel Mission Control & Historical Telemetry Specification
+# 08: Next-Gen 3-Panel Mission Control & Historical Telemetry Specification
 
-**Project Name:** Metrixa Cockpit — Pipeline Mission Control Enterprise Redesign
+**Project Name:** Metrixa Cockpit: Pipeline Mission Control Enterprise Redesign
 **Scope:** Full-Width 3-Panel Layout (Left History & Runs Drawer, Center Real-Time Telemetry & Stage Visualizer, Right Stage Controls & Manual Tooling) with Comparison Diffs, View Modes (Concise vs. Deep-Dive), and Evidence Traces.
 **Location:** `docs/Web Plan/08_MISSION_CONTROL_3PANEL_ENTERPRISE_SPEC.md` and referenced in `docs/Working Docs/`
 **Status:** Approved Architectural Specification
@@ -9,15 +9,16 @@
 
 ## 1. Executive Summary & Why the Redesign is Necessary
 
-The current Mission Control page (shown in screenshots) consists of two simple blocks:
-1. A standard 6-card grid with "Run Stage" buttons.
-2. A single dark terminal box at the bottom.
+The current Mission Control page consists of three integrated enterprise sections:
+1. Historical runs ledger and comparison diff engine.
+2. Real-time DAG visualizer with dual concise and deep-dive telemetry.
+3. Stage action cards and live diagnostic benches.
 
-### 1.1 The Problems in the Current Layout
-- **Wasted Screen Space:** The page does not use full screen width; cards are squished and static.
-- **Zero Run History / Track Record:** When a run finishes, previous execution metrics, timing, record counts, and errors disappear. A business operator cannot compare "Run #14" with "Run #15".
-- **Binary Telemetry View (No Concise vs. Deep-Dive):** Logs are either a raw wall of text or nothing. An executive wants concise high-level progress (e.g., *"Ingested 1,240 records across 5 sources in 42s"*), while a developer or QA engineer wants deep-dive payload inspection (HTTP status, regex matches, LLM prompt tokens, DNS MX response).
-- **No Agent/Tool Calling Transparency:** In Stage 4 (LLM KPI extraction) or Stage 3 (Crawler), the user cannot see *which* tool or agent was invoked, what prompt was passed, or how anti-hallucination verification blocked a hallucinated unit quote.
+### 1.1 The Operational Goals of the Layout
+- **Full Display Utilization:** The page utilizes full screen width with high information density.
+- **Run History & Audit Track Record:** Stored execution metrics, timing, record counts, and historical comparison between runs.
+- **Dual Telemetry View (Concise vs. Deep-Dive):** An executive view showing concise high-level progress (e.g., *"Ingested 1,375 records across 5 sources in 42s"*), alongside a deep-dive payload inspection mode for developers and evaluators (HTTP status, regex matches, LLM prompt tokens, DNS MX response).
+- **Agent and Tool Transparency:** Stage-by-stage visibility into tool calls, prompt token metrics, and verbatim anti-hallucination validation.
 
 ---
 
@@ -37,9 +38,9 @@ To transform Mission Control into an enterprise-grade command center that utiliz
 |   - Run #16 (Today 16:15) - SUCCESS |   [Stage 1] -> [Stage 2] -> [Stage 3] -> ...          |   Cards with Config & Stats:  |
 |   - Run #15 (Today 14:02) - SUCCESS | • View Toggle: [Concise Business] / [Deep Inspector]  |   1. Multi-Source Ingest      |
 |   - Run #14 (Yesterday)   - DIFF    | • Real-Time Timeline Stream:                          |   2. Deduplication Engine     |
-| • Run Metadata:                     |   - Stage 1: Ingested 1,240 rows (Gelbe, 11880, VDIV) |   3. Async Impressum Crawler  |
-|   - Duration, records, token spend  |   - Stage 2: Deduplicated -> 1,199 golden (98.2%)     |   4. Multi-LLM KPI Extraction |
-| • Historical Comparison Diff Tool:  |   - Stage 3: Crawled 1,199 /impressum (Playwright/H2) |   5. MX Verification & Scoring|
+| • Run Metadata:                     |   - Stage 1: Ingested 1,375 rows (Gelbe, 11880, VDIV) |   3. Async Impressum Crawler  |
+|   - Duration, records, token spend  |   - Stage 2: Deduplicated -> 1,200 golden (175 merged) |   4. Multi-LLM KPI Extraction |
+| • Historical Comparison Diff Tool:  |   - Stage 3: Crawled 885 pages across 243 domains      |   5. MX Verification & Scoring|
 |   - "Compare Run #16 vs Run #15":   |   - Stage 4: LLM Extraction & Anti-Hallucination Gate |   6. Excel Deliverables & Eval|
 |     +12 New Companies               |   - Stage 5: DNS MX verified 115 live mail domains    | • Quick Tooling Triggers:     |
 |     +3 Changed Geschäftsführer      |   - Stage 6: 4-Tab Excel & Gold Set F1: 94.6%         |   - Test RFC DNS MX query     |
@@ -57,7 +58,7 @@ To transform Mission Control into an enterprise-grade command center that utiliz
 - **Features:**
   1. **Historical Runs List:**
      - Displays historical runs stored in SQLite (`pipeline_runs` table).
-     - Each entry shows: Run Number (`Run #15`), Timestamp (`Today 15:42`), Status (`SUCCESS` / `FAILED`), Duration (`2m 14s`), and Output Count (`1,199 leads`).
+     - Each entry shows: Run Number (`Run #15`), Timestamp (`Today 15:42`), Status (`SUCCESS` / `FAILED`), Duration (`2m 14s`), and Output Count (`1,200 leads`).
   2. **Run Selection & Replay:**
      - Clicking any past run instantly updates the Middle Panel to replay that run's telemetry, stats, and logs.
   3. **Run-to-Run Comparison Diff Engine (`Diff View`):**
@@ -73,7 +74,7 @@ To transform Mission Control into an enterprise-grade command center that utiliz
   1. **Mode Switcher:**
      - **`Concise Business Mode` (For Executives / Sales Leaders):**
        - High-level status cards for each stage.
-       - Clean milestones: *"Stage 1 Completed: 1,240 records ingested across 5 sources in 41s"*.
+       - Clean milestones: *"Stage 1 Completed: 1,375 records ingested across 5 sources in 41s"*.
        - Live progress bar with ETA countdown and records processed counter.
      - **`Deep-Dive Engineer Mode` (For Developers / Audits):**
        - Expandable event nodes showing exact tool invocations, agent steps, HTTP request/response codes, latency graphs, LLM token usages, and anti-hallucination quote verifications.

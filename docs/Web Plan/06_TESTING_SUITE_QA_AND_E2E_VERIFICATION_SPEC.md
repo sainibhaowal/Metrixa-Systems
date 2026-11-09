@@ -1,6 +1,6 @@
-# 06 — Testing Suite, QA & E2E Verification Specification: Metrixa Cockpit
+# 06: Testing Suite, QA & E2E Verification Specification: Metrixa Cockpit
 
-**Project Name:** Metrixa Cockpit — Autonomous LeadOps & Metering Intelligence Suite
+**Project Name:** Metrixa Cockpit: Automated B2B Lead Intelligence & Metering Suite
 **Document Order:** `06 of 06` in `docs/Web Plan/`
 **Location:** `C:\Users\Ravin\Projects\Projetcs Alpha\Metrixa Systems\docs\Web Plan\06_TESTING_SUITE_QA_AND_E2E_VERIFICATION_SPEC.md`
 
@@ -100,7 +100,7 @@ test.describe('Metrixa Cockpit E2E Mission Flow', () => {
     // 1. Visit Executive Cockpit
     await page.goto('http://localhost:3000');
     await expect(page.locator('h1')).toContainText('Executive Cockpit');
-    await expect(page.getByText('1,199')).toBeVisible();
+    await expect(page.getByText('1,200')).toBeVisible();
 
     // 2. Navigate to Master Lead Grid
     await page.click('text=Lead Explorer');

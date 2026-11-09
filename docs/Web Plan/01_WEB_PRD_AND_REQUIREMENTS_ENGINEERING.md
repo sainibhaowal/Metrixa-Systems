@@ -1,6 +1,6 @@
-# 01 — Web PRD & Requirements Engineering: Metrixa Cockpit
+# 01: Web PRD & Requirements Engineering: Metrixa Cockpit
 
-**Project Name:** Metrixa Cockpit — Autonomous LeadOps & Metering Intelligence Suite
+**Project Name:** Metrixa Cockpit: Automated B2B Lead Intelligence & Metering Suite
 **Target Organization:** Metrixa Systems GmbH (Berlin, Germany)
 **Parent Pipeline:** `metrixa-engine` (Python 3.12, SQLite WAL, Multi-LLM, Async Crawler)
 **Document Order:** `01 of 06` in `docs/Web Plan/`
@@ -11,7 +11,7 @@
 ## 1. Executive Summary & Product Vision
 
 ### 1.1 The Problem
-While the backend CLI (`metrixa.bat`) successfully discovered, deduplicated, enriched, and scored **1,199 Berlin property management companies (*Hausverwaltungen*)**, terminal commands are unsuited for non-technical sales leaders, GTM operators, and executive hiring panels at Metrixa Systems.
+While the backend CLI (`metrixa.bat`) successfully discovered, deduplicated, enriched, and scored **1,200 Berlin property management companies (*Hausverwaltungen*)** from **1,375 raw directory listings**, terminal commands are unsuited for non-technical sales leaders, GTM operators, and executive hiring panels at Metrixa Systems.
 
 A production B2B intelligence system demands an **interactive, intuitive Web Cockpit** that allows stakeholders to:
 1. Visually monitor lead health, tier distribution, district penetration, and PropTech ERP adoption.
@@ -32,7 +32,7 @@ A production B2B intelligence system demands an **interactive, intuitive Web Coc
 ## 2. Brand Identity & Design System
 
 ### 2.1 Brand Concept: "Metrixa Cockpit"
-- **Identity:** Smart Metering Intelligence & Autonomous GTM Command Center.
+- **Identity:** Smart Metering Intelligence & Automated GTM Command Center.
 - **Tone:** Professional, Scandinavian/German minimalism, high information density, precise typography, zero fluff.
 
 ### 2.2 Color Palette (Designed for Extended Operations)
@@ -99,7 +99,7 @@ flowchart TD
 - **FR-W2.3:** Operators MUST be able to abort or cancel a running pipeline execution gracefully.
 
 ### FR-W3: Master Lead Explorer & Data Grid
-- **FR-W3.1:** Display all 1,199+ qualified companies in a high-performance, virtualized data grid with:
+- **FR-W3.1:** Display all 1,200 canonical qualified companies in a high-performance, virtualized data grid with:
   - Column sorting (Score, Units, District, Name)
   - Multi-facet filtering (by Tier A/B/C, Berlin Bezirk, VDIV membership, ERP stack, presence of personal email)
   - Instant text search across Company Name, Managing Director Name, and Street Address

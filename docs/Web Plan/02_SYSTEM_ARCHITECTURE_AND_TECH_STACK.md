@@ -1,6 +1,6 @@
-# 02 — System Architecture & Full-Stack Tech Stack: Metrixa Cockpit
+# 02: System Architecture & Full-Stack Tech Stack: Metrixa Cockpit
 
-**Project Name:** Metrixa Cockpit — Autonomous LeadOps & Metering Intelligence Suite
+**Project Name:** Metrixa Cockpit: Automated B2B Lead Intelligence & Metering Suite
 **Document Order:** `02 of 06` in `docs/Web Plan/`
 **Location:** `C:\Users\Ravin\Projects\Projetcs Alpha\Metrixa Systems\docs\Web Plan\02_SYSTEM_ARCHITECTURE_AND_TECH_STACK.md`
 
@@ -28,18 +28,17 @@ flowchart TB
         ORCH["Pipeline Orchestrator\n(Threadpool / Async Workers for metrixa_engine)"]
     end
 
-    subgraph Core_Engine["Metrixa Engine Backend (Existing Core Modules)"]
-        SCRAPERS["Stage 1 Scrapers (Gelbe Seiten, 11880, VDIV, OSM, Search)"]
-        DEDUPE["Stage 2 Deduplicator (RapidFuzz + Union-Find)"]
-        CRAWLER["Stage 3 Async Crawler & DOM Tech Detector"]
-        LLM["Stage 4 Multi-LLM Router (DeepSeek, Gemini, NIM, Local)"]
-        ENRICH["Stage 5 DNS MX Verifier & 0-100 Scorer"]
-        EXPORTER["Stage 6 Excel & CSV Exporter"]
+    subgraph Core_Engine["Metrixa Engine Backend (5 Operational Layers)"]
+        L1["Layer 1: Multi-Source Ingestion (1,375 Records: Gelbe, 11880, VDIV, OSM, Search)"]
+        L2["Layer 2: Entity Resolution (Union-Find Graph, 175 Merged -> 1,200 Golden)"]
+        L3["Layer 3: Web Crawler & Statutory Parser (885 Subpages, 41 ERPs, Impressum)"]
+        L4["Layer 4: Deterministic Scoring & MX Verifier (104 Directors, 118 Emails)"]
+        L5["Layer 5: Output Exporter & Evaluation (4-Tab Excel, CSV, PDF Reports)"]
     end
 
     subgraph Storage["Persistence & Artifacts"]
         DB[("data/metrixa_leads.db (SQLite WAL)")]
-        EXPORTS["data/exports/ (*.xlsx, *.csv, *.md)"]
+        EXPORTS["data/exports/ (*.xlsx, *.csv, *.pdf, *.md)"]
     end
 
     Browser <-->|HTTP REST JSON| REST

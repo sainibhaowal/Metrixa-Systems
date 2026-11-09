@@ -434,7 +434,7 @@ export default function MissionControlPage() {
               </span>
             </div>
             <p className="text-[11px] text-zinc-400 mt-0.5">
-              Autonomous B2B Lead Intelligence DAG — Ingestion, Deduplication,
+              Automated B2B Lead Intelligence DAG: Ingestion, Deduplication,
               Crawler, Multi-LLM, MX & Excel.
             </p>
           </div>

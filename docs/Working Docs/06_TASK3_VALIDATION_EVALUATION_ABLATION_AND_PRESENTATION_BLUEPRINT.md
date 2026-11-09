@@ -1,6 +1,6 @@
-# 06 — Task 3 Specification: Data Validation, Evaluation, Ablation Study & Presentation Blueprint
+# 06: Task 3 Specification: Data Validation, Evaluation, Ablation Study & Presentation Blueprint
 
-**Project Name:** Metrixa Engine — Autonomous B2B Lead Discovery, Enrichment & Qualification System
+**Project Name:** Metrixa Engine: Automated B2B Lead Discovery, Enrichment & Qualification System
 **Document Order:** `06 of 06`
 **Purpose:** Complete specification for **Task 3** (*"Share your approach: Which sources, tools and automations did you use, and how did you validate the data? Please create a short presentation or doc for this"*), plus native local environment setup (SearXNG without Docker, local LLMs, cloud APIs).
 
@@ -84,11 +84,11 @@ Because our `LLMRouter` supports local models (`llama.cpp` / `LM Studio`), `NVID
 ### 3.1 How Local SearXNG Works Without Docker ( plus Built-In Zero-Config Meta-Search Fallback)
 Running SearXNG natively on Windows without Docker or WSL can sometimes hit POSIX-only dependency issues (`pyyaml`/`uwsgi`/`babel`). Therefore, our `SearchRouter` (`src/metrixa_engine/enrichment/search_router.py`) is engineered with **3 automatic search tiers** so you are **never blocked**:
 
-1. **Tier 1 — Native Local SearXNG (`http://127.0.0.1:8888/search?format=json`):**
+1. **Tier 1: Native Local SearXNG (`http://127.0.0.1:8888/search?format=json`):**
    * Can be launched natively in a lightweight Python virtual environment (`git clone https://github.com/searxng/searxng`, `pip install -e .`, set `settings.yml` `formats: [html, json]`, and run `python searx/webapp.py`).
-2. **Tier 2 — Built-in Native Python Async Meta-Search Engine (Zero-Setup Local SearXNG Equivalent):**
+2. **Tier 2: Built-in Native Python Async Meta-Search Engine (Zero-Setup Local SearXNG Equivalent):**
    * Built directly into `search_router.py`! Even if a separate SearXNG process isn't running on port 8888, our native Python meta-searcher queries DuckDuckGo Lite, Brave HTML, Startpage, and Bing concurrently from your local machine at **zero cost and without Docker**.
-3. **Tier 3 — Tavily AI Search API (`TAVILY_API_KEY`):**
+3. **Tier 3: Tavily AI Search API (`TAVILY_API_KEY`):**
    * Automatically invoked for high-priority `Tier A` / `Tier B` leads when local search needs deeper LinkedIn or decision-maker enrichment, keeping you safely inside your 1,000 free monthly Tavily credits.
 
 ### 3.2 Configuring `.env` for All LLM & Search Providers
@@ -128,17 +128,17 @@ TAVILY_MAX_CALLS_PER_RUN=400
 
 When submitting to Metrixa Systems, we will generate a polished, executive-ready **Methodology & Architecture Document / Presentation (`docs/Case Study/Case Study.md` + PDF/HTML export)** structured into **7 crisp sections**:
 
-1. **Slide 1 — Executive Summary & Results at a Glance:**
+1. **Slide 1: Executive Summary & Results at a Glance:**
    * Total Berlin *Hausverwaltungen* discovered, deduplicated count, number of `Tier A` priority leads, decision-makers identified, and link to the Google Sheet + GitHub Repository.
-2. **Slide 2 — System Architecture (The 6-Stage Autonomous Pipeline):**
+2. **Slide 2: System Architecture (The Automated Multi-Layer Pipeline):**
    * Visual architecture diagram explaining how multi-source directory scraping, website/*Impressum* crawling, DOM tech detection, LLM extraction, and DNS MX email verification work together.
-3. **Slide 3 — Task 1: Multi-Source Berlin Discovery & Entity Resolution:**
+3. **Slide 3: Task 1: Multi-Source Berlin Discovery & Entity Resolution:**
    * Why combining *Gelbe Seiten, 11880, VDIV Berlin-Brandenburg, OpenStreetMap,* and *SearXNG/Tavily* beat single-source scraping, and how our Union-Find + RapidFuzz deduplicator merged duplicate listings.
-4. **Slide 4 — Task 2: Qualifying KPI Framework & Lead Scoring for Metering:**
+4. **Slide 4: Task 2: Qualifying KPI Framework & Lead Scoring for Metering:**
    * Why **Portfolio Units (*Wohneinheiten*)**, **WEG/Miet Focus**, and **Digital Maturity / ERP Stack (*Casavi, Domus, Wodis, etg24*)** are the strongest buying signals for Metrixa Systems, plus the `0–100` scoring formula.
-5. **Slide 5 — Bonus Task: Decision-Maker & Personal Email Resolution:**
+5. **Slide 5: Bonus Task: Decision-Maker & Personal Email Resolution:**
    * Leveraging German § 5 DDG *Impressum* law to extract *Geschäftsführer* names, combined with LinkedIn dorking and DNS `MX` verification to separate personal emails from generic `info@` addresses.
-6. **Slide 6 — Data Validation & Anti-Hallucination Engineering:**
+6. **Slide 6: Data Validation & Anti-Hallucination Engineering:**
    * How the 4-layer validation gate guarantees 0% hallucinated unit counts or fake contacts via mandatory verbatim evidence quotes.
-7. **Slide 7 — Quantitative Evaluation, Ablation Study & Unit Economics:**
+7. **Slide 7: Quantitative Evaluation, Ablation Study & Unit Economics:**
    * Real Precision/Recall/F1 numbers on the 30-company Gold Set, the Stage 1–5 Ablation table, and total compute/API cost per 1,000 leads (`<$1.50`).

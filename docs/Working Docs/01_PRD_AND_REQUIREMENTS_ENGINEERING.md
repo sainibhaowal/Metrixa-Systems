@@ -1,6 +1,6 @@
-# 01 — Product Requirements Document (PRD) & Requirements Engineering
+# 01: Product Requirements Document (PRD) & Requirements Engineering
 
-**Project Name:** Metrixa Engine — Autonomous B2B Lead Discovery, Enrichment & Qualification System
+**Project Name:** Metrixa Engine: Automated B2B Lead Discovery, Enrichment & Qualification System
 **Target Case Study:** AI Agent Builder Application @ Metrixa Systems GmbH
 **Target Market:** Property Management Companies (*Hausverwaltungen*) in Berlin, Germany
 **Document Order:** `01 of 06` (Start Here)
@@ -10,7 +10,7 @@
 ## 1. Executive Summary & Business Context
 
 ### 1.1 Who is Metrixa Systems?
-**Metrixa Systems** is a modern **metering service provider (*Messdienstleister*)** operating in the German property sector. In Germany, under the **Heating Costs Ordinance (*Heizkostenverordnung — HeizkV*)** and the **Energy Efficiency Directive (EED)**, multi-unit buildings must be equipped with remotely readable submetering hardware (heat cost allocators, hot/cold water meters, thermal energy meters) and provide transparent monthly consumption information plus annual heating/operating cost billing (*Heiz- und Betriebskostenabrechnung*).
+**Metrixa Systems** is a modern **metering service provider (*Messdienstleister*)** operating in the German property sector. In Germany, under the **Heating Costs Ordinance (*Heizkostenverordnung, HeizkV*)** and the **Energy Efficiency Directive (EED)**, multi-unit buildings must be equipped with remotely readable submetering hardware (heat cost allocators, hot/cold water meters, thermal energy meters) and provide transparent monthly consumption information plus annual heating/operating cost billing (*Heiz- und Betriebskostenabrechnung*).
 
 ### 1.2 Why Property Management Companies (*Hausverwaltungen*) Are the Core Buyer
 Individual apartment owners or landlords rarely buy submetering infrastructure unit-by-unit. Instead, **property management companies (*Hausverwaltungen*)** act as the central B2B multiplier:
@@ -62,10 +62,10 @@ flowchart LR
 
 ### FR-1: Multi-Source Berlin Discovery & Ingestion (Task 1)
 * **FR-1.1:** The system MUST ingest property management listings in Berlin from at least **4 distinct, complementary data sources**:
-  1. **Gelbe Seiten** (`gelbeseiten.de`) — Broad commercial directory coverage.
-  2. **11880.com** (`11880.com`) — Secondary German business directory for cross-coverage.
-  3. **VDIV Berlin-Brandenburg** (`vdiv.de` / regional association directory) — High-value certified professional property managers.
-  4. **OpenStreetMap (Overpass API)** & **Search Discovery (`SearXNG` / `Tavily`)** — Geographic and long-tail web discovery.
+  1. **Gelbe Seiten** (`gelbeseiten.de`): Broad commercial directory coverage.
+  2. **11880.com** (`11880.com`): Secondary German business directory for cross-coverage.
+  3. **VDIV Berlin-Brandenburg** (`vdiv.de` / regional association directory): High-value certified professional property managers.
+  4. **OpenStreetMap (Overpass API)** & **Search Discovery (`SearXNG` / `Tavily`)**: Geographic and long-tail web discovery.
 * **FR-1.2:** Every raw scraped record MUST be stored immutably in a staging table (`raw_listings`) with its source URL, scrape timestamp, and raw payload before deduplication.
 * **FR-1.3:** The system MUST filter out non-Berlin companies (verifying Berlin postal codes `10115`–`14199` or explicit Berlin locality/branch presence) and non-property-management businesses (e.g., pure real estate brokers/*Immobilienmakler* who do not manage properties, facility cleaners, or construction firms).
 
@@ -85,7 +85,7 @@ flowchart LR
 * **FR-4.1:** The extraction engine MUST support a pluggable **Multi-Provider LLM Router** capable of running against:
   1. **Local Models** via `llama.cpp` server (`http://localhost:8080/v1`) or `LM Studio` (`http://localhost:1234/v1`).
   2. **NVIDIA NIM API** (`https://integrate.api.nvidia.com/v1`).
-  3. **DeepSeek API** (`https://api.deepseek.com/v1` — `deepseek-chat` / `deepseek-reasoner`).
+  3. **DeepSeek API** (`https://api.deepseek.com/v1`: `deepseek-chat` / `deepseek-reasoner`).
   4. **Google Gemini API** (`gemini-2.5-flash` / `gemini-2.5-pro`).
 * **FR-4.2:** Every LLM extraction call MUST enforce a strict **Pydantic JSON Schema** and require an explicit **`evidence_quote`** and **`source_url`** for extracted KPIs to prevent hallucination. If a metric (like exact unit count) is not stated on the website, the LLM MUST return `null` for `exact_units` and provide an evidence-based `estimated_size_tier` with clear reasoning.
 
@@ -122,9 +122,9 @@ flowchart LR
 
 To avoid confusion or scattered notes, our entire system is documented across **6 strictly ordered Markdown files** inside `docs/`:
 
-1. **`01_PRD_AND_REQUIREMENTS_ENGINEERING.md`** *(This file)* — Business context, requirements mapping, functional/non-functional specs.
-2. **`02_SYSTEM_ARCHITECTURE_AND_TECH_STACK.md`** — End-to-end architecture blueprints, multi-LLM & search harness design, complete tech stack explanation, and repository directory structure.
-3. **`03_TASK1_INGESTION_SCRAPERS_AND_DEDUPLICATION.md`** — Detailed scraper designs for Gelbe Seiten, 11880, VDIV, OSM, and SearXNG, plus the Entity Resolution & Deduplication algorithm.
-4. **`04_TASK2_KPI_BLUEPRINT_CRAWLER_AND_SCORING_ENGINE.md`** — Systematic KPI definitions for Metrixa Systems, async Website/*Impressum* crawler, LLM prompt & Pydantic schema, Decision-Maker/Email/LinkedIn enrichment, and the `0–100` Lead Scoring formula.
-5. **`05_DATABASE_SCHEMA_DATA_STRUCTURES_AND_EXPORT_SPEC.md`** — SQLite ER diagram, SQL table schemas, core data structures, and exact Google Sheet / Excel column & tab layout.
-6. **`06_TASK3_VALIDATION_EVALUATION_ABLATION_AND_PRESENTATION_BLUEPRINT.md`** — 4-layer data validation rules, Gold-Set evaluation metrics, ablation study tables, native local SearXNG setup (no Docker), and the slide-by-slide blueprint for your Task 3 presentation.
+1. **`01_PRD_AND_REQUIREMENTS_ENGINEERING.md`** *(This file)*: Business context, requirements mapping, functional/non-functional specs.
+2. **`02_SYSTEM_ARCHITECTURE_AND_TECH_STACK.md`**: End-to-end architecture blueprints, multi-LLM & search harness design, complete tech stack explanation, and repository directory structure.
+3. **`03_TASK1_INGESTION_SCRAPERS_AND_DEDUPLICATION.md`**: Detailed scraper designs for Gelbe Seiten, 11880, VDIV, OSM, and SearXNG, plus the Entity Resolution & Deduplication algorithm.
+4. **`04_TASK2_KPI_BLUEPRINT_CRAWLER_AND_SCORING_ENGINE.md`**: Systematic KPI definitions for Metrixa Systems, async Website/*Impressum* crawler, LLM prompt & Pydantic schema, Decision-Maker/Email/LinkedIn enrichment, and the `0–100` Lead Scoring formula.
+5. **`05_DATABASE_SCHEMA_DATA_STRUCTURES_AND_EXPORT_SPEC.md`**: SQLite ER diagram, SQL table schemas, core data structures, and exact Google Sheet / Excel column & tab layout.
+6. **`06_TASK3_VALIDATION_EVALUATION_ABLATION_AND_PRESENTATION_BLUEPRINT.md`**: 4-layer data validation rules, Gold-Set evaluation metrics, ablation study tables, native local SearXNG setup (no Docker), and the slide-by-slide blueprint for your Task 3 presentation.

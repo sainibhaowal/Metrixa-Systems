@@ -1,4 +1,4 @@
-# 08 — Mission Control 3-Panel Enterprise Redesign & Operational Blueprint
+# 08: Mission Control 3-Panel Enterprise Redesign & Operational Blueprint
 
 **Document Reference:** `docs/Working Docs/08_MISSION_CONTROL_ENTERPRISE_REDESIGN.md`
 **Parent Specification:** `docs/Web Plan/08_MISSION_CONTROL_3PANEL_ENTERPRISE_SPEC.md`

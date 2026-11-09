@@ -1,6 +1,6 @@
-# 05 — Database Schema, Pipeline State Machine & Excel/Google Sheets Deliverable Spec
+# 05: Database Schema, Pipeline State Machine & Excel/Google Sheets Deliverable Spec
 
-**Project Name:** Metrixa Engine — Autonomous B2B Lead Discovery, Enrichment & Qualification System
+**Project Name:** Metrixa Engine: Automated B2B Lead Discovery, Enrichment & Qualification System
 **Document Order:** `05 of 06`
 **Purpose:** Complete relational database design (`SQLite WAL`), pipeline state transitions, and the exact column-by-column structure of the final multi-tab Excel (`.xlsx`) / Google Sheets deliverable.
 
