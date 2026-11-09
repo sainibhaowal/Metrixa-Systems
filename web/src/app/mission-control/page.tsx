@@ -121,7 +121,7 @@ const STAGES: PipelineStageDef[] = [
     category: "extract",
     desc: "Extracts managed units, WEG/Miet focus & Geschäftsführer.",
     details:
-      "Layer 1: Deterministic German § 5 DDG legal parser ($0 cost baseline). Layer 2: Live API LLM extraction (OpenAI, Gemini, DeepSeek, local Ollama) with anti-hallucination quote verification gates.",
+      "Layer 1: Deterministic German § 5 DDG legal parser ($0 cost baseline). Layer 2: LLM extraction (OpenAI, Gemini, DeepSeek, local Ollama) with anti-hallucination quote verification gates.",
     tools: [
       "GermanImpressumParser",
       "LLMRouter",

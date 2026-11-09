@@ -921,11 +921,11 @@ export default function SettingsHubPage() {
                 {selectedLLMDef.requiresKey && (
                   <div>
                     <label className="text-xs font-semibold text-zinc-300 block mb-1.5 flex items-center justify-between">
-                      <span>API Key (Auto-Discovers Live Models on Entry)</span>
+                      <span>API Key</span>
                       <span className="text-[10px] font-mono text-zinc-500">
                         {isLLMConfigured(selectedLLMDef.id)
                           ? "Configured in .env"
-                          : "Required for Live Discovery"}
+                          : "Required for Authentication"}
                       </span>
                     </label>
                     <div className="relative">
@@ -936,7 +936,7 @@ export default function SettingsHubPage() {
                         placeholder={
                           isLLMConfigured(selectedLLMDef.id)
                             ? "•••••••••••••••••••• (Configured in .env, enter new to overwrite)"
-                            : "sk-... or AIzaSy... (Paste key to auto-fetch models)"
+                            : "sk-... or AIzaSy... (Paste key to fetch models)"
                         }
                         className="w-full pl-3.5 pr-10 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-mono text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-emerald-500 transition-all"
                       />
@@ -955,7 +955,7 @@ export default function SettingsHubPage() {
                   </div>
                 )}
 
-                {/* Model ID / Tag + Live Auto-Discovery Inventory */}
+                {/* Model ID / Tag + Model Inventory */}
                 <div className="space-y-2.5">
                   <div className="flex items-center justify-between gap-2">
                     <label className="text-xs font-semibold text-zinc-300 flex items-center gap-2">
@@ -976,10 +976,10 @@ export default function SettingsHubPage() {
                           }`}
                         >
                           {discoveringModels
-                            ? "Probing live endpoint..."
+                            ? "Connecting to endpoint..."
                             : discoverySource === "live_api" &&
                                 discoveredModels.length > 0
-                              ? `✓ ${discoveredModels.length} Live Models Fetched (${discoveryLatency}ms)`
+                              ? `✓ ${discoveredModels.length} Models Available (${discoveryLatency}ms)`
                               : discoverySource === "awaiting_key"
                                 ? "Awaiting API Key :  0 Models Loaded"
                                 : "Endpoint Offline :  0 Models Loaded"}
@@ -1162,14 +1162,9 @@ export default function SettingsHubPage() {
                                       )}
                                     </div>
 
-                                    <div className="flex items-center gap-2 shrink-0 font-mono text-[10px]">
-                                      {m.context_window && (
-                                        <span className="text-zinc-400 bg-zinc-900 px-2 py-0.5 rounded border border-zinc-800">
-                                          {m.context_window}
-                                        </span>
-                                      )}
+                                    <div className="flex items-center gap-2 shrink-0">
                                       {isPicked && (
-                                        <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                                        <Check className="w-4 h-4 text-emerald-400 shrink-0" />
                                       )}
                                     </div>
                                   </div>
@@ -1206,11 +1201,8 @@ export default function SettingsHubPage() {
                         <span>
                           {discoveryMessage ||
                             (selectedLLMDef.requiresKey
-                              ? "No API key configured : enter your API key above to auto-discover live models from the provider."
-                              : "Local server unreachable : start your local LLM server to auto-discover installed models.")}
-                        </span>
-                        <span className="text-[10px] text-zinc-500 shrink-0">
-                          Live Discovery Only
+                              ? "No API key configured : enter your API key above to discover models from the provider."
+                              : "Local server unreachable : start your local server to load installed models.")}
                         </span>
                       </div>
                     )}
@@ -1301,7 +1293,12 @@ export default function SettingsHubPage() {
                                   Context / Type
                                 </span>
                                 <strong className="text-zinc-200 truncate block">
-                                  {activeSpec.context_window}
+                                  {activeSpec.context_window &&
+                                  !activeSpec.context_window
+                                    .toLowerCase()
+                                    .includes("live")
+                                    ? activeSpec.context_window
+                                    : "Standard"}
                                 </strong>
                               </div>
                               <div className="px-2.5 py-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800/80">
@@ -1309,7 +1306,7 @@ export default function SettingsHubPage() {
                                   Provider Metadata
                                 </span>
                                 <strong className="text-zinc-300 truncate block">
-                                  {activeSpec.capabilities}
+                                  {activeSpec.capabilities || "Ready"}
                                 </strong>
                               </div>
                             </div>

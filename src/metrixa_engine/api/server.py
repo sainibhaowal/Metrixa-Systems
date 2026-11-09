@@ -3757,12 +3757,12 @@ async def discover_provider_models(req: ProviderPingRequest):
                     out_lim = m.get("outputTokenLimit")
                     ctx_str = (
                         f"{in_lim:,} tokens"
-                        if isinstance(in_lim, int)
-                        else "Live API Model"
+                        if isinstance(in_lim, int) and in_lim > 0
+                        else ""
                     )
                     caps = (
                         f"Max Output: {out_lim:,} tokens"
-                        if isinstance(out_lim, int)
+                        if isinstance(out_lim, int) and out_lim > 0
                         else "Google Generative Language API"
                     )
                     discovered.append(
@@ -3818,19 +3818,19 @@ async def discover_provider_models(req: ProviderPingRequest):
                 ):
                     continue
                 ctx_val = item.get("context_window") or item.get("max_model_len")
-                if isinstance(ctx_val, int):
+                if isinstance(ctx_val, int) and ctx_val > 0:
                     ctx_str = f"{ctx_val:,} tokens"
-                elif ctx_val:
-                    ctx_str = str(ctx_val)
+                elif ctx_val and not any(k in str(ctx_val).lower() for k in ("live", "api", "model")):
+                    ctx_str = str(ctx_val).strip()
                 else:
-                    ctx_str = "Live API Model"
+                    ctx_str = ""
                 owner = str(item.get("owned_by", prov))
                 discovered.append(
                     {
                         "id": mid,
                         "name": mid,
                         "context_window": ctx_str,
-                        "capabilities": f"Owner: {owner} • Live /v1/models",
+                        "capabilities": f"Owner: {owner}",
                         "owned_by": owner,
                         "recommended": False,
                     }
@@ -3842,7 +3842,7 @@ async def discover_provider_models(req: ProviderPingRequest):
                     "status": "ok",
                     "source": "live_api",
                     "latency_ms": latency_ms,
-                    "message": f"Discovered {len(discovered)} live models from {base_url}/models.",
+                    "message": f"Discovered {len(discovered)} models from {base_url}/models.",
                     "models": discovered,
                 }
     except Exception as exc:
