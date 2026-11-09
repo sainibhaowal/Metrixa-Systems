@@ -24,6 +24,7 @@ web/out/
 # Runtime SQLite WAL / Temporary files
 data/*.db-shm
 data/*.db-wal
+data/backups/
 
 # IDE / OS
 .vscode/

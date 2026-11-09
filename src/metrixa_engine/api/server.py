@@ -524,7 +524,6 @@ def _synthesize_and_save_events_for_run(
     target_city = run_dict.get("target_city") or "Berlin"
     active_stage = (run_dict.get("active_stage") or "full").lower()
     total_out = run_dict.get("total_companies_out") or 1200
-    status = run_dict.get("status") or "COMPLETED"
 
     all_steps = [
         # Stage 1: Ingestion
@@ -1229,7 +1228,7 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                     "STAGE_SUMMARY",
                     "SUCCESS",
                     int(stage_durations["ingest"] * 1000),
-                    f"Stage 01 Ingestion complete: 1,375 raw directory records harvested across 5 orthogonal sources.",
+                    "Stage 01 Ingestion complete: 1,375 raw directory records harvested across 5 orthogonal sources.",
                     {
                         "total_raw": 1375,
                         "unique_sources": 5,
@@ -1740,7 +1739,7 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                     "DATA_WRITER",
                     "TOOL",
                     1250,
-                    f"Injected 1,200 golden rows, executive contacts, Excel formulas (AVERAGE, COUNTIF), and auto-width formatting.",
+                    "Injected 1,200 golden rows, executive contacts, Excel formulas (AVERAGE, COUNTIF), and auto-width formatting.",
                     {
                         "rows_written": 1200,
                         "contacts_written": 88,
@@ -1786,7 +1785,7 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                     "STAGE_SUMMARY",
                     "SUCCESS",
                     int(stage_durations["export"] * 1000),
-                    f"Stage 06 Deliverables complete: Master Excel and ablation benchmark report generated.",
+                    "Stage 06 Deliverables complete: Master Excel and ablation benchmark report generated.",
                     {
                         "excel_path": exp_res["xlsx_path"],
                         "report_path": eval_path,
@@ -2686,6 +2685,31 @@ async def get_artifact_preview(artifact_id: str):
                 settings.database_path, db_stat.st_mtime, db_stat.st_size
             ),
         }
+        return res
+
+    elif artifact_id == "pdf-casestudy":
+        md_path = Path("docs/Case Study/Case Study.md")
+        pdf_path = Path("docs/Case Study/Case_Study_Metrixa_Systems.pdf")
+        text = (
+            md_path.read_text(encoding="utf-8")
+            if md_path.exists()
+            else "# Metrixa Systems Case Study\n\nAutonomous B2B Lead Intelligence Enterprise Whitepaper."
+        )
+        stat = pdf_path.stat() if pdf_path.exists() else (md_path.stat() if md_path.exists() else None)
+        mtime = stat.st_mtime if stat else time.time()
+        size = stat.st_size if stat else len(text.encode("utf-8"))
+        res = {
+            "id": artifact_id,
+            "type": "pdf",
+            "name": "Case_Study_Metrixa_Systems.pdf",
+            "title": "Autonomous B2B Lead Intelligence Enterprise Whitepaper (PDF)",
+            "content": text,
+            "lines_count": len(text.splitlines()),
+            "updated_at": datetime.fromtimestamp(mtime, tz=UTC).isoformat(),
+            "size_bytes": size,
+            "sha256_short": _compute_sha256_short(pdf_path if pdf_path.exists() else md_path, mtime, size) if stat else "pending",
+        }
+        _preview_cache[artifact_id] = (mtime, res)
         return res
 
     raise HTTPException(status_code=404, detail="Artifact preview not found")
