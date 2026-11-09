@@ -16,8 +16,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
-      <body className="bg-background text-zinc-100 flex h-screen overflow-hidden antialiased">
+    <html lang="en" className="dark" suppressHydrationWarning>
+      <body
+        suppressHydrationWarning
+        className="bg-background text-zinc-100 flex h-screen overflow-hidden antialiased"
+      >
         <SidebarProvider>
           <SidebarNav />
           <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden transition-all duration-300 ease-in-out">

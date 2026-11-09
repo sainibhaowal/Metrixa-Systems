@@ -29,8 +29,10 @@ import {
 export default function DashboardPage() {
   const [metrics, setMetrics] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     fetchMetrics()
       .then(setMetrics)
       .catch(console.error)
@@ -210,45 +212,51 @@ export default function DashboardPage() {
           </div>
 
           <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={districtData}
-                layout="vertical"
-                margin={{ top: 5, right: 20, left: 50, bottom: 5 }}
-              >
-                <XAxis
-                  type="number"
-                  stroke="#52525b"
-                  fontSize={11}
-                  tickLine={false}
-                />
-                <YAxis
-                  dataKey="district"
-                  type="category"
-                  stroke="#a1a1aa"
-                  fontSize={11}
-                  tickLine={false}
-                  width={130}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#18181b",
-                    borderColor: "rgba(255,255,255,0.1)",
-                    borderRadius: "12px",
-                    color: "#f4f4f5",
-                    fontSize: "12px",
-                  }}
-                />
-                <Bar dataKey="count" fill="#27272a" radius={[0, 6, 6, 0]}>
-                  {districtData.map((_: any, index: number) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={index === 0 ? "#10b981" : "#3f3f46"}
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            {mounted ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={districtData}
+                  layout="vertical"
+                  margin={{ top: 5, right: 20, left: 50, bottom: 5 }}
+                >
+                  <XAxis
+                    type="number"
+                    stroke="#52525b"
+                    fontSize={11}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    dataKey="district"
+                    type="category"
+                    stroke="#a1a1aa"
+                    fontSize={11}
+                    tickLine={false}
+                    width={130}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#18181b",
+                      borderColor: "rgba(255,255,255,0.1)",
+                      borderRadius: "12px",
+                      color: "#f4f4f5",
+                      fontSize: "12px",
+                    }}
+                  />
+                  <Bar dataKey="count" fill="#27272a" radius={[0, 6, 6, 0]}>
+                    {districtData.map((_: any, index: number) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={index === 0 ? "#10b981" : "#3f3f46"}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full w-full flex items-center justify-center text-xs font-mono text-zinc-600">
+                Loading district distribution...
+              </div>
+            )}
           </div>
         </div>
 

@@ -95,6 +95,7 @@ export default function ArtifactsLibraryPage() {
   const [syncing, setSyncing] = useState(false);
   const [sheetsSyncing, setSheetsSyncing] = useState(false);
   const [nowTick, setNowTick] = useState<number>(() => Date.now());
+  const [mounted, setMounted] = useState<boolean>(false);
 
   // Active View Tab: "active" | "archived" | "trash"
   const [currentTab, setCurrentTab] = useState<"active" | "archived" | "trash">(
@@ -145,6 +146,7 @@ export default function ArtifactsLibraryPage() {
 
   // Initial load + 5s live background telemetry poll + 1s relative clock ticker
   useEffect(() => {
+    setMounted(true);
     loadFiles(false, false);
     const pollInterval = setInterval(() => {
       loadFiles(true, true);
@@ -403,8 +405,10 @@ export default function ArtifactsLibraryPage() {
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-900 border border-emerald-500/30 text-zinc-300">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
             <span className="text-zinc-500">Live Clock:</span>
-            <strong className="text-emerald-400">
-              {formatExactDateTime(new Date(nowTick).toISOString())}
+            <strong suppressHydrationWarning className="text-emerald-400">
+              {mounted
+                ? formatExactDateTime(new Date(nowTick).toISOString())
+                : "Live"}
             </strong>
           </div>
 
@@ -698,7 +702,10 @@ export default function ArtifactsLibraryPage() {
                         <span className="text-[10px] text-zinc-300 font-semibold truncate">
                           Updated: {formatExactDateTime(f.updated_at)}
                         </span>
-                        <span className="text-[9px] text-emerald-400/90 truncate">
+                        <span
+                          suppressHydrationWarning
+                          className="text-[9px] text-emerald-400/90 truncate"
+                        >
                           {f.updated_at
                             ? `${formatRelativeTime(f.updated_at, nowTick)} • ${(f.size_bytes || 0).toLocaleString()} B`
                             : "Ready"}
@@ -843,7 +850,7 @@ export default function ArtifactsLibraryPage() {
                   {currentFile?.size_formatted} (
                   {(currentFile?.size_bytes || 0).toLocaleString()} bytes) •
                   Modified: {formatExactDateTime(currentFile?.updated_at)}{" "}
-                  <span className="text-emerald-400">
+                  <span suppressHydrationWarning className="text-emerald-400">
                     ({formatRelativeTime(currentFile?.updated_at, nowTick)})
                   </span>
                 </p>

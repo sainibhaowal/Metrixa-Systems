@@ -253,7 +253,9 @@ function formatRunTime(startedAtStr: string | undefined): string {
   try {
     const d = new Date(startedAtStr);
     if (isNaN(d.getTime())) return "";
-    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const hours = String(d.getHours()).padStart(2, "0");
+    const minutes = String(d.getMinutes()).padStart(2, "0");
+    return `${hours}:${minutes}`;
   } catch {
     return "";
   }
@@ -1359,7 +1361,10 @@ export default function MissionControlPage() {
                             }`}
                           />
                           <Calendar className="w-3.5 h-3.5 text-emerald-400/90 shrink-0" />
-                          <span className="text-xs font-semibold text-zinc-200 tracking-tight truncate">
+                          <span
+                            suppressHydrationWarning
+                            className="text-xs font-semibold text-zinc-200 tracking-tight truncate"
+                          >
                             {group.label}
                           </span>
                         </div>
@@ -1380,7 +1385,10 @@ export default function MissionControlPage() {
                                 : "Select Group"}
                             </span>
                           )}
-                          <span className="px-1.5 py-0.2 rounded-md bg-zinc-800 text-zinc-400 border border-white/[0.05]">
+                          <span
+                            suppressHydrationWarning
+                            className="px-1.5 py-0.2 rounded-md bg-zinc-800 text-zinc-400 border border-white/[0.05]"
+                          >
                             {group.runs.length}{" "}
                             {group.runs.length === 1 ? "run" : "runs"}
                           </span>
@@ -1451,7 +1459,10 @@ export default function MissionControlPage() {
                                       />
                                       Run #{r.run_number}
                                       {r.started_at && (
-                                        <span className="text-[10px] text-zinc-500 font-normal">
+                                        <span
+                                          suppressHydrationWarning
+                                          className="text-[10px] text-zinc-500 font-normal"
+                                        >
                                           {formatRunTime(r.started_at)}
                                         </span>
                                       )}
