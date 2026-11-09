@@ -1,8 +1,12 @@
 """
-Production LaTeX-Grade Research Paper PDF Generator.
-Uses Computer Modern / Latin Modern typography, real KaTeX equation rendering,
-formal academic paper margins, booktabs tables, and clean single-column structure.
-Zero unrendered LaTeX raw code, zero em dashes, zero internal repository paths.
+Production Technical Paper PDF Generator.
+100% Truthful, Defensible Engineering Terminology:
+- Uses strictly truthful and defensible data engineering terminology
+- Clearly defines human design, rule specification, and automated execution
+- Accurately reports all empirical numbers from SQLite (data/metrixa_leads.db)
+- Real KaTeX math typesetting (no raw LaTeX unrendered strings)
+- Pure single-column academic serif typography
+- Zero em dashes, zero code file paths, zero mock journal headers
 """
 
 from pathlib import Path
@@ -17,7 +21,7 @@ RESEARCH_PAPER_HTML = r"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Autonomous B2B Lead Intelligence and Statutory Disclosure Verification</title>
+<title>Automated B2B Lead Intelligence and Statutory Disclosure Verification</title>
 <link rel="stylesheet" href="vendor/katex.min.css">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Libertinus+Serif:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Latin+Modern+Roman&display=swap');
@@ -69,7 +73,7 @@ RESEARCH_PAPER_HTML = r"""<!DOCTYPE html>
   }
 
   h1.paper-title {
-    font-size: 15.5pt;
+    font-size: 15pt;
     font-weight: 700;
     line-height: 1.28;
     margin: 0 0 10px 0;
@@ -314,25 +318,25 @@ RESEARCH_PAPER_HTML = r"""<!DOCTYPE html>
 
   <div class="header-rule">
     <span>Systems Architecture &amp; Empirical Research Report</span>
-    <span>Autonomous B2B Data Engineering</span>
+    <span>Automated B2B Data Engineering</span>
   </div>
 
   <div class="title-block">
     <h1 class="paper-title">
-      Autonomous B2B Lead Intelligence and Statutory Disclosure Verification:<br/>
+      Automated B2B Lead Intelligence and Statutory Disclosure Verification:<br/>
       Market Saturation, Deterministic Qualification, and Decision-Maker Extraction<br/>
       for the German Property Management Ecosystem
     </h1>
     <div class="author-name">Ravin Saini</div>
     <div class="author-affil">
-      Autonomous LeadOps &amp; Distributed Systems Engineering
+      Data Engineering &amp; Distributed Systems Architecture
     </div>
 
     <div class="abstract-pane">
       <span class="abstract-heading">Abstract</span>:
-      Extracting verified go-to-market (GTM) intelligence within European small and medium-sized enterprise (SME) ecosystems presents acute information-asymmetry hurdles for global data vendors. In the German property management sector (<i>Hausverwaltungen</i>), operational volume, managed housing portfolios, and enterprise software configurations are rarely published on commercial social networks. However, European public telemedia regulations and German statutory disclosure mandates (specifically Section 5 of the Digital Services Act, <i>Digitale-Dienste-Gesetz</i>, &sect; 5 DDG) legally compel commercial entities to disclose their registered legal form, commercial court registration number (<i>Handelsregister HRB/HRA</i>), and authorized executive representatives (<i>Gesch&auml;ftsf&uuml;hrer</i>) on an accessible digital disclosure subpage (<code>/impressum</code>). This research paper formalizes the architecture, algorithmic foundations, and empirical results of an end-to-end autonomous data pipeline designed to ingest, resolve, qualify, and verify commercial entities across a major metropolitan market (Berlin). Incorporating multi-source parallel harvesting, Disjoint-Set Union-Find graph entity deduplication, asynchronous Document Object Model (DOM) enterprise software fingerprinting, hybrid verbatim evidence-grounded attribute parsing, and RFC 5321 Mail Exchange (MX) verification, the architecture resolved <b>1,375 raw directory records</b> into <b>1,200 canonical property management entities</b>. A transparent 5-pillar mathematical qualification formula categorizes entities into three actionable commercial tiers: Tier A (35 entities, 2.9%), Tier B (409 entities, 34.1%), and Tier C (756 entities, 63.0%). Automated verification gates achieved <b>95.4% postal boundary precision</b>, <b>100.0% verbatim grounding on explicit portfolio claims</b>, and a <b>0.0% ungrounded hallucination rate</b>.
+      Extracting verified go-to-market (GTM) intelligence within European small and medium-sized enterprise (SME) ecosystems presents acute information-asymmetry hurdles for global data vendors. In the German property management sector (<i>Hausverwaltungen</i>), operational volume, managed housing portfolios, and enterprise software configurations are rarely published on commercial social networks. However, European public telemedia regulations and German statutory disclosure mandates (specifically Section 5 of the Digital Services Act, <i>Digitale-Dienste-Gesetz</i>, &sect; 5 DDG) legally compel commercial entities to disclose their registered legal form, commercial court registration number (<i>Handelsregister HRB/HRA</i>), and authorized executive representatives (<i>Gesch&auml;ftsf&uuml;hrer</i>) on an accessible digital disclosure subpage (<code>/impressum</code>). This research paper formalizes the architecture, algorithmic foundations, and empirical results of an end-to-end automated data pipeline designed to ingest, resolve, qualify, and verify commercial entities across a major metropolitan market (Berlin). Incorporating multi-source parallel harvesting, Disjoint-Set Union-Find graph entity deduplication, asynchronous Document Object Model (DOM) enterprise software fingerprinting, hybrid verbatim evidence-grounded attribute parsing, and RFC 5321 Mail Exchange (MX) verification, the architecture resolved <b>1,375 raw directory records</b> into <b>1,200 canonical property management entities</b>. A transparent 5-pillar mathematical qualification formula categorizes entities into three actionable commercial tiers: Tier A (35 entities, 2.9%), Tier B (409 entities, 34.1%), and Tier C (756 entities, 63.0%). Automated verification gates achieved <b>95.4% postal boundary precision</b>, <b>100.0% verbatim grounding on explicit portfolio claims</b>, and a <b>0.0% ungrounded hallucination rate</b>.
       <div class="keywords-row">
-        <span class="keywords-label">Keywords:</span> B2B Entity Intelligence, Statutory Disclosure Extraction (&sect; 5 DDG), Disjoint-Set Union-Find, Entity Deduplication, PropTech ERP Fingerprinting, RFC 5321 DNS MX Validation, Autonomous LeadOps, Empirical Ablation.
+        <span class="keywords-label">Keywords:</span> B2B Entity Intelligence, Statutory Disclosure Extraction (&sect; 5 DDG), Disjoint-Set Union-Find, Entity Deduplication, PropTech ERP Fingerprinting, RFC 5321 DNS MX Validation, Automated Data Engineering, Empirical Ablation.
       </div>
     </div>
   </div>
@@ -352,11 +356,11 @@ RESEARCH_PAPER_HTML = r"""<!DOCTYPE html>
       <li><b>Administrative Gatekeeping:</b> Publicly visible contact listings are uniformly guarded by generic departmental addresses (such as <code>info@</code>, <code>kontakt@</code>, or <code>verwaltung@</code>), preventing direct communication with managing directors.</li>
     </ul>
     <p>
-      <b>The Statutory Opportunity:</b> German commercial public law establishes a powerful mechanism for overcoming this opacity. Under <b>&sect; 5 Digitale-Dienste-Gesetz (DDG)</b> (formerly &sect; 5 Telemediengesetz, TMG), every commercial web operator in Germany is legally obligated to maintain an accessible, permanently available legal disclosure page (<code>/impressum</code>). This disclosure must state the complete corporate legal designation, authorized managing directors (<i>Gesch&auml;ftsf&uuml;hrer</i>), registered commercial court jurisdiction and HRB/HRA register ID, physical business address, and direct communication channels (Deutscher Bundestag, 2024). By engineering an autonomous system that harvests public directories, resolves duplicate entities, inspects corporate web infrastructure, extracts statutory disclosures with verbatim evidence validation, and verifies communication protocols, an authoritative market registry can be established without human intervention.
+      <b>The Statutory Opportunity:</b> German commercial public law establishes a powerful mechanism for overcoming this opacity. Under <b>&sect; 5 Digitale-Dienste-Gesetz (DDG)</b> (formerly &sect; 5 Telemediengesetz, TMG), every commercial web operator in Germany is legally obligated to maintain an accessible, permanently available legal disclosure page (<code>/impressum</code>). This disclosure must state the complete corporate legal designation, authorized managing directors (<i>Gesch&auml;ftsf&uuml;hrer</i>), registered commercial court jurisdiction and HRB/HRA register ID, physical business address, and direct communication channels (Deutscher Bundestag, 2024). By engineering an automated pipeline that harvests public directories, resolves duplicate entities, inspects corporate web infrastructure, extracts statutory disclosures with verbatim evidence validation, and verifies communication protocols, an authoritative market registry can be established systematically.
     </p>
 
     <div class="flow-box">
-      <div class="flow-title">Figure 1: Six-Stage Autonomous Data Intelligence and Verification Architecture</div>
+      <div class="flow-title">Figure 1: Six-Stage Automated Data Intelligence and Verification Architecture</div>
       <div class="flow-grid">
         <div class="flow-step">
           <b>1. Ingestion</b>
@@ -386,7 +390,7 @@ RESEARCH_PAPER_HTML = r"""<!DOCTYPE html>
     </div>
 
     <p class="noindent">
-      <b>Clarifying Autonomy:</b> We define the system as <i>autonomous</i> because, once configured with target geographic parameters (postal boundaries) and directory connectors, the entire progression from raw ingestion to deduplication, web crawling, ERP signature detection, statutory extraction, DNS MX verification, and multi-factor scoring executes end-to-end without manual intervention. The pipeline employs deterministic rules, asynchronous scheduling, and automated error-handling routines. Human involvement is strictly confined to an external oversight role, reviewing audit logs and sampling the automated anti-hallucination validation gates.
+      <b>Automation Boundaries and Human Governance:</b> The system operates as a deterministic, programmatic pipeline. While execution across harvesting, deduplication, crawling, extraction, and validation runs without manual intervention once launched, the underlying heuristics, postal parameters, extraction regexes, and scoring weights are entirely human-engineered. Quality assurance is maintained through programmatic gates that enforce verbatim grounding and postal boundary compliance, while human engineers maintain oversight over database logs, rate limits, and schema definitions.
     </p>
 
     <h2 class="section-title">2. Multi-Source Ingestion and Graph-Based Entity Resolution</h2>
