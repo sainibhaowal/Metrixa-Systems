@@ -1,4 +1,4 @@
-# 04 — Database Schema Evolution, API Contracts & Cockpit UI Integration
+# 04 :  Database Schema Evolution, API Contracts & Cockpit UI Integration
 
 **Project Name:** Metrixa Engine (Metrixa Systems B2B PropTech & Submetering Intelligence Platform)
 **Document Scope:** Non-Destructive SQLite WAL Migrations, New FastAPI Endpoints, and Next.js Cockpit UI Enhancements
@@ -104,7 +104,7 @@ CREATE TABLE IF NOT EXISTS system_diagnostic_logs (
 ## 3. Next.js Cockpit UI Integration (`web/src/app/`)
 
 1. **Executive Overview (`/`) & Lead Explorer (`/leads`)**:
-   - **City Territory Selector Pill Bar**: Switch seamlessly between **All Cities**, **Berlin** (`10115–14199`), **München** (`80331–81929`), **Hamburg** (`20095–22769`), **Frankfurt am Main** (`60306–65936`), and **Köln** (`50667–51149`), dynamically updating the District filter dropdown to the selected city's official *Bezirke / Stadtbezirke*.
+   - **City Territory Selector Pill Bar**: Switch seamlessly between **All Cities**, **Berlin** (`10115-14199`), **München** (`80331-81929`), **Hamburg** (`20095-22769`), **Frankfurt am Main** (`60306-65936`), and **Köln** (`50667-51149`), dynamically updating the District filter dropdown to the selected city's official *Bezirke / Stadtbezirke*.
    - **Evidence Dossier Drawer Enhancements**:
      - Shows **Handelsregister Badge** (e.g., `Amtsgericht Charlottenburg • HRB Verified`).
      - Shows **3-Tier Email Security & Deliverability Badge** (`MX + SPF/DMARC Verified` / `Microsoft 365`).

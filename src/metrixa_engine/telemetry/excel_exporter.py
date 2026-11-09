@@ -417,17 +417,17 @@ class ExcelExporter:
                 "Cleaned via Canonical Domain + E.164 Phone + RapidFuzz Token Sort Ratio + Union-Find Graph Clustering.",
             ),
             (
-                "Tier A — High-Priority Target Leads (Score 70-100)",
+                "Tier A :  High-Priority Target Leads (Score 70-100)",
                 str(tel["tiers"].get("Tier A (High Priority)", 0)),
                 "Large/Mid-sized WEG & Mietverwaltung firms with high digital maturity or VDIV certification and direct decision-maker contact.",
             ),
             (
-                "Tier B — Qualified Mid-Market Leads (Score 45-69)",
+                "Tier B :  Qualified Mid-Market Leads (Score 45-69)",
                 str(tel["tiers"].get("Tier B (Qualified Mid-Market)", 0)),
                 "Established Berlin residential property managers ideal for structured outbound sequences.",
             ),
             (
-                "Tier C — Long-Tail / Small Portfolio Leads (Score <45)",
+                "Tier C :  Long-Tail / Small Portfolio Leads (Score <45)",
                 str(tel["tiers"].get("Tier C (Long-Tail / Small)", 0)),
                 "Smaller local managers or firms with limited digital footprint.",
             ),

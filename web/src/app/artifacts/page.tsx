@@ -54,7 +54,7 @@ interface ArtifactFile {
 }
 
 function formatExactDateTime(iso: string | null | undefined): string {
-  if (!iso) return "—";
+  if (!iso) return ": ";
   const d = new Date(iso);
   if (isNaN(d.getTime())) return iso;
   const pad = (n: number) => String(n).padStart(2, "0");

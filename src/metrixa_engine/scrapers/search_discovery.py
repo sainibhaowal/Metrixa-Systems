@@ -70,7 +70,7 @@ class SearchDiscoveryScraper(BaseAsyncScraper):
 
                 # Clean title to extract company name
                 raw_title = (
-                    item.title.split("|")[0].split("–")[0].split(" - ")[0].strip()
+                    item.title.split("|")[0].split("-")[0].split(" - ")[0].strip()
                 )
                 if len(raw_title) < 4 or len(raw_title) > 110:
                     raw_title = host

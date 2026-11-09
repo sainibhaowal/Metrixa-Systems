@@ -454,7 +454,7 @@ def generate_publication_paper(output_path: Path):
         Paragraph(
             "<i>Key Contributions:</i> This paper formalizes: (1) a multi-source parallel ingestion and Union-Find deduplication pipeline achieving ~95% "
             "TAM saturation in Berlin (1,199 canonical entities); (2) a dual-tier hybrid extraction architecture with a verbatim anti-hallucination verification "
-            "gate; (3) a 5-pillar mathematical qualification formula (0–100) scoring leads for submetering viability; (4) an algorithmic executive email "
+            "gate; (3) a 5-pillar mathematical qualification formula (0-100) scoring leads for submetering viability; (4) an algorithmic executive email "
             "synthesis protocol with RFC 5321 DNS MX validation; and (5) a reproducible 30-company Gold Standard ablation benchmark (93.3% F1 score).",
             body,
         )
@@ -601,7 +601,7 @@ def generate_publication_paper(output_path: Path):
         Paragraph(
             "<i>Layer 1 (Deterministic Legal Parser):</i> Operates at $0 inference cost. Compiled regular expressions extract statutory disclosures "
             "governed by German legal syntax: (1) Commercial Register ID: <code>r'(?:HRB|HRA)\\s*([0-9]{4,6}\\s*[A-Z]?)'</code>; and (2) Authorized "
-            "Managing Directors: <code>r'(?:Gesch[aä]ftsf[uü]hrer|Vorstand)\\s*[:\\-–]?\\s*([A-ZÄÖÜ][a-zäöüß\\-]+\\s+[A-ZÄÖÜ][a-zäöüß\\-]+)'</code>.",
+            "Managing Directors: <code>r'(?:Gesch[aä]ftsf[uü]hrer|Vorstand)\\s*[:\\--]?\\s*([A-ZÄÖÜ][a-zäöüß\\-]+\\s+[A-ZÄÖÜ][a-zäöüß\\-]+)'</code>.",
             body,
         )
     )
@@ -657,7 +657,7 @@ def generate_publication_paper(output_path: Path):
     )
     story.append(
         Paragraph(
-            "• <i>Pillar 1: Portfolio Scale (S<sub>scale</sub> &le; 35):</i> Units &ge; 2,500 = 35 pts; 1,000–2,499 = 28 pts; 300–999 = 20 pts; GmbH/AG with web = 16 pts; small = 6 pts.<br/>"
+            "• <i>Pillar 1: Portfolio Scale (S<sub>scale</sub> &le; 35):</i> Units &ge; 2,500 = 35 pts; 1,000-2,499 = 28 pts; 300-999 = 20 pts; GmbH/AG with web = 16 pts; small = 6 pts.<br/>"
             "• <i>Pillar 2: Asset Focus (S<sub>focus</sub> &le; 25):</i> WEG &and; Miet = 25 pts; WEG &or; Miet = 20 pts; Commercial = 12 pts; SEV = 4 pts.<br/>"
             "• <i>Pillar 3: Digital Maturity (S<sub>digital</sub> &le; 20):</i> ERP detected = 12 pts; Customer portal = 5 pts; HTTPS = 3 pts.<br/>"
             "• <i>Pillar 4: Professional Trust (S<sub>trust</sub> &le; 10):</i> VDIV member = 5 pts; Commercial HRB = 3 pts; Multi-source = 2 pts.<br/>"
@@ -720,25 +720,25 @@ def generate_publication_paper(output_path: Path):
         ],
         [
             Paragraph("Tier A (High Priority)", tbl_cell),
-            Paragraph("70 – 100", tbl_cell_center),
+            Paragraph("70 - 100", tbl_cell_center),
             Paragraph("33", tbl_cell_center),
             Paragraph("2.8%", tbl_cell_center),
         ],
         [
             Paragraph("Tier B (Qualified Mid)", tbl_cell),
-            Paragraph("45 – 69", tbl_cell_center),
+            Paragraph("45 - 69", tbl_cell_center),
             Paragraph("409", tbl_cell_center),
             Paragraph("34.1%", tbl_cell_center),
         ],
         [
             Paragraph("Tier C (Long-Tail)", tbl_cell),
-            Paragraph("0 – 44", tbl_cell_center),
+            Paragraph("0 - 44", tbl_cell_center),
             Paragraph("757", tbl_cell_center),
             Paragraph("63.1%", tbl_cell_center),
         ],
         [
             Paragraph("<b>Total Saturation</b>", tbl_cell_bold),
-            Paragraph("<b>0 – 100</b>", tbl_cell_center),
+            Paragraph("<b>0 - 100</b>", tbl_cell_center),
             Paragraph("<b>1,199</b>", tbl_cell_center),
             Paragraph("<b>100.0%</b>", tbl_cell_center),
         ],
@@ -840,31 +840,31 @@ def generate_publication_paper(output_path: Path):
         ],
         [
             Paragraph("Berlin", tbl_cell),
-            Paragraph("10000–14199", tbl_cell),
+            Paragraph("10000-14199", tbl_cell),
             Paragraph("1,200 leads", tbl_cell_center),
             Paragraph("VDIV Berlin-BB", tbl_cell),
         ],
         [
             Paragraph("München", tbl_cell),
-            Paragraph("80000–81999", tbl_cell),
+            Paragraph("80000-81999", tbl_cell),
             Paragraph("950 leads", tbl_cell_center),
             Paragraph("VDIV Bayern", tbl_cell),
         ],
         [
             Paragraph("Hamburg", tbl_cell),
-            Paragraph("20000–22999", tbl_cell),
+            Paragraph("20000-22999", tbl_cell),
             Paragraph("850 leads", tbl_cell_center),
             Paragraph("VDIV Nord", tbl_cell),
         ],
         [
             Paragraph("Frankfurt/M.", tbl_cell),
-            Paragraph("60000–60599", tbl_cell),
+            Paragraph("60000-60599", tbl_cell),
             Paragraph("650 leads", tbl_cell_center),
             Paragraph("VDIV Hessen", tbl_cell),
         ],
         [
             Paragraph("Köln", tbl_cell),
-            Paragraph("50000–50999", tbl_cell),
+            Paragraph("50000-50999", tbl_cell),
             Paragraph("600 leads", tbl_cell_center),
             Paragraph("VDIV NRW", tbl_cell),
         ],
@@ -932,7 +932,7 @@ def generate_publication_paper(output_path: Path):
     )
     story.append(
         Paragraph(
-            "[5] R. E. Tarjan, 'Efficiency of a Good But Not Linear Set Union Algorithm', <i>Journal of the ACM</i>, vol. 22, no. 2, pp. 215–225, 1975.",
+            "[5] R. E. Tarjan, 'Efficiency of a Good But Not Linear Set Union Algorithm', <i>Journal of the ACM</i>, vol. 22, no. 2, pp. 215-225, 1975.",
             ref_style,
         )
     )

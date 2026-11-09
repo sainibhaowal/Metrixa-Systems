@@ -33,31 +33,31 @@ DIRECTOR_PATTERNS = [
     (
         "Geschäftsführer",
         re.compile(
-            r"(?:Gesch[aä\ufffd]ftsf[uü\ufffd]hr(?:er|erin|ung)|Vertretungsberechtigte[r]?[ \t]+Gesch[aä\ufffd]ftsf[uü\ufffd]hrer(?:in)?)[ \t]*[:\-–]?[ \t]*\r?\n?[ \t]*((?:(?:Dr\.|Prof\.|Dipl\.-[A-Za-z]+|Herr|Frau)[ \t]+)*[A-ZÄÖÜ][a-zäöüß\ufffd\-]+(?:[ \t]+[A-ZÄÖÜ][a-zäöüß\ufffd\-]+){1,2})",
+            r"(?:Gesch[aä\ufffd]ftsf[uü\ufffd]hr(?:er|erin|ung)|Vertretungsberechtigte[r]?[ \t]+Gesch[aä\ufffd]ftsf[uü\ufffd]hrer(?:in)?)[ \t]*[:\--]?[ \t]*\r?\n?[ \t]*((?:(?:Dr\.|Prof\.|Dipl\.-[A-Za-z]+|Herr|Frau)[ \t]+)*[A-ZÄÖÜ][a-zäöüß\ufffd\-]+(?:[ \t]+[A-ZÄÖÜ][a-zäöüß\ufffd\-]+){1,2})",
         ),
     ),
     (
         "Geschäftsführer",
         re.compile(
-            r"Vertreten[ \t]+durch(?:[ \t]+die[ \t]+Gesch[aä\ufffd]ftsf[uü\ufffd]hrer(?:in)?)?[ \t]*[:\-–]?[ \t]*\r?\n?[ \t]*((?:(?:Dr\.|Prof\.|Dipl\.-[A-Za-z]+|Herr|Frau)[ \t]+)*[A-ZÄÖÜ][a-zäöüß\ufffd\-]+(?:[ \t]+[A-ZÄÖÜ][a-zäöüß\ufffd\-]+){1,2})",
+            r"Vertreten[ \t]+durch(?:[ \t]+die[ \t]+Gesch[aä\ufffd]ftsf[uü\ufffd]hrer(?:in)?)?[ \t]*[:\--]?[ \t]*\r?\n?[ \t]*((?:(?:Dr\.|Prof\.|Dipl\.-[A-Za-z]+|Herr|Frau)[ \t]+)*[A-ZÄÖÜ][a-zäöüß\ufffd\-]+(?:[ \t]+[A-ZÄÖÜ][a-zäöüß\ufffd\-]+){1,2})",
         ),
     ),
     (
         "Inhaber",
         re.compile(
-            r"(?:Inhaber(?:in)?|Firmeninhaber(?:in)?)[ \t]*[:\-–]?[ \t]*\r?\n?[ \t]*((?:(?:Dr\.|Prof\.|Dipl\.-[A-Za-z]+|Herr|Frau)[ \t]+)*[A-ZÄÖÜ][a-zäöüß\ufffd\-]+(?:[ \t]+[A-ZÄÖÜ][a-zäöüß\ufffd\-]+){1,2})",
+            r"(?:Inhaber(?:in)?|Firmeninhaber(?:in)?)[ \t]*[:\--]?[ \t]*\r?\n?[ \t]*((?:(?:Dr\.|Prof\.|Dipl\.-[A-Za-z]+|Herr|Frau)[ \t]+)*[A-ZÄÖÜ][a-zäöüß\ufffd\-]+(?:[ \t]+[A-ZÄÖÜ][a-zäöüß\ufffd\-]+){1,2})",
         ),
     ),
     (
         "Vorstand",
         re.compile(
-            r"(?:Vorstand|Vorstandsvorsitzende[r]?)[ \t]*[:\-–]?[ \t]*\r?\n?[ \t]*((?:(?:Dr\.|Prof\.|Dipl\.-[A-Za-z]+|Herr|Frau)[ \t]+)*[A-ZÄÖÜ][a-zäöüß\ufffd\-]+(?:[ \t]+[A-ZÄÖÜ][a-zäöüß\ufffd\-]+){1,2})",
+            r"(?:Vorstand|Vorstandsvorsitzende[r]?)[ \t]*[:\--]?[ \t]*\r?\n?[ \t]*((?:(?:Dr\.|Prof\.|Dipl\.-[A-Za-z]+|Herr|Frau)[ \t]+)*[A-ZÄÖÜ][a-zäöüß\ufffd\-]+(?:[ \t]+[A-ZÄÖÜ][a-zäöüß\ufffd\-]+){1,2})",
         ),
     ),
     (
         "Prokurist",
         re.compile(
-            r"(?:Prokura|Prokurist(?:in)?)[ \t]*[:\-–]?[ \t]*\r?\n?[ \t]*([A-ZÄÖÜ][a-zäöüß\ufffd\-]+(?:[ \t]+[A-ZÄÖÜ][a-zäöüß\ufffd\-]+){1,2})",
+            r"(?:Prokura|Prokurist(?:in)?)[ \t]*[:\--]?[ \t]*\r?\n?[ \t]*([A-ZÄÖÜ][a-zäöüß\ufffd\-]+(?:[ \t]+[A-ZÄÖÜ][a-zäöüß\ufffd\-]+){1,2})",
         ),
     ),
 ]
@@ -161,7 +161,7 @@ def clean_extracted_person_name(raw_name: str) -> Optional[str]:
         r"\b(?:Tel|Telefon|Telefax|Fax|E-Mail|Email|USt|HRB|HRA|Amtsgericht|Register|Handelsregister|Sitz|Steuer|Berufsaufsicht|Inhalt|Haftung)\b",
         name,
         flags=re.IGNORECASE,
-    )[0].strip(" ,;:-–.")
+    )[0].strip(" ,;:--.")
 
     raw_words = [w for w in name.split() if w]
     valid_words: List[str] = []

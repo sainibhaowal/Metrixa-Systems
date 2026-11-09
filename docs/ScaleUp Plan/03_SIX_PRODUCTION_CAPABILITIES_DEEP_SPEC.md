@@ -1,7 +1,7 @@
-# 03 — Deep Engineering Specification: The 6 Enterprise Production Capabilities
+# 03 :  Deep Engineering Specification: The 6 Enterprise Production Capabilities
 
 **Project Name:** Metrixa Engine (Metrixa Systems B2B PropTech & Submetering Intelligence Platform)
-**Document Scope:** Detailed Technical Architecture, Algorithms, State Machines & Fallback Guarantees for Capabilities 1–6
+**Document Scope:** Detailed Technical Architecture, Algorithms, State Machines & Fallback Guarantees for Capabilities 1-6
 **Document Order:** `03 of 07`
 
 ---
@@ -80,11 +80,11 @@ DNS `MX` verification proves a domain can receive email, but before launching au
 2. Is the mail server a **Catch-All** (accepts all addresses without bouncing) or **Strict Mailbox Verified**?
 
 ### 3.2 Three-Tier Email Verification Engine
-1. **Tier 1 — RFC 5321 DNS `MX` Resolution**:
+1. **Tier 1 :  RFC 5321 DNS `MX` Resolution**:
    - Resolves primary `MX` host and identifies the email provider (`Microsoft 365 / Exchange Online`, `Google Workspace`, `IONOS / 1&1`, `Strato`, `Hetzer / Custom Postfix`).
-2. **Tier 2 — DNS `TXT` (`SPF` & `DMARC`) Inspection**:
+2. **Tier 2 :  DNS `TXT` (`SPF` & `DMARC`) Inspection**:
    - Queries `TXT` records on `domain` (`v=spf1 ...`) and `_dmarc.domain` (`v=DMARC1; p=...`) to compute `mail_security_grade` (`ENTERPRISE_STRICT`, `STANDARD_SPF`, `BASIC_MX`).
-3. **Tier 3 — Non-Intrusive SMTP / Catch-All Probe & Pluggable Verifier API**:
+3. **Tier 3 :  Non-Intrusive SMTP / Catch-All Probe & Pluggable Verifier API**:
    - When an external verifier API key (ZeroBounce / MillionVerifier / Reoon) is configured, queries the exact mailbox status.
    - Otherwise, performs a safe, non-sending SMTP handshake (`EHLO` -> `MAIL FROM:<>` -> `RCPT TO:<random_probe@domain>` vs `RCPT TO:<target@domain>` followed immediately by `QUIT` without ever sending `DATA`) when port 25 is reachable, or classifies via MX provider heuristics into:
      - `VALID_DELIVERABLE`
@@ -97,7 +97,7 @@ DNS `MX` verification proves a domain can receive email, but before launching au
 ## Capability 4: Automated CRM Two-Way Sync (HubSpot, Pipedrive, Salesforce)
 
 ### 4.1 Engineering Problem
-Exporting Excel/CSV files is great for initial analysis, but in daily operations, sales reps work inside a CRM (**HubSpot**, **Pipedrive**, or **Salesforce**). If a sales rep marks a company as *"Contacted"*, *"In Negotiation"*, or *"Disqualified — Not a fit"* in the CRM, the next pipeline run must **never overwrite** that sales status.
+Exporting Excel/CSV files is great for initial analysis, but in daily operations, sales reps work inside a CRM (**HubSpot**, **Pipedrive**, or **Salesforce**). If a sales rep marks a company as *"Contacted"*, *"In Negotiation"*, or *"Disqualified :  Not a fit"* in the CRM, the next pipeline run must **never overwrite** that sales status.
 
 ### 4.2 Bi-Directional Sync Architecture (`CRMSyncEngine`)
 
@@ -148,11 +148,11 @@ In B2B PropTech and submetering sales, **timing is everything**. A *Hausverwaltu
 ### 6.2 Four High-Intent Sales Triggers Tracked by `DeltaMonitor`
 Before Stage 4/5 overwrites a company's KPI row, `DeltaMonitor` snapshots the previous state and compares it against the newly extracted state:
 
-1. **`NEW_DECISION_MAKER` (Severity: `CRITICAL` — +25 Urgency Boost)**:
+1. **`NEW_DECISION_MAKER` (Severity: `CRITICAL` :  +25 Urgency Boost)**:
    - Triggered when a new *Geschäftsführer*, *Vorstand*, or *Inhaber* appears on the `/impressum` compared to the prior snapshot. New managing directors frequently audit and replace legacy metering contracts (*Techem* / *ista*) within their first 90 days.
-2. **`ERP_OR_PORTAL_SWITCH` (Severity: `HIGH` — +20 Urgency Boost)**:
+2. **`ERP_OR_PORTAL_SWITCH` (Severity: `HIGH` :  +20 Urgency Boost)**:
    - Triggered when `has_customer_portal` flips from `0` to `1` or a new PropTech ERP (*Casavi*, *Domus*, *Wodis*, *Haufe*) is detected in the DOM.
-3. **`PORTFOLIO_UNITS_GROWTH` (Severity: `HIGH` — +15 Urgency Boost)**:
+3. **`PORTFOLIO_UNITS_GROWTH` (Severity: `HIGH` :  +15 Urgency Boost)**:
    - Triggered when `exact_units_managed` increases by $\ge 10\%$ (e.g., from `1,200` to `1,800` units), indicating portfolio acquisition.
-4. **`METERING_INCUMBENT_CHANGE` (Severity: `MEDIUM` — +10 Urgency Boost)**:
+4. **`METERING_INCUMBENT_CHANGE` (Severity: `MEDIUM` :  +10 Urgency Boost)**:
    - Triggered when a new metering provider link (*Techem*, *ista*, *Minol*, *Brunata*, *Kalorimeta*) appears or disappears from the tenant service page.

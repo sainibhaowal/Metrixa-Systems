@@ -1,4 +1,4 @@
-# 06 — Comprehensive Testing Strategy: 100% Feature Coverage & Headless Playwright E2E Suite
+# 06 :  Comprehensive Testing Strategy: 100% Feature Coverage & Headless Playwright E2E Suite
 
 **Project Name:** Metrixa Engine (Metrixa Systems B2B PropTech & Submetering Intelligence Platform)
 **Document Scope:** Unit, Integration, API Contract, Coverage Verification (`pytest-cov`), and Headless Playwright Browser E2E Testing Blueprint
@@ -20,7 +20,7 @@ flowchart TB
         T1["tests/test_metrixa_engine.py (Core Berlin Baseline & Normalizer)"]
         T2["tests/test_api_server.py (FastAPI REST Contracts & Vault)"]
         T3["tests/test_multi_city_expansion.py (Berlin, Munich, Hamburg, Frankfurt, Cologne PLZ & Districts)"]
-        T4["tests/test_scaleup_capabilities.py (Capabilities 1–6 Unit & Integration Tests)"]
+        T4["tests/test_scaleup_capabilities.py (Capabilities 1-6 Unit & Integration Tests)"]
         T5["tests/test_logging_and_diagnostics.py (Structured Logger, Trace IDs & Diagnostics API)"]
     end
 
@@ -29,11 +29,11 @@ flowchart TB
 
 ### 2.1 `tests/test_multi_city_expansion.py`
 Tests deterministic validation and district mapping across all 5 German metropolises:
-1. **Berlin (`10115–14199`)**: Verifies all 12 *Bezirke*, *Amtsgericht Charlottenburg*, and rejection of non-Berlin Brandenburg PLZs (e.g., `14467` Potsdam).
-2. **Munich / *München* (`80331–81929`)**: Verifies Munich PLZs map accurately to Munich *Stadtbezirke* (e.g., `80331` → `Altstadt-Lehel`, `80801` → `Schwabing-West`, `81675` → `Bogenhausen`) and *Amtsgericht München*.
-3. **Hamburg (`20095–22769`)**: Verifies Hamburg PLZs map to the 7 Hamburg *Bezirke* (`20095` → `Hamburg-Mitte`, `22767` → `Altona`, `22301` → `Hamburg-Nord`) and *Amtsgericht Hamburg*.
-4. **Frankfurt am Main (`60306–65936`)**: Verifies Frankfurt PLZs map to official Frankfurt districts (`60311` → `Innenstadt`, `60323` → `Westend`, `60594` → `Sachsenhausen`) and *Amtsgericht Frankfurt am Main*.
-5. **Cologne / *Köln* (`50667–51149`)**: Verifies Cologne PLZs map to the 9 Cologne *Stadtbezirke* (`50667` → `Innenstadt`, `50823` → `Ehrenfeld`, `50931` → `Lindenthal`) and *Amtsgericht Köln*.
+1. **Berlin (`10115-14199`)**: Verifies all 12 *Bezirke*, *Amtsgericht Charlottenburg*, and rejection of non-Berlin Brandenburg PLZs (e.g., `14467` Potsdam).
+2. **Munich / *München* (`80331-81929`)**: Verifies Munich PLZs map accurately to Munich *Stadtbezirke* (e.g., `80331` → `Altstadt-Lehel`, `80801` → `Schwabing-West`, `81675` → `Bogenhausen`) and *Amtsgericht München*.
+3. **Hamburg (`20095-22769`)**: Verifies Hamburg PLZs map to the 7 Hamburg *Bezirke* (`20095` → `Hamburg-Mitte`, `22767` → `Altona`, `22301` → `Hamburg-Nord`) and *Amtsgericht Hamburg*.
+4. **Frankfurt am Main (`60306-65936`)**: Verifies Frankfurt PLZs map to official Frankfurt districts (`60311` → `Innenstadt`, `60323` → `Westend`, `60594` → `Sachsenhausen`) and *Amtsgericht Frankfurt am Main*.
+5. **Cologne / *Köln* (`50667-51149`)**: Verifies Cologne PLZs map to the 9 Cologne *Stadtbezirke* (`50667` → `Innenstadt`, `50823` → `Ehrenfeld`, `50931` → `Lindenthal`) and *Amtsgericht Köln*.
 6. **City-Scoped Deduplication**: Proves that companies in different cities are properly partitioned while preserving all 1,199 Berlin golden records.
 
 ### 2.2 `tests/test_scaleup_capabilities.py`

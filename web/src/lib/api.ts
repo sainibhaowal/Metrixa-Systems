@@ -48,13 +48,21 @@ export async function fetchLeadEvidence(companyId: number) {
   return res.json();
 }
 
-export async function triggerPipelineStage(stage: string, provider?: string) {
+export async function triggerPipelineStage(
+  stage: string,
+  provider?: string,
+  city?: string,
+) {
   // Clear metrics cache on pipeline mutation
   metricsCache = null;
   const res = await fetch(`${API_BASE}/api/pipeline/run`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ stage, provider: provider || "auto_fallback" }),
+    body: JSON.stringify({
+      stage,
+      provider: provider || "auto_fallback",
+      city: city || "Berlin",
+    }),
   });
   if (!res.ok) throw new Error("Failed to trigger pipeline");
   return res.json();

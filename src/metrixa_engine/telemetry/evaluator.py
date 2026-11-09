@@ -205,7 +205,7 @@ class PipelineEvaluator:
         val = self.evaluate_validation_and_gold_sample()
         now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
-        report_md = f"""# Metrixa Engine — Task 3 Evaluation, Data Validation & Ablation Report
+        report_md = f"""# Metrixa Engine :  Task 3 Evaluation, Data Validation & Ablation Report
 
 **Generated At:** `{now_str}`
 **Database:** `data/metrixa_leads.db`
@@ -219,9 +219,9 @@ class PipelineEvaluator:
 | :--- | :---: | :--- |
 | **Total Raw Scraped Listings (Stage 1)** | **{tel['raw_total']}** | Combined across Gelbe Seiten, 11880.com, VDIV Berlin-Brandenburg, OpenStreetMap Overpass API, and Search Discovery |
 | **Deduplicated Berlin *Hausverwaltungen* (Stage 2)** | **{tel['golden_qualified_total']}** | Merged `{abl['duplicates_removed']}` duplicate / noisy listings via Domain, E.164 Phone, RapidFuzz & Union-Find |
-| **🟢 Tier A — High-Priority Target Leads (`Score 70–100`)** | **{tel['tiers'].get('Tier A (High Priority)', 0)}** | Immediate sales outreach targets (WEG/Miet focus, scale, portal/ERP, verified contact) |
-| **🟡 Tier B — Qualified Mid-Market Leads (`Score 45–69`)** | **{tel['tiers'].get('Tier B (Qualified Mid-Market)', 0)}** | Solid Berlin property managers for outbound sequence |
-| **⚪ Tier C — Long-Tail / Small Leads (`Score < 45`)** | **{tel['tiers'].get('Tier C (Long-Tail / Small)', 0)}** | Smaller local property managers |
+| **🟢 Tier A :  High-Priority Target Leads (`Score 70-100`)** | **{tel['tiers'].get('Tier A (High Priority)', 0)}** | Immediate sales outreach targets (WEG/Miet focus, scale, portal/ERP, verified contact) |
+| **🟡 Tier B :  Qualified Mid-Market Leads (`Score 45-69`)** | **{tel['tiers'].get('Tier B (Qualified Mid-Market)', 0)}** | Solid Berlin property managers for outbound sequence |
+| **⚪ Tier C :  Long-Tail / Small Leads (`Score < 45`)** | **{tel['tiers'].get('Tier C (Long-Tail / Small)', 0)}** | Smaller local property managers |
 | **Companies with Corporate Website** | **{tel['with_website']} ({abl['golden_web_pct']}%)** | Verified corporate domains (excluding directories & freemail) |
 | **Total Website & *Impressum* Pages Crawled** | **{tel['crawled_pages_cnt']}** | Homepage + `/impressum`, `/team`, `/leistungen`, `/referenzen` |
 | **Companies with Detected PropTech / ERP / Portal** | **{tel['with_customer_portal']} ({abl['dom_portal_or_erp_pct']}%)** | Casavi, Domus, Wodis, Haufe, Immoware24, etg24, Facilioo, Online-Kundenportal |
@@ -248,7 +248,7 @@ This ablation table demonstrates why a single scraper is insufficient and quanti
 
 | Validation Gate | Metric | Result | How It Was Enforced |
 | :--- | :--- | :---: | :--- |
-| **Gate 1: Geographic Boundary** | Berlin Postal Code (`10115–14199`) Precision | **{val['berlin_plz_precision_pct']}%** | Deterministic PLZ range check + Berlin *Bezirk* mapper |
+| **Gate 1: Geographic Boundary** | Berlin Postal Code (`10115-14199`) Precision | **{val['berlin_plz_precision_pct']}%** | Deterministic PLZ range check + Berlin *Bezirk* mapper |
 | **Gate 2: Evidence-Grounded Units** | Reported *Wohneinheiten* Verbatim Quote Match | **{val['units_evidence_grounded_pct']}%** | Every extracted `exact_units_managed` must match a verbatim sentence in the crawled HTML |
 | **Gate 3: Personal Inbox Separation** | Non-Generic (`Non-info@`) Personal Email Precision | **{val['personal_email_non_generic_precision_pct']}%** | Strict prefix filter separating `info@`, `kontakt@`, `service@` into `general_email` |
 | **Gate 4: Hallucination Suppression** | Final Unverified / Hallucinated Claims in Export | **{val['final_hallucination_rate_pct']}%** | Substring verification gate blocked `{val['hallucinations_blocked_by_gate']}` ungrounded LLM claims |

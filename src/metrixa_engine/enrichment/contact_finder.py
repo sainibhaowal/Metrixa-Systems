@@ -57,7 +57,7 @@ class ContactEnricher:
 
             if not director_name and not disc_director:
                 m = re.search(
-                    r"(?:Gesch[aä]ftsf[uü]hrer(?:in)?|Inhaber(?:in)?)\s*[:\-–]?\s*([A-ZÄÖÜ][a-zäöüß\-]+\s+[A-ZÄÖÜ][a-zäöüß\-]+)",
+                    r"(?:Gesch[aä]ftsf[uü]hrer(?:in)?|Inhaber(?:in)?)\s*[:\--]?\s*([A-ZÄÖÜ][a-zäöüß\-]+\s+[A-ZÄÖÜ][a-zäöüß\-]+)",
                     item.snippet + " " + item.title,
                 )
                 if m:

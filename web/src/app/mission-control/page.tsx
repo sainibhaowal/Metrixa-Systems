@@ -40,6 +40,7 @@ import {
   executeTool,
   pingProvider,
 } from "@/lib/api";
+import { RoundedSelect, SelectOption } from "@/components/ui/RoundedSelect";
 
 interface PipelineStageDef {
   id: string;
@@ -129,9 +130,9 @@ const STAGES: PipelineStageDef[] = [
     shortName: "Scoring",
     stepNum: "05",
     category: "enrich",
-    desc: "Live RFC 5321 MX validation & transparent 0–100 scoring.",
+    desc: "Live RFC 5321 MX validation & transparent 0-100 scoring.",
     details:
-      "Performs real DNS MX resolution on mail domains to eliminate fake mailboxes. Scores leads 0–100 by portfolio size, WEG/Miet focus, VDIV membership, and digital maturity into Tiers A, B, and C.",
+      "Performs real DNS MX resolution on mail domains to eliminate fake mailboxes. Scores leads 0-100 by portfolio size, WEG/Miet focus, VDIV membership, and digital maturity into Tiers A, B, and C.",
     tools: [
       "RFCDNSMXVerifier",
       "ExecutiveEmailSynthesizer",
@@ -157,6 +158,14 @@ const STAGES: PipelineStageDef[] = [
     ],
     time: "~5s",
   },
+];
+
+const TERRITORY_OPTIONS: SelectOption[] = [
+  { value: "Berlin", label: "Berlin", badge: "Live Hub (1,200 Leads)" },
+  { value: "München", label: "München (Munich)", badge: "Expansion" },
+  { value: "Hamburg", label: "Hamburg", badge: "Expansion" },
+  { value: "Frankfurt", label: "Frankfurt am Main", badge: "Expansion" },
+  { value: "Köln", label: "Köln (Cologne)", badge: "Expansion" },
 ];
 
 interface LogEntry {
@@ -370,7 +379,7 @@ export default function MissionControlPage() {
           msg: `Dispatched pipeline controller: [${stage.toUpperCase()}] for region [${selectedCity}].`,
         },
       ]);
-      await triggerPipelineStage(stage);
+      await triggerPipelineStage(stage, undefined, selectedCity);
     } catch (err: any) {
       setRunning(false);
       setLogs((prev) => [
@@ -442,31 +451,16 @@ export default function MissionControlPage() {
 
         {/* Center Live Badges & City Selector */}
         <div className="flex flex-wrap items-center gap-2 text-xs font-mono">
-          {/* Target Territory Scope */}
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900/90 border border-white/[0.06]">
-            <Globe className="w-3.5 h-3.5 text-zinc-400" />
-            <span className="text-zinc-500">Territory:</span>
-            <select
+          {/* Target Territory Scope (Custom Rounded Square Popover) */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-zinc-500 hidden sm:inline">Territory:</span>
+            <RoundedSelect
               value={selectedCity}
-              onChange={(e) => setSelectedCity(e.target.value)}
-              className="bg-transparent text-emerald-400 font-semibold focus:outline-none cursor-pointer text-xs"
-            >
-              <option value="Berlin" className="bg-zinc-900 text-zinc-100">
-                Berlin (Default Case Study)
-              </option>
-              <option value="München" className="bg-zinc-900 text-zinc-100">
-                München (Munich)
-              </option>
-              <option value="Hamburg" className="bg-zinc-900 text-zinc-100">
-                Hamburg
-              </option>
-              <option value="Frankfurt" className="bg-zinc-900 text-zinc-100">
-                Frankfurt am Main
-              </option>
-              <option value="Köln" className="bg-zinc-900 text-zinc-100">
-                Köln (Cologne)
-              </option>
-            </select>
+              onChange={(val) => setSelectedCity(val)}
+              options={TERRITORY_OPTIONS}
+              icon={<Globe className="w-3.5 h-3.5 text-emerald-400" />}
+              className="min-w-[190px]"
+            />
           </div>
 
           {/* Engine Execution Status */}
@@ -526,7 +520,7 @@ export default function MissionControlPage() {
             <span>
               {running
                 ? "Running Full DAG Cycle..."
-                : "Execute Full Pipeline (Stages 1–6)"}
+                : "Execute Full Pipeline (Stages 1-6)"}
             </span>
           </button>
         </div>
@@ -585,20 +579,22 @@ export default function MissionControlPage() {
                 <span className="text-sky-300 block text-[10px] font-bold">
                   Compare Selected Run #{selectedRun?.run_number} against:
                 </span>
-                <select
+                <RoundedSelect
                   value={compareRunId}
-                  onChange={(e) => setCompareRunId(e.target.value)}
-                  className="w-full px-2 py-1.5 rounded-lg bg-zinc-900 border border-white/[0.08] text-xs text-sky-300 focus:outline-none"
-                >
-                  <option value="">-- Choose Historical Run --</option>
-                  {runs
-                    .filter((r) => r.run_id !== selectedRun?.run_id)
-                    .map((r) => (
-                      <option key={r.run_id} value={r.run_id}>
-                        Run #{r.run_number} ({r.trigger_type} • {r.status})
-                      </option>
-                    ))}
-                </select>
+                  onChange={(val) => setCompareRunId(val)}
+                  options={[
+                    { value: "", label: "Choose Historical Run..." },
+                    ...runs
+                      .filter((r) => r.run_id !== selectedRun?.run_id)
+                      .map((r) => ({
+                        value: r.run_id,
+                        label: `Run #${r.run_number} (${r.trigger_type} • ${r.status})`,
+                        badge: r.status,
+                      })),
+                  ]}
+                  placeholder="Choose Historical Run..."
+                  className="w-full"
+                />
 
                 {compareDiff && (
                   <div className="mt-2 pt-2 border-t border-sky-500/20 space-y-1 text-[11px]">
@@ -900,7 +896,7 @@ export default function MissionControlPage() {
             <div className="flex items-center justify-between pb-2 border-b border-white/[0.06] shrink-0">
               <span className="text-xs font-bold uppercase tracking-wider text-zinc-300 flex items-center gap-1.5">
                 <Sliders className="w-4 h-4 text-emerald-400" />
-                Stage Controls (1–6)
+                Stage Controls (1-6)
               </span>
               <span className="text-[10px] font-mono text-zinc-500">
                 Trigger On-Demand

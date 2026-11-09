@@ -1,4 +1,4 @@
-# 07 — Phase-by-Phase Engineering Implementation Plan & Execution Roadmap
+# 07 :  Phase-by-Phase Engineering Implementation Plan & Execution Roadmap
 
 **Project Name:** Metrixa Engine (Metrixa Systems B2B PropTech & Submetering Intelligence Platform)
 **Document Scope:** Step-by-Step Build Sequence, Zero-Damage Safeguards, and Quality Gate Checklist
@@ -50,18 +50,18 @@ flowchart LR
   - Full deterministic support for **Berlin**, **München**, **Hamburg**, **Frankfurt am Main**, and **Köln**.
   - `GET /api/cities` endpoint returning live territory metrics across all 5 German metropolises.
 
-### Phase 3: Capabilities 1 & 5 — Headless Browser SPA Renderer & Proxy/Rate-Limit Resilience
+### Phase 3: Capabilities 1 & 5 :  Headless Browser SPA Renderer & Proxy/Rate-Limit Resilience
 * **Files to Create / Update:**
   - `src/metrixa_engine/crawler/resilience.py` (New: `ResilienceManager` with per-domain token bucket, exponential backoff with jitter, 3-state circuit breaker `CLOSED`/`OPEN`/`HALF_OPEN`, and health-scored rotating proxy pool)
   - `src/metrixa_engine/crawler/headless_renderer.py` (New: `is_js_spa_shell()` detector + `HeadlessBrowserRenderer` using `playwright.async_api` Headless Chromium with resource blocking and graceful fallback)
   - `src/metrixa_engine/crawler/web_crawler.py` (Integrate `ResilienceManager` and Tier 2 Playwright SPA fallback)
 
-### Phase 4: Capabilities 2 & 3 — *Handelsregister* Cross-Check & 3-Tier Email Verification
+### Phase 4: Capabilities 2 & 3 :  *Handelsregister* Cross-Check & 3-Tier Email Verification
 * **Files to Create / Update:**
   - `src/metrixa_engine/enrichment/handelsregister.py` (New: `HandelsregisterVerifier` normalizing `HRB`/`HRA`, resolving city *Amtsgericht*, checking legal form consistency, and persisting to `commercial_register_checks`)
   - `src/metrixa_engine/enrichment/email_verifier.py` (Upgrade `EmailVerifier` with Tier 1 DNS `MX`, Tier 2 DNS `TXT` `SPF`/`DMARC` security posture, mail provider fingerprinting, and Tier 3 non-intrusive SMTP / Catch-All & pluggable API verifier)
 
-### Phase 5: Capabilities 4 & 6 — Automated 2-Way CRM Sync & Scheduled Delta Monitoring
+### Phase 5: Capabilities 4 & 6 :  Automated 2-Way CRM Sync & Scheduled Delta Monitoring
 * **Files to Create / Update:**
   - `src/metrixa_engine/telemetry/crm_sync.py` (New: `CRMSyncEngine` supporting HubSpot, Pipedrive, Salesforce, and Local/Webhook bi-directional sync with `is_sales_locked` protection in `crm_sync_ledger`)
   - `src/metrixa_engine/telemetry/delta_monitor.py` (New: `DeltaMonitor` detecting `NEW_DECISION_MAKER`, `ERP_OR_PORTAL_SWITCH`, `PORTFOLIO_UNITS_GROWTH`, and `METERING_INCUMBENT_CHANGE`, persisting to `company_delta_events`)

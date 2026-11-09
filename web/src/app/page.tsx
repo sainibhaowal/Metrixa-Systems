@@ -137,7 +137,7 @@ export default function DashboardPage() {
             {formatNumber(tiers["Tier A (High Priority)"] || 35)}
           </div>
           <p className="text-[11px] text-zinc-400 mt-2">
-            Managing <strong className="text-zinc-200">1,000–53,300+</strong>{" "}
+            Managing <strong className="text-zinc-200">1,000-53,300+</strong>{" "}
             units
           </p>
         </div>

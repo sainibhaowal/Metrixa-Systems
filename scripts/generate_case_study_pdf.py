@@ -52,7 +52,7 @@ class NumberedCanvas(canvas.Canvas):
             self.drawString(
                 54,
                 800,
-                "METRIXA SYSTEMS GMBH — AUTONOMOUS LEAD INTELLIGENCE CASE STUDY",
+                "METRIXA SYSTEMS GMBH :  AUTONOMOUS LEAD INTELLIGENCE CASE STUDY",
             )
             self.drawRightString(A4[0] - 54, 800, "NOVEMBER 2026")
             self.setStrokeColor(colors.HexColor("#e4e4e7"))
@@ -64,7 +64,7 @@ class NumberedCanvas(canvas.Canvas):
         self.drawString(
             54,
             36,
-            "Confidential / Executive Review — Technical Assessment for Metrixa Systems",
+            "Confidential / Executive Review :  Technical Assessment for Metrixa Systems",
         )
         page_str = f"Page {self._pageNumber} of {total_pages}"
         self.drawRightString(A4[0] - 54, 36, page_str)
@@ -187,7 +187,7 @@ def build_pdf(output_path: Path):
     # Title & Metadata Header
     story.append(Paragraph("Autonomous B2B Lead Intelligence & Statutory Verification", title_style))
     story.append(Paragraph("Market Saturation, Deterministic Qualification & Decision-Maker Extraction for the German Property Management Ecosystem", subtitle_style))
-    story.append(Paragraph("<b>Author:</b> Metrixa Systems GmbH — Autonomous LeadOps Engineering &nbsp;|&nbsp; <b>Date:</b> November 8, 2026 &nbsp;|&nbsp; <b>Scope:</b> Technical Assessment for Metrixa Systems", meta_style))
+    story.append(Paragraph("<b>Author:</b> Metrixa Systems GmbH :  Autonomous LeadOps Engineering &nbsp;|&nbsp; <b>Date:</b> November 8, 2026 &nbsp;|&nbsp; <b>Scope:</b> Technical Assessment for Metrixa Systems", meta_style))
     story.append(HRFlowable(width="100%", thickness=1.5, color=C_PRIMARY, spaceBefore=0, spaceAfter=12))
 
     # Executive Abstract Callout Box
@@ -195,14 +195,14 @@ def build_pdf(output_path: Path):
         "<b>Executive Abstract:</b> Extracting verified GTM sales intelligence within the German small and medium-sized "
         "enterprise (<i>Mittelstand</i>) ecosystem presents severe structural hurdles for global data vendors. Property "
         "managers (<i>Hausverwaltungen</i>) rarely publicize portfolio sizes or software stacks on LinkedIn. However, German "
-        "statutory disclosure mandates—specifically <b>§ 5 Digitale-Dienste-Gesetz (DDG)</b>—obligate commercial entities to publish "
+        "statutory disclosure mandates: specifically <b>§ 5 Digitale-Dienste-Gesetz (DDG)</b>: obligate commercial entities to publish "
         "legal identities, commercial register numbers (<i>HRB</i>), and managing directors (<i>Geschäftsführer</i>) on their website "
         "<code>/impressum</code>.<br/><br/>"
         "This whitepaper presents the end-to-end architecture and empirical findings of an autonomous B2B pipeline deployed across Berlin. "
         "Combining 5-source parallel ingestion, Union-Find entity deduplication, hybrid deterministic/LLM Impressum parsing with verbatim "
         "anti-hallucination verification, DOM PropTech ERP fingerprinting, and RFC 5321 DNS MX validation, the system resolved "
         "<b>1,199 unique, qualified property management companies</b> from 1,240 raw records (~95% Berlin TAM saturation). A 5-Pillar Scorecard "
-        "(0–100) stratifies leads into Tier A (33), Tier B (409), and Tier C (757). Benchmarking against a 30-company Gold Standard yielded a "
+        "(0-100) stratifies leads into Tier A (33), Tier B (409), and Tier C (757). Benchmarking against a 30-company Gold Standard yielded a "
         "<b>93.3% F1 score</b> with 0% hallucinations."
     )
     abstract_table = Table(
@@ -221,7 +221,7 @@ def build_pdf(output_path: Path):
     story.append(Paragraph("1. Problem Definition & Market Opportunity (Task 1 Context)", h1_style))
     story.append(Paragraph(
         "The German residential real estate market is characterized by extreme tenancy density: over 53% of households nationwide "
-        "— and approximately 85% in Berlin — reside in rented multi-family properties or condominium associations (<i>WEG</i>). "
+        ":  and approximately 85% in Berlin :  reside in rented multi-family properties or condominium associations (<i>WEG</i>). "
         "Under the German Heating Cost Ordinance (<i>Heizkostenverordnung</i>, HeizkostenV), multi-tenant properties are legally "
         "mandated to install remote digital submetering and provide monthly consumption data to occupants.",
         body_style,
@@ -305,7 +305,7 @@ def build_pdf(output_path: Path):
 
     score_formula = (
         "<b>Metrixa Lead Score:</b> S_total = min(100, S_scale + S_focus + S_digital + S_trust + S_contact)<br/>"
-        "• <b>Pillar 1: Portfolio Scale (Max 35 pts):</b> &ge;2,500 units = 35 pts | 1,000–2,499 units = 28 pts | 300–999 units = 20 pts<br/>"
+        "• <b>Pillar 1: Portfolio Scale (Max 35 pts):</b> &ge;2,500 units = 35 pts | 1,000-2,499 units = 28 pts | 300-999 units = 20 pts<br/>"
         "• <b>Pillar 2: Management Focus (Max 25 pts):</b> Both WEG & Miet = 25 pts | Either WEG or Miet = 20 pts | Commercial = 12 pts<br/>"
         "• <b>Pillar 3: Digital Maturity (Max 20 pts):</b> PropTech ERP detected = 12 pts | Customer portal = 5 pts | HTTPS web = 3 pts<br/>"
         "• <b>Pillar 4: Stability & Trust (Max 10 pts):</b> VDIV accredited = 5 pts | Commercial HRB verified = 3 pts | Multi-source = 2 pts<br/>"
@@ -341,10 +341,10 @@ def build_pdf(output_path: Path):
     # Table 1: Stratification
     tier_data = [
         ["Qualification Tier", "Score Range", "Lead Count", "Share of TAM", "Commercial Action"],
-        ["Tier A (High Priority)", "70 – 100", "33 Leads", "2.8%", "Immediate VIP Sales Outreach (Enterprise Portfolios)"],
-        ["Tier B (Qualified Mid-Market)", "45 – 69", "409 Leads", "34.1%", "Core Inbound/Outbound Sequences (Active Hausverwaltungen)"],
-        ["Tier C (Long-Tail / Small)", "0 – 44", "757 Leads", "63.1%", "Automated Nurture / Self-Serve Digital Campaigns"],
-        ["Total Berlin Market Saturation", "0 – 100", "1,199 Leads", "100.0%", "Complete Addressable Real Estate Market"],
+        ["Tier A (High Priority)", "70 - 100", "33 Leads", "2.8%", "Immediate VIP Sales Outreach (Enterprise Portfolios)"],
+        ["Tier B (Qualified Mid-Market)", "45 - 69", "409 Leads", "34.1%", "Core Inbound/Outbound Sequences (Active Hausverwaltungen)"],
+        ["Tier C (Long-Tail / Small)", "0 - 44", "757 Leads", "63.1%", "Automated Nurture / Self-Serve Digital Campaigns"],
+        ["Total Berlin Market Saturation", "0 - 100", "1,199 Leads", "100.0%", "Complete Addressable Real Estate Market"],
     ]
     t1 = Table(tier_data, colWidths=[110, 65, 60, 65, 185])
     t1.setStyle(TableStyle([
@@ -415,7 +415,7 @@ def build_pdf(output_path: Path):
     story.append(Paragraph("• European Union. (2016). <i>Regulation (EU) 2016/679 (General Data Protection Regulation - GDPR)</i>. Official Journal of the European Union, L 119/1.", ref_style))
     story.append(Paragraph("• Rescorla, E. (2008). <i>Simple Mail Transfer Protocol</i>. RFC 5321, Internet Engineering Task Force (IETF).", ref_style))
     story.append(Paragraph("• Statistisches Bundesamt. (2024). <i>Wohnen in Deutschland: Mikrozensus Zusatzprogramm</i>. Destatis, Wiesbaden.", ref_style))
-    story.append(Paragraph("• Tarjan, R. E. (1975). Efficiency of a Good But Not Linear Set Union Algorithm. <i>Journal of the ACM</i>, 22(2), 215–225.", ref_style))
+    story.append(Paragraph("• Tarjan, R. E. (1975). Efficiency of a Good But Not Linear Set Union Algorithm. <i>Journal of the ACM</i>, 22(2), 215-225.", ref_style))
     story.append(Paragraph("• Verband der Immobilienverwalter Deutschland e.V. (2023). <i>11. VDIV-Branchenbarometer: Der Markt für Immobilienverwaltungen in Deutschland</i>. VDIV, Berlin.", ref_style))
 
     # Build the document

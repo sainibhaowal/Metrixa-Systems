@@ -1,4 +1,4 @@
-# 05 — Logging, Debugging, Observability & End-to-End Diagnostics Architecture
+# 05 :  Logging, Debugging, Observability & End-to-End Diagnostics Architecture
 
 **Project Name:** Metrixa Engine (Metrixa Systems B2B PropTech & Submetering Intelligence Platform)
 **Document Scope:** Enterprise Structured Logging, Correlation Trace IDs, Rotating File Logs, SQLite Audit Trail & Live Debug Inspector
@@ -64,7 +64,7 @@ Every API request, CLI execution, or pipeline stage run generates or inherits a 
 ### 3.1 `GET /api/diagnostics/health`
 Performs a deep, real-time subsystem health audit across all components and returns:
 - **Database Integrity**: SQLite WAL mode check, table counts across all 12 tables, index health, and file size.
-- **Multi-City Territory Readiness**: PLZ lookup table verification for Berlin (`10115–14199`), Munich (`80331–81929`), Hamburg (`20095–22769`), Frankfurt (`60306–65936`), and Cologne (`50667–51149`).
+- **Multi-City Territory Readiness**: PLZ lookup table verification for Berlin (`10115-14199`), Munich (`80331-81929`), Hamburg (`20095-22769`), Frankfurt (`60306-65936`), and Cologne (`50667-51149`).
 - **Capability 1 (Playwright Headless Renderer)**: Checks whether `playwright` Python package and headless Chromium binary are available (`READY` vs `HTTPX_FALLBACK_MODE`).
 - **Capability 2 (Handelsregister Verifier)**: Validates German *Amtsgericht* + `HRB/HRA` parser rules.
 - **Capability 3 (3-Tier Email Verifier)**: Tests live DNS `MX` + `TXT` (`SPF`/`DMARC`) resolution speed.

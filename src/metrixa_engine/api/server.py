@@ -419,6 +419,7 @@ class PipelineRunRequest(BaseModel):
         description="full | ingest | deduplicate | crawl | extract | enrich | export",
     )
     provider: str | None = Field(default="auto_fallback")
+    city: str | None = Field(default="Berlin")
     limit: int | None = Field(default=None)
     reprocess_all: bool = Field(default=False)
 
@@ -468,7 +469,7 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                         run_id,
                         run_num,
                         "MANUAL_FULL" if req.stage == "full" else "MANUAL_STAGE",
-                        "Berlin",
+                        req.city or "Berlin",
                         req.stage,
                         initial_golden_count,
                         started_ts,
@@ -1002,8 +1003,8 @@ _artifact_store: dict[str, dict[str, Any]] = {
         "id": "pdf-casestudy",
         "name": "Case_Study_Metrixa_Systems.pdf",
         "type": "pdf",
-        "title": "Autonomous B2B Lead Intelligence Case Study Whitepaper (PDF)",
-        "desc": "Official publication-grade Case Study Whitepaper detailing Berlin TAM saturation, 5-Pillar Scorecard, 93.3% F1 benchmark, and nationwide expansion roadmap.",
+        "title": "Autonomous B2B Lead Intelligence Enterprise Whitepaper (PDF)",
+        "desc": "Official publication-grade Enterprise Whitepaper detailing Berlin TAM saturation, 5-Pillar Scorecard, 93.3% F1 benchmark, and nationwide expansion roadmap.",
         "status": "active",
         "retention_days": 30,
         "trashed_at": None,

@@ -25,6 +25,7 @@ import {
   discoverProviderModels,
 } from "@/lib/api";
 import { ProviderIcon } from "@/components/icons/ProviderLogos";
+import { RoundedSelect } from "@/components/ui/RoundedSelect";
 
 // 1. Real AI / LLM Models Only (7)
 interface LLMProviderDef {
@@ -57,7 +58,7 @@ const LLM_PROVIDERS: LLMProviderDef[] = [
     defaultBaseUrl: "https://api.openai.com/v1",
     defaultModel: "",
     requiresKey: true,
-    desc: "Official OpenAI Platform API (/v1) — full live model catalog (GPT-4.1, GPT-4o, o3, o4-mini) with structured JSON outputs.",
+    desc: "Official OpenAI Platform API (/v1) :  full live model catalog (GPT-4.1, GPT-4o, o3, o4-mini) with structured JSON outputs.",
   },
   {
     id: "deepseek",
@@ -67,7 +68,7 @@ const LLM_PROVIDERS: LLMProviderDef[] = [
     defaultBaseUrl: "https://api.deepseek.com/v1",
     defaultModel: "",
     requiresKey: true,
-    desc: "Official DeepSeek Platform API (/v1) — live DeepSeek Chat & Reasoner models for German B2B website extraction.",
+    desc: "Official DeepSeek Platform API (/v1) :  live DeepSeek Chat & Reasoner models for German B2B website extraction.",
   },
   {
     id: "ollama",
@@ -77,7 +78,7 @@ const LLM_PROVIDERS: LLMProviderDef[] = [
     defaultBaseUrl: "http://localhost:11434/v1",
     defaultModel: "",
     requiresKey: false,
-    desc: "Local Ollama inference daemon (/api/tags & /v1) — auto-discovers all locally installed GGUF models on your GPU/CPU.",
+    desc: "Local Ollama inference daemon (/api/tags & /v1) :  auto-discovers all locally installed GGUF models on your GPU/CPU.",
   },
   {
     id: "lm_studio",
@@ -87,7 +88,7 @@ const LLM_PROVIDERS: LLMProviderDef[] = [
     defaultBaseUrl: "http://localhost:1234/v1",
     defaultModel: "",
     requiresKey: false,
-    desc: "Local LM Studio OpenAI-compatible server (/v1/models) — auto-discovers loaded local quantized GGUF models.",
+    desc: "Local LM Studio OpenAI-compatible server (/v1/models) :  auto-discovers loaded local quantized GGUF models.",
   },
   {
     id: "local_llamacpp",
@@ -107,7 +108,7 @@ const LLM_PROVIDERS: LLMProviderDef[] = [
     defaultBaseUrl: "https://integrate.api.nvidia.com/v1",
     defaultModel: "",
     requiresKey: true,
-    desc: "Official NVIDIA NIM enterprise inference API (/v1/models) — accelerated cloud foundation models.",
+    desc: "Official NVIDIA NIM enterprise inference API (/v1/models) :  accelerated cloud foundation models.",
   },
 ];
 
@@ -923,8 +924,8 @@ export default function SettingsHubPage() {
                                 discoveredModels.length > 0
                               ? `✓ ${discoveredModels.length} Live Models Fetched (${discoveryLatency}ms)`
                               : discoverySource === "awaiting_key"
-                                ? "Awaiting API Key — 0 Models Loaded"
-                                : "Endpoint Offline — 0 Models Loaded"}
+                                ? "Awaiting API Key :  0 Models Loaded"
+                                : "Endpoint Offline :  0 Models Loaded"}
                         </span>
                       )}
                     </label>
@@ -958,32 +959,19 @@ export default function SettingsHubPage() {
                     {selectedLLMDef.category !== "system" &&
                       discoveredModels.length > 0 && (
                         <div className="sm:col-span-6">
-                          <select
-                            aria-label="Select discovered model"
-                            value={
-                              discoveredModels.some((m) => m.id === llmModel)
-                                ? llmModel
-                                : ""
-                            }
-                            onChange={(e) => {
-                              if (e.target.value) setLlmModel(e.target.value);
+                          <RoundedSelect
+                            value={llmModel}
+                            onChange={(val) => {
+                              if (val) setLlmModel(val);
                             }}
-                            className="w-full px-3 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-mono text-emerald-400 focus:outline-none focus:border-emerald-500 transition-all cursor-pointer"
-                          >
-                            <option value="" disabled>
-                              -- Select Discovered Model (
-                              {discoveredModels.length}) --
-                            </option>
-                            {discoveredModels.map((m) => (
-                              <option
-                                key={m.id}
-                                value={m.id}
-                                className="bg-zinc-900 text-zinc-100"
-                              >
-                                {m.id} — {m.context_window}
-                              </option>
-                            ))}
-                          </select>
+                            options={discoveredModels.map((m) => ({
+                              value: m.id,
+                              label: m.id,
+                              badge: m.context_window,
+                            }))}
+                            placeholder={`Select Discovered Model (${discoveredModels.length})...`}
+                            className="w-full"
+                          />
                         </div>
                       )}
 
@@ -1005,8 +993,8 @@ export default function SettingsHubPage() {
                             : discoveredModels.length > 0
                               ? "Select a discovered model or enter model ID..."
                               : selectedLLMDef.requiresKey
-                                ? "No models loaded — enter API Key above to auto-discover live models"
-                                : "No models loaded — start local server to auto-discover models"
+                                ? "No models loaded :  enter API Key above to auto-discover live models"
+                                : "No models loaded :  start local server to auto-discover models"
                         }
                         disabled={selectedLLMDef.category === "system"}
                         className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-mono text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-emerald-500 disabled:opacity-50 transition-all"
@@ -1021,8 +1009,8 @@ export default function SettingsHubPage() {
                         <span>
                           {discoveryMessage ||
                             (selectedLLMDef.requiresKey
-                              ? "No API key configured — enter your API key above to auto-discover live models from the provider."
-                              : "Local server unreachable — start your local LLM server to auto-discover installed models.")}
+                              ? "No API key configured :  enter your API key above to auto-discover live models from the provider."
+                              : "Local server unreachable :  start your local LLM server to auto-discover installed models.")}
                         </span>
                         <span className="text-[10px] text-zinc-500 shrink-0">
                           Live Discovery Only

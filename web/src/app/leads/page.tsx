@@ -15,25 +15,47 @@ import {
   ChevronLeft,
   ChevronRight,
   Download,
+  MapPin,
 } from "lucide-react";
 import { fetchLeads } from "@/lib/api";
 import { getTierColorClasses, formatNumber } from "@/lib/utils";
 import { EvidenceDrawer } from "@/components/leads/EvidenceDrawer";
+import { RoundedSelect, SelectOption } from "@/components/ui/RoundedSelect";
 
-const DISTRICTS = [
-  "All Districts",
-  "Charlottenburg-Wilmersdorf",
-  "Mitte",
-  "Pankow",
-  "Tempelhof-Schöneberg",
-  "Steglitz-Zehlendorf",
-  "Friedrichshain-Kreuzberg",
-  "Neukölln",
-  "Spandau",
-  "Reinickendorf",
-  "Lichtenberg",
-  "Treptow-Köpenick",
-  "Marzahn-Hellersdorf",
+const DISTRICT_OPTIONS: SelectOption[] = [
+  { value: "All Districts", label: "All Districts", count: "1,200" },
+  {
+    value: "Charlottenburg-Wilmersdorf",
+    label: "Charlottenburg-Wilmersdorf",
+    count: "211",
+  },
+  {
+    value: "Steglitz-Zehlendorf",
+    label: "Steglitz-Zehlendorf",
+    count: "150",
+  },
+  {
+    value: "Tempelhof-Schöneberg",
+    label: "Tempelhof-Schöneberg",
+    count: "141",
+  },
+  {
+    value: "Friedrichshain-Kreuzberg",
+    label: "Friedrichshain-Kreuzberg",
+    count: "120",
+  },
+  { value: "Pankow", label: "Pankow", count: "113" },
+  { value: "Mitte", label: "Mitte", count: "97" },
+  { value: "Reinickendorf", label: "Reinickendorf", count: "83" },
+  { value: "Treptow-Köpenick", label: "Treptow-Köpenick", count: "66" },
+  { value: "Spandau", label: "Spandau", count: "61" },
+  { value: "Neukölln", label: "Neukölln", count: "52" },
+  { value: "Lichtenberg", label: "Lichtenberg", count: "38" },
+  {
+    value: "Marzahn-Hellersdorf",
+    label: "Marzahn-Hellersdorf",
+    count: "13",
+  },
 ];
 
 export default function LeadsExplorerPage() {
@@ -134,21 +156,17 @@ export default function LeadsExplorerPage() {
             />
           </div>
 
-          {/* District Dropdown */}
-          <select
-            value={district}
-            onChange={(e) => {
-              setDistrict(e.target.value);
+          {/* District Dropdown (Custom Rounded Square Popover) */}
+          <RoundedSelect
+            value={district || "All Districts"}
+            onChange={(val) => {
+              setDistrict(val === "All Districts" ? "" : val);
               setPage(1);
             }}
-            className="px-3.5 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-300 focus:outline-none focus:border-emerald-500"
-          >
-            {DISTRICTS.map((d) => (
-              <option key={d} value={d}>
-                {d}
-              </option>
-            ))}
-          </select>
+            options={DISTRICT_OPTIONS}
+            icon={<MapPin className="w-3.5 h-3.5 text-emerald-400" />}
+            className="min-w-[220px]"
+          />
         </div>
 
         {/* Tier & Feature Filter Pills */}

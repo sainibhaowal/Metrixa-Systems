@@ -1,5 +1,5 @@
 """
-Metrixa Engine — Autonomous B2B Lead Discovery, Website/Impressum Crawler,
+Metrixa Engine :  Autonomous B2B Lead Discovery, Website/Impressum Crawler,
 Multi-LLM KPI Extractor & Qualification Engine for Metrixa Systems GmbH.
 """
 

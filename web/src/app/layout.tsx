@@ -5,7 +5,7 @@ import { StickyTopbar } from "@/components/layout/StickyTopbar";
 import { SidebarProvider } from "@/components/layout/SidebarContext";
 
 export const metadata: Metadata = {
-  title: "Metrixa Cockpit — Autonomous LeadOps & Metering Intelligence",
+  title: "Metrixa Cockpit :  Autonomous LeadOps & Metering Intelligence",
   description:
     "Enterprise GTM Intelligence Cockpit for Metrixa Systems GmbH (Berlin Property Management Companies)",
 };
