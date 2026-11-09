@@ -874,7 +874,7 @@ async def stream_pipeline_events():
 
 
 @app.get("/api/pipeline/runs")
-async def get_pipeline_runs(limit: int = 25):
+async def get_pipeline_runs(limit: int = 100):
     """List historical pipeline execution runs with metrics and status."""
     with db.connect() as conn:
         rows = conn.execute(
@@ -918,6 +918,30 @@ async def get_pipeline_runs(limit: int = 25):
             }
         )
     return {"runs": runs, "total": len(runs)}
+
+
+@app.delete("/api/pipeline/runs/{run_id}")
+async def delete_pipeline_run(run_id: str):
+    """Delete a specific pipeline run from historical ledger."""
+    with db.connect() as conn:
+        cursor = conn.execute("DELETE FROM pipeline_runs WHERE run_id = ?", (run_id,))
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Pipeline run not found")
+        conn.commit()
+    return {"status": "success", "deleted_run_id": run_id}
+
+
+@app.delete("/api/pipeline/runs")
+async def clear_pipeline_runs(filter: str = "all"):
+    """Clear historical pipeline runs (all or cancelled only)."""
+    with db.connect() as conn:
+        if filter.lower() == "cancelled":
+            cursor = conn.execute("DELETE FROM pipeline_runs WHERE status = 'CANCELLED'")
+        else:
+            cursor = conn.execute("DELETE FROM pipeline_runs")
+        count = cursor.rowcount
+        conn.commit()
+    return {"status": "success", "deleted_count": count, "filter": filter}
 
 
 @app.get("/api/pipeline/runs/compare")

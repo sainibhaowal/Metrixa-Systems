@@ -265,11 +265,33 @@ export async function fetchGoogleSheetsPreview() {
   return res.json();
 }
 
-export async function fetchPipelineRuns(limit: number = 25) {
+export async function fetchPipelineRuns(limit: number = 100) {
   const res = await fetch(`${API_BASE}/api/pipeline/runs?limit=${limit}`, {
     cache: "no-store",
   });
   if (!res.ok) throw new Error("Failed to fetch pipeline runs");
+  return res.json();
+}
+
+export async function deletePipelineRun(runId: string) {
+  const res = await fetch(
+    `${API_BASE}/api/pipeline/runs/${encodeURIComponent(runId)}`,
+    {
+      method: "DELETE",
+    },
+  );
+  if (!res.ok) throw new Error("Failed to delete pipeline run");
+  return res.json();
+}
+
+export async function clearPipelineRuns(filter: "all" | "cancelled" = "all") {
+  const res = await fetch(
+    `${API_BASE}/api/pipeline/runs?filter=${encodeURIComponent(filter)}`,
+    {
+      method: "DELETE",
+    },
+  );
+  if (!res.ok) throw new Error("Failed to clear pipeline runs");
   return res.json();
 }
 

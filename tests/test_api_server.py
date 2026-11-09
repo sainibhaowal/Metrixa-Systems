@@ -160,6 +160,40 @@ def test_api_pipeline_runs_and_comparison(client: TestClient) -> None:
     assert "leads_delta" in cmp_data["diff"]
     assert "duration_delta_seconds" in cmp_data["diff"]
 
+    # Test single run deletion
+    # Insert a temporary test run to safely delete
+    from metrixa_engine.api.server import db
+    with db.connect() as conn:
+        conn.execute(
+            """
+            INSERT INTO pipeline_runs (
+                run_id, run_number, trigger_type, target_city, active_stage, status,
+                started_at, duration_seconds
+            ) VALUES ('test-run-del-1', 9999, 'MANUAL_STAGE', 'Berlin', 'ingest', 'CANCELLED', '2026-11-09T00:00:00Z', 1.0)
+            """
+        )
+        conn.commit()
+
+    del_resp = client.delete("/api/pipeline/runs/test-run-del-1")
+    assert del_resp.status_code == 200
+    assert del_resp.json()["deleted_run_id"] == "test-run-del-1"
+
+    # Test clear cancelled filter
+    with db.connect() as conn:
+        conn.execute(
+            """
+            INSERT INTO pipeline_runs (
+                run_id, run_number, trigger_type, target_city, active_stage, status,
+                started_at, duration_seconds
+            ) VALUES ('test-run-del-2', 9998, 'MANUAL_STAGE', 'Berlin', 'ingest', 'CANCELLED', '2026-11-09T00:00:00Z', 1.0)
+            """
+        )
+        conn.commit()
+
+    clear_resp = client.delete("/api/pipeline/runs?filter=cancelled")
+    assert clear_resp.status_code == 200
+    assert clear_resp.json()["status"] == "success"
+
 
 def test_api_deliverables_and_google_sheets_sync(client: TestClient) -> None:
     # 1. Test deliverables status endpoint

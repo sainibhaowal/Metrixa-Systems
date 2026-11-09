@@ -32,11 +32,16 @@ import {
   Workflow,
   Eye,
   Check,
+  Trash2,
+  Calendar,
+  ChevronsUpDown,
 } from "lucide-react";
 import {
   triggerPipelineStage,
   cancelPipelineRun,
   fetchPipelineRuns,
+  deletePipelineRun,
+  clearPipelineRuns,
   comparePipelineRuns,
   executeTool,
   pingProvider,
@@ -195,6 +200,68 @@ interface PipelineRun {
   summary?: any;
 }
 
+interface TimeCategoryInfo {
+  id: string;
+  label: string;
+  order: number;
+}
+
+function getTimeCategory(startedAtStr: string | undefined): TimeCategoryInfo {
+  if (!startedAtStr) return { id: "older", label: "Older History", order: 99 };
+  try {
+    const runDate = new Date(startedAtStr);
+    if (isNaN(runDate.getTime()))
+      return { id: "older", label: "Older History", order: 99 };
+
+    const now = new Date();
+    const todayStart = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate()
+    ).getTime();
+    const runStart = new Date(
+      runDate.getFullYear(),
+      runDate.getMonth(),
+      runDate.getDate()
+    ).getTime();
+
+    const diffDays = Math.floor(
+      (todayStart - runStart) / (1000 * 60 * 60 * 24)
+    );
+
+    if (diffDays <= 0) {
+      return { id: "today", label: "Today", order: 1 };
+    } else if (diffDays === 1) {
+      return { id: "yesterday", label: "Yesterday", order: 2 };
+    } else if (diffDays >= 2 && diffDays <= 7) {
+      return { id: "1week", label: "Previous 7 Days (1 Week Ago)", order: 3 };
+    } else if (diffDays >= 8 && diffDays <= 14) {
+      return { id: "2weeks", label: "2 Weeks Ago", order: 4 };
+    } else if (diffDays >= 15 && diffDays <= 21) {
+      return { id: "3weeks", label: "3 Weeks Ago", order: 5 };
+    } else if (diffDays >= 22 && diffDays <= 45) {
+      return { id: "1month", label: "1 Month Ago", order: 6 };
+    } else if (diffDays >= 46 && diffDays <= 75) {
+      return { id: "2months", label: "2 Months Ago", order: 7 };
+    } else {
+      return { id: "older", label: "Older History", order: 8 };
+    }
+  } catch {
+    return { id: "older", label: "Older History", order: 99 };
+  }
+}
+
+function formatRunTime(startedAtStr: string | undefined): string {
+  if (!startedAtStr) return "";
+  try {
+    const d = new Date(startedAtStr);
+    if (isNaN(d.getTime())) return "";
+    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  } catch {
+    return "";
+  }
+}
+
 export default function MissionControlPage() {
   // Global Pipeline State
   const [running, setRunning] = useState(false);
@@ -211,6 +278,12 @@ export default function MissionControlPage() {
   const [compareRunId, setCompareRunId] = useState<string>("");
   const [compareDiff, setCompareDiff] = useState<any>(null);
   const [loadingRuns, setLoadingRuns] = useState<boolean>(false);
+
+  // History Category Collapse & Deletion States
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+  const [showClearMenu, setShowClearMenu] = useState<boolean>(false);
+  const [deletingRunId, setDeletingRunId] = useState<string | null>(null);
+  const [clearingRuns, setClearingRuns] = useState<boolean>(false);
 
   // Telemetry Event Logs
   const [logs, setLogs] = useState<LogEntry[]>([
@@ -241,7 +314,7 @@ export default function MissionControlPage() {
   const loadRuns = async () => {
     try {
       setLoadingRuns(true);
-      const res = await fetchPipelineRuns(20);
+      const res = await fetchPipelineRuns(100);
       const items = res.runs || [];
       setRuns(items);
       if (items.length > 0 && !selectedRun) {
@@ -251,6 +324,47 @@ export default function MissionControlPage() {
       console.error("Failed to load pipeline runs:", err);
     } finally {
       setLoadingRuns(false);
+    }
+  };
+
+  // Delete a single run from historical ledger
+  const handleDeleteRun = async (runId: string) => {
+    try {
+      setDeletingRunId(runId);
+      await deletePipelineRun(runId);
+      setRuns((prev) => prev.filter((r) => r.run_id !== runId));
+      if (selectedRun?.run_id === runId) {
+        setSelectedRun(null);
+      }
+    } catch (err: any) {
+      console.error("Delete run failed:", err);
+      alert("Failed to delete run: " + err.message);
+    } finally {
+      setDeletingRunId(null);
+    }
+  };
+
+  // Clear runs (all or cancelled only)
+  const handleClearRuns = async (filter: "all" | "cancelled") => {
+    setShowClearMenu(false);
+    const confirmMsg =
+      filter === "cancelled"
+        ? "Are you sure you want to delete all CANCELLED runs from history?"
+        : "Are you sure you want to delete ALL historical pipeline execution runs?";
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      setClearingRuns(true);
+      await clearPipelineRuns(filter);
+      await loadRuns();
+      if (filter === "all") {
+        setSelectedRun(null);
+      }
+    } catch (err: any) {
+      console.error("Clear runs failed:", err);
+      alert("Failed to clear runs: " + err.message);
+    } finally {
+      setClearingRuns(false);
     }
   };
 
@@ -470,6 +584,52 @@ export default function MissionControlPage() {
     return l.stage?.toLowerCase() === filterStage.toLowerCase();
   });
 
+  // Group runs dynamically by time category
+  const groupsMap = new Map<
+    string,
+    { label: string; order: number; runs: PipelineRun[] }
+  >();
+  runs.forEach((r) => {
+    const cat = getTimeCategory(r.started_at);
+    if (!groupsMap.has(cat.id)) {
+      groupsMap.set(cat.id, { label: cat.label, order: cat.order, runs: [] });
+    }
+    groupsMap.get(cat.id)!.runs.push(r);
+  });
+
+  const groupedRuns = Array.from(groupsMap.entries())
+    .sort((a, b) => a[1].order - b[1].order)
+    .map(([id, val]) => ({
+      id,
+      label: val.label,
+      order: val.order,
+      runs: val.runs,
+    }));
+
+  const areAllCollapsed =
+    groupedRuns.length > 0 &&
+    groupedRuns.every((g) =>
+      collapsedGroups[g.id] !== undefined
+        ? collapsedGroups[g.id]
+        : g.order > 2
+    );
+
+  const toggleCategory = (catId: string, currentCollapsed: boolean) => {
+    setCollapsedGroups((prev) => ({
+      ...prev,
+      [catId]: !currentCollapsed,
+    }));
+  };
+
+  const toggleAllCategories = () => {
+    const nextState = !areAllCollapsed;
+    const updated: Record<string, boolean> = {};
+    groupedRuns.forEach((g) => {
+      updated[g.id] = nextState;
+    });
+    setCollapsedGroups(updated);
+  };
+
   return (
     <div className="w-full flex-1 flex flex-col h-full min-h-0 max-h-full space-y-2.5 overflow-hidden">
       {/* ========================================================================= */}
@@ -595,23 +755,85 @@ export default function MissionControlPage() {
         <div className="lg:col-span-3 flex flex-col h-full min-h-0 overflow-hidden">
           <div className="p-3 rounded-2xl bg-[#111114] border border-white/[0.06] shadow-matte flex flex-col h-full min-h-0 space-y-2 overflow-hidden">
             {/* Header */}
-            <div className="flex items-center justify-between pb-2 border-b border-white/[0.06] shrink-0">
+            <div className="flex items-center justify-between pb-2 border-b border-white/[0.06] shrink-0 relative">
               <div className="flex items-center gap-2">
                 <History className="w-4 h-4 text-emerald-400" />
                 <h2 className="text-xs font-bold uppercase tracking-wider text-zinc-300">
                   Execution History
                 </h2>
+                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-400">
+                  {runs.length}
+                </span>
               </div>
-              <button
-                onClick={loadRuns}
-                disabled={loadingRuns}
-                className="text-zinc-400 hover:text-zinc-200 transition-colors p-1"
-                title="Refresh Runs"
-              >
-                <RefreshCw
-                  className={`w-3 h-3 ${loadingRuns ? "animate-spin" : ""}`}
-                />
-              </button>
+              <div className="flex items-center gap-1">
+                {/* Expand / Collapse All */}
+                <button
+                  type="button"
+                  onClick={toggleAllCategories}
+                  className="text-zinc-400 hover:text-zinc-200 transition-colors p-1 rounded hover:bg-zinc-800"
+                  title={
+                    areAllCollapsed
+                      ? "Expand all categories"
+                      : "Collapse all categories"
+                  }
+                >
+                  <ChevronsUpDown className="w-3.5 h-3.5" />
+                </button>
+
+                {/* Clear Menu Trigger */}
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowClearMenu(!showClearMenu)}
+                    disabled={clearingRuns || runs.length === 0}
+                    className="text-zinc-400 hover:text-rose-400 transition-colors p-1 rounded hover:bg-zinc-800 disabled:opacity-40"
+                    title="Clear history options"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+
+                  {/* Clear Popover Menu */}
+                  {showClearMenu && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-40"
+                        onClick={() => setShowClearMenu(false)}
+                      />
+                      <div className="absolute right-0 top-7 w-44 py-1 bg-[#18181b] border border-white/[0.1] rounded-xl shadow-2xl z-50 text-[11px] font-mono">
+                        <button
+                          type="button"
+                          onClick={() => handleClearRuns("cancelled")}
+                          className="w-full text-left px-3 py-1.5 hover:bg-zinc-800 text-zinc-300 hover:text-amber-400 flex items-center justify-between"
+                        >
+                          <span>Clear Cancelled</span>
+                          <span className="text-[9px] text-zinc-500">Only</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleClearRuns("all")}
+                          className="w-full text-left px-3 py-1.5 hover:bg-rose-500/20 text-rose-400 flex items-center justify-between border-t border-white/[0.06]"
+                        >
+                          <span>Clear All History</span>
+                          <span className="text-[9px] text-rose-500">Wipe</span>
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Refresh Runs */}
+                <button
+                  type="button"
+                  onClick={loadRuns}
+                  disabled={loadingRuns}
+                  className="text-zinc-400 hover:text-zinc-200 transition-colors p-1 rounded hover:bg-zinc-800"
+                  title="Refresh Runs"
+                >
+                  <RefreshCw
+                    className={`w-3.5 h-3.5 ${loadingRuns ? "animate-spin" : ""}`}
+                  />
+                </button>
+              </div>
             </div>
 
             {/* Comparison Diff Toggle */}
@@ -690,57 +912,131 @@ export default function MissionControlPage() {
               </div>
             )}
 
-            {/* Runs List (Expands to fill vertical height with internal scroll) */}
+            {/* Runs List (Grouped dynamically by Time Buckets with Collapsible Accordion & Internal Scroll) */}
             <div
-              className="space-y-1.5 flex-1 min-h-0 overflow-y-auto pr-1"
+              className="space-y-2 flex-1 min-h-0 overflow-y-auto pr-1"
               style={{ scrollbarWidth: "thin" }}
             >
-              {runs.map((r) => {
-                const isSelected = selectedRun?.run_id === r.run_id;
-                const isSuccess = r.status === "COMPLETED";
+              {runs.length === 0 ? (
+                <div className="flex flex-col items-center justify-center p-8 text-center text-zinc-500 font-mono text-xs">
+                  <History className="w-6 h-6 mb-2 text-zinc-600" />
+                  <p>No historical runs found</p>
+                  <p className="text-[10px] text-zinc-600 mt-1">
+                    Execute a pipeline stage to record telemetry
+                  </p>
+                </div>
+              ) : (
+                groupedRuns.map((group) => {
+                  const defaultCollapsed = group.order > 2;
+                  const isCollapsed =
+                    collapsedGroups[group.id] !== undefined
+                      ? collapsedGroups[group.id]
+                      : defaultCollapsed;
 
-                return (
-                  <div
-                    key={r.run_id}
-                    onClick={() => setSelectedRun(r)}
-                    className={`p-2 rounded-xl cursor-pointer transition-all border text-left ${
-                      isSelected
-                        ? "border-emerald-500/35 bg-zinc-900/90 shadow-[0_0_12px_rgba(16,185,129,0.06)] ring-1 ring-emerald-500/20"
-                        : "border-white/[0.05] bg-[#141418] hover:bg-zinc-850 hover:border-white/[0.1]"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between text-xs mb-0.5">
-                      <span className="font-semibold font-mono text-zinc-200 flex items-center gap-1.5">
-                        <span
-                          className={`w-1.5 h-1.5 rounded-full ${
-                            isSuccess ? "bg-emerald-400" : "bg-rose-400"
-                          }`}
-                        />
-                        Run #{r.run_number}
-                      </span>
-                      <span
-                        className={`text-[9px] font-mono px-1.5 py-0.2 rounded border ${
-                          isSuccess
-                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                            : "bg-rose-500/10 text-rose-400 border-rose-500/20"
-                        }`}
+                  return (
+                    <div key={group.id} className="space-y-1">
+                      {/* Collapsible Accordion Category Header */}
+                      <button
+                        type="button"
+                        onClick={() => toggleCategory(group.id, isCollapsed)}
+                        className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-zinc-900/90 hover:bg-zinc-850 border border-white/[0.06] text-left transition-all group cursor-pointer"
                       >
-                        {r.status}
-                      </span>
-                    </div>
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <ChevronDown
+                            className={`w-3.5 h-3.5 text-zinc-400 group-hover:text-zinc-200 transition-transform duration-200 ${
+                              isCollapsed ? "-rotate-90" : "rotate-0"
+                            }`}
+                          />
+                          <Calendar className="w-3.5 h-3.5 text-emerald-400/90 shrink-0" />
+                          <span className="text-xs font-semibold text-zinc-200 tracking-tight truncate">
+                            {group.label}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0 font-mono text-[10px]">
+                          <span className="px-1.5 py-0.2 rounded-md bg-zinc-800 text-zinc-400 border border-white/[0.05]">
+                            {group.runs.length}{" "}
+                            {group.runs.length === 1 ? "run" : "runs"}
+                          </span>
+                        </div>
+                      </button>
 
-                    <div className="flex items-center justify-between text-[11px] text-zinc-400 font-mono">
-                      <span>{r.active_stage.toUpperCase()}</span>
-                      <span>{r.duration_seconds}s</span>
-                    </div>
+                      {/* Accordion Body: Runs List */}
+                      {!isCollapsed && (
+                        <div className="space-y-1.5 pl-1.5">
+                          {group.runs.map((r) => {
+                            const isSelected = selectedRun?.run_id === r.run_id;
+                            const isSuccess = r.status === "COMPLETED";
 
-                    <div className="flex items-center justify-between text-[10px] text-zinc-500 mt-0.5 font-mono">
-                      <span>{r.target_city}</span>
-                      <span>{r.total_companies_out} leads</span>
+                            return (
+                              <div
+                                key={r.run_id}
+                                onClick={() => setSelectedRun(r)}
+                                className={`p-2 rounded-xl cursor-pointer transition-all border text-left group relative ${
+                                  isSelected
+                                    ? "border-emerald-500/35 bg-zinc-900/90 shadow-[0_0_12px_rgba(16,185,129,0.06)] ring-1 ring-emerald-500/20"
+                                    : "border-white/[0.05] bg-[#141418] hover:bg-zinc-850 hover:border-white/[0.1]"
+                                }`}
+                              >
+                                <div className="flex items-center justify-between text-xs mb-0.5">
+                                  <span className="font-semibold font-mono text-zinc-200 flex items-center gap-1.5">
+                                    <span
+                                      className={`w-1.5 h-1.5 rounded-full ${
+                                        isSuccess
+                                          ? "bg-emerald-400"
+                                          : "bg-rose-400"
+                                      }`}
+                                    />
+                                    Run #{r.run_number}
+                                    {r.started_at && (
+                                      <span className="text-[10px] text-zinc-500 font-normal">
+                                        {formatRunTime(r.started_at)}
+                                      </span>
+                                    )}
+                                  </span>
+                                  <div className="flex items-center gap-1.5">
+                                    <span
+                                      className={`text-[9px] font-mono px-1.5 py-0.2 rounded border ${
+                                        isSuccess
+                                          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                                          : "bg-rose-500/10 text-rose-400 border-rose-500/20"
+                                      }`}
+                                    >
+                                      {r.status}
+                                    </span>
+                                    {/* Delete Individual Run Button */}
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeleteRun(r.run_id);
+                                      }}
+                                      disabled={deletingRunId === r.run_id}
+                                      className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-rose-500/20 text-zinc-500 hover:text-rose-400"
+                                      title="Delete this run from history"
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center justify-between text-[11px] text-zinc-400 font-mono">
+                                  <span>{r.active_stage.toUpperCase()}</span>
+                                  <span>{r.duration_seconds}s</span>
+                                </div>
+
+                                <div className="flex items-center justify-between text-[10px] text-zinc-500 mt-0.5 font-mono">
+                                  <span>{r.target_city}</span>
+                                  <span>{r.total_companies_out} leads</span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
 
             {/* Persistent Run Telemetry KPI Summary Footer (Anchors bottom) */}
