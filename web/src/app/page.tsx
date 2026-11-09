@@ -38,9 +38,9 @@ export default function DashboardPage() {
   }, []);
 
   const tiers = metrics?.tiers || {
-    "Tier A (High Priority)": 33,
+    "Tier A (High Priority)": 35,
     "Tier B (Qualified Mid-Market)": 409,
-    "Tier C (Long-Tail / Small)": 757,
+    "Tier C (Long-Tail / Small)": 756,
   };
 
   const erpData = Object.entries(
@@ -100,7 +100,7 @@ export default function DashboardPage() {
             href="/leads"
             className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-500 text-zinc-950 font-semibold text-xs hover:bg-emerald-400 transition-all shadow-glowEmerald"
           >
-            <span>Explore 1,199 Leads</span>
+            <span>Explore 1,200 Leads</span>
             <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>
         </div>
@@ -117,11 +117,11 @@ export default function DashboardPage() {
             <Building2 className="w-4 h-4 text-emerald-400" />
           </div>
           <div className="text-3xl font-bold text-zinc-100 tracking-tight font-mono">
-            {formatNumber(metrics?.golden_total || 1199)}
+            {formatNumber(metrics?.golden_total || 1200)}
           </div>
           <p className="text-[11px] text-zinc-400 mt-2 flex items-center gap-1">
-            <span className="text-emerald-400 font-medium">1,371</span> scraped
-            → <span className="text-zinc-300">1,199</span> unique
+            <span className="text-emerald-400 font-medium">1,375</span> scraped
+            → <span className="text-zinc-300">1,200</span> unique
           </p>
         </div>
 
@@ -134,7 +134,7 @@ export default function DashboardPage() {
             <Sparkles className="w-4 h-4 text-emerald-400" />
           </div>
           <div className="text-3xl font-bold text-emerald-400 tracking-tight font-mono">
-            {formatNumber(tiers["Tier A (High Priority)"] || 33)}
+            {formatNumber(tiers["Tier A (High Priority)"] || 35)}
           </div>
           <p className="text-[11px] text-zinc-400 mt-2">
             Managing <strong className="text-zinc-200">1,000–53,300+</strong>{" "}
@@ -313,7 +313,7 @@ export default function DashboardPage() {
             <span>Tier A Target Strategy</span>
           </div>
           <p className="text-xs text-zinc-300 leading-relaxed">
-            33 companies managing up to 53,300 units with confirmed residential
+            35 companies managing up to 53,300 units with confirmed residential
             WEG/Miet focus and verified Geschäftsführer. Prime for Metrixa
             Systems Account Executives.
           </p>

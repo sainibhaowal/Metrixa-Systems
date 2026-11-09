@@ -27,7 +27,7 @@ const NAV_ITEMS = [
     href: "/leads",
     label: "Lead Explorer",
     icon: Users2,
-    badge: "1,199 Leads",
+    badge: "1,200 Leads",
   },
   { href: "/tools", label: "Agentic Tools", icon: Wrench },
   {

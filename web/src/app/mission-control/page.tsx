@@ -213,7 +213,7 @@ export default function MissionControlPage() {
       id: "init-2",
       time: "STATUS",
       level: "SUCCESS",
-      msg: "Connected to SQLite WAL (metrixa_leads.db) — 1,199 qualified Berlin property managers active.",
+      msg: "Connected to SQLite WAL (metrixa_leads.db): 1,200 qualified Berlin property managers active.",
     },
   ]);
   const [selectedEvent, setSelectedEvent] = useState<LogEntry | null>(null);
@@ -696,7 +696,7 @@ export default function MissionControlPage() {
               <div className="flex justify-between items-center text-zinc-400">
                 <span className="text-[10px] text-zinc-500">QUALIFIED</span>
                 <span className="text-zinc-200 font-semibold text-[11px]">
-                  1,199 Leads (Berlin Scope)
+                  1,200 Leads (Berlin Scope)
                 </span>
               </div>
               <div className="flex justify-between items-center text-zinc-400">

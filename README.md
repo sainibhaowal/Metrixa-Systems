@@ -1,6 +1,6 @@
-# Metrixa Engine — Autonomous B2B Lead Discovery, Enrichment & Qualification Pipeline
+# Metrixa Engine: Automated B2B Lead Discovery, Enrichment & Qualification Pipeline
 
-**Case Study Submission:** Autonomous GTM & LeadOps Architecture @ **Metrixa Systems GmbH**
+**Case Study Submission:** B2B Data Engineering & LeadOps Architecture @ **Metrixa Systems GmbH**
 **Target Domain:** Property Management Companies (*Hausverwaltungen*) in Berlin, Germany
 
 ---
@@ -9,29 +9,28 @@
 
 | Metric                                                                |           Production Result           | Details                                                                                                                                                                              |
 | :-------------------------------------------------------------------- | :------------------------------------: | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Total Raw Scraped Listings (Stage 1)**                        |            **1,371**            | Scraped across *Gelbe Seiten* (`405`), *11880.com* (`835`), *VDIV Berlin-Brandenburg* (`30`), *OpenStreetMap Overpass API* (`100`), and *Search Discovery* (`1`) |
-| **Unique Qualified Berlin *Hausverwaltungen* (Stage 2)**      |            **1,199**            | Deduplicated via Canonical Domain, E.164 Phone, `RapidFuzz` Token Sort Ratio & `Union-Find` clustering (`167` duplicates merged, `6` non-Berlin/noise filtered)              |
-| **🟢 Tier A — High-Priority Target Leads (`Score 70–100`)** |              **33**              | Immediate sales targets managing `1,000–53,300+` units with PropTech portals/ERPs and direct decision-maker contacts                                                              |
-| **🟡 Tier B — Qualified Mid-Market Leads (`Score 45–69`)**  |             **409**             | Established Berlin residential property managers                                                                                                                                     |
-| **⚪ Tier C — Long-Tail / Small Leads (`Score < 45`)**       |             **757**             | Smaller local property managers across all 12 Berlin *Bezirke*                                                                                                                     |
-| **Website & *Impressum* Pages Crawled (Stage 3)**             |          **866 Pages**          | Across `242` verified corporate domains (`/`, `/impressum`, `/team`, `/leistungen`, `/referenzen`, `/kundenportal`)                                                    |
-| **PropTech ERP / Customer Portals Detected**                    |         **38 Companies**         | *Casavi, Domus, Immoware24, Haufe PowerHaus / axera, etg24*, and digital tenant/owner portals                                                                                      |
-| **Named Decision-Makers Extracted (Stage 4)**                   | **118 Contacts** *(101 Firms)* | *Geschäftsführer*, *Inhaber*, *Vorstand*, and *Prokuristen* extracted from § 5 DDG *Impressum* & Team pages                                                             |
-| **Verified / DNS `MX`-Valid Personal Emails (Stage 5)**       |         **99 Companies**         | Strictly non-`info@` personal executive emails verified against `216` live DNS `MX` corporate servers                                                                          |
+| **Total Raw Scraped Listings (Stage 1)**                        |            **1,375**            | Scraped across *Gelbe Seiten* (`405`), *11880.com* (`838`), *VDIV Berlin-Brandenburg* (`30`), *OpenStreetMap Overpass API* (`100`), and *Search Discovery* (`2`) |
+| **Unique Qualified Berlin *Hausverwaltungen* (Stage 2)**      |            **1,200**            | Deduplicated via Canonical Domain, E.164 Phone, `RapidFuzz` Token Sort Ratio & `Union-Find` clustering (`175` duplicates merged)                                                   |
+| **🟢 Tier A: High-Priority Target Leads (`Score 70 to 100`)**  |              **35**              | Immediate sales targets managing large portfolios with PropTech portals/ERPs and direct decision-maker contacts                                                                      |
+| **🟡 Tier B: Qualified Mid-Market Leads (`Score 45 to 69`)**   |             **409**             | Established Berlin residential property managers                                                                                                                                     |
+| **⚪ Tier C: Long-Tail / Small Leads (`Score < 45`)**          |             **756**             | Smaller local property managers across all 12 Berlin *Bezirke*                                                                                                                     |
+| **Website & *Impressum* Pages Crawled (Stage 3)**             |          **885 Pages**          | Across `243` verified corporate domains (`/`, `/impressum`, `/team`, `/leistungen`, `/referenzen`, `/kundenportal`)                                                                 |
+| **PropTech ERP / Customer Portals Detected**                    |         **41 Deployments**      | *Casavi, Domus, Immoware24, Haufe PowerHaus / axera, etg24, Facilioo*, and digital tenant/owner portals                                                                             |
+| **Named Decision-Makers Extracted (Stage 4)**                   | **121 Contacts** *(104 Firms)* | *Geschäftsführer*, *Inhaber*, *Vorstand*, and *Prokuristen* extracted from § 5 DDG *Impressum* & Team pages                                                                        |
+| **Verified / DNS `MX`-Valid Personal Emails (Stage 5)**       | **118 Contacts** *(102 Firms)* | Strictly non-`info@` personal executive emails verified against live DNS `MX` corporate servers                                                                                     |
 
 ---
 
 ## 📦 Generated Deliverables (Ready to Submit)
 
-1. **Multi-Tab Excel Workbook (`.xlsx` for Google Sheets / Attachment):**👉 [`data/exports/metrixa_berlin_hausverwaltungen.xlsx`](./data/exports/metrixa_berlin_hausverwaltungen.xlsx)
-   * **Tab 1 (`Qualified_Berlin_Leads`):** All **1,199** Berlin property management companies ranked by `Metrixa Lead Score (0–100)` across 31 KPI & contact columns.
-   * **Tab 2 (`All_Decision_Makers_Contacts`):** All **118** extracted *Geschäftsführer* / decision-makers with personal emails, DNS `MX` server verification, and verbatim evidence quotes.
-   * **Tab 3 (`Evidence_And_Audit_Trail`):** All **866** crawled pages with HTTP status codes, DOM ERP/metering signals, and verbatim unit quotes.
+1. **Academic Research Paper & Whitepaper PDF:** 👉 [`docs/Case Study/Case_Study_Heidi_Systems.pdf`](./docs/Case%20Study/Case_Study_Heidi_Systems.pdf)
+2. **Multi-Tab Excel Workbook (`.xlsx` for Google Sheets / Attachment):** 👉 [`data/exports/metrixa_berlin_hausverwaltungen.xlsx`](./data/exports/metrixa_berlin_hausverwaltungen.xlsx)
+   * **Tab 1 (`Qualified_Berlin_Leads`):** All **1,200** Berlin property management companies ranked by `Metrixa Lead Score (0 to 100)` across 31 KPI & contact columns.
+   * **Tab 2 (`All_Decision_Makers_Contacts`):** All **121** extracted *Geschäftsführer* / decision-makers with personal emails, DNS `MX` server verification, and verbatim evidence quotes.
+   * **Tab 3 (`Evidence_And_Audit_Trail`):** All **885** crawled pages with HTTP status codes, DOM ERP/metering signals, and verbatim unit quotes.
    * **Tab 4 (`KPI_Methodology_And_Summary`):** Executive KPI rationale, scoring weights, and live dataset statistics.
-2. **Master CSV Deliverable:**👉 [`data/exports/metrixa_berlin_leads_master.csv`](./data/exports/metrixa_berlin_leads_master.csv)
-3. **Task 3 Quantitative Evaluation & Stage Ablation Report:**👉 [`data/exports/evaluation_ablation_report.md`](./data/exports/evaluation_ablation_report.md)
-4. **Task 3 Executive Presentation / Methodology Document:**
-   👉 [`docs/Working Docs/07_TASK3_EXECUTIVE_PRESENTATION.md`](./docs/Working%20Docs/07_TASK3_EXECUTIVE_PRESENTATION.md)
+3. **Master CSV Deliverable:** 👉 [`data/exports/metrixa_berlin_leads_master.csv`](./data/exports/metrixa_berlin_leads_master.csv)
+4. **Comprehensive Documentation & Methodology:** 👉 [`docs/Case Study/Case Study.md`](./docs/Case%20Study/Case%20Study.md)
 
 ---
 

@@ -481,7 +481,7 @@ class Database:
                     "full",
                     "COMPLETED",
                     1240,
-                    1199,
+                    1200,
                     7,
                     22,
                     138.5,
@@ -492,7 +492,7 @@ class Database:
                         {
                             "stage": "full",
                             "stages_executed": 6,
-                            "golden_companies": 1199,
+                            "golden_companies": 1200,
                             "tier_a": 182,
                             "tier_b": 514,
                             "tier_c": 503,
