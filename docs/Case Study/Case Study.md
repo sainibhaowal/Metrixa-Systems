@@ -3,6 +3,7 @@
 **Author:** Ravin Saini
 **Affiliation:** Data Engineering & Distributed Systems Architecture
 **Primary Dataset:** Canonical Golden Record Ledger ($N = 1,200$)
+**Deliverable PDF:** `docs/Case Study/Case_Study_Heidi_Systems.pdf`
 
 ---
 
@@ -63,6 +64,42 @@ $$E(r_i, r_j) = 1 \iff \left(d_i = d_j \land d_i \notin D_{\text{excl}}\right) \
 
 where $d_i$ denotes the canonical corporate domain, $p_i$ is the E.164 phone number, and $\text{Sim}_{\text{JW}}(n_i, n_j)$ is the token-sort Jaro-Winkler string similarity between normalized corporate names within identical five-digit postal boundaries ($\text{PLZ}_i = \text{PLZ}_j$) (Navarro, 2001). Executing this equation across all 1,375 raw directory records consolidated **175 redundant listings**, establishing an authoritative golden ledger of **1,200 unique operating entities**.
 
+**Table 3:** *Complete Geographic Distribution Across All 12 Berlin Administrative Districts ($N = 1,200$)*
+
+| Administrative District (*Bezirk*) | Verified Entities | Market Share (%) |
+| :--- | :---: | :---: |
+| Charlottenburg-Wilmersdorf | 211 | 17.6% |
+| Steglitz-Zehlendorf | 150 | 12.5% |
+| Tempelhof-Schöneberg | 141 | 11.8% |
+| Friedrichshain-Kreuzberg | 120 | 10.0% |
+| Pankow | 113 | 9.4% |
+| Mitte | 97 | 8.1% |
+| Reinickendorf | 83 | 6.9% |
+| Treptow-Köpenick | 66 | 5.5% |
+| Spandau | 61 | 5.1% |
+| Berlin (Citywide / General) | 55 | 4.6% |
+| Neukölln | 52 | 4.3% |
+| Lichtenberg | 38 | 3.2% |
+| Marzahn-Hellersdorf | 13 | 1.1% |
+| **Total Canonical Entity Ledger** | **1,200** | **100.0%** |
+
+**Table 4:** *Corporate Legal Form Distribution Among Berlin Property Management Entities*
+
+| Corporate Legal Designation | Entity Count | Share of Market |
+| :--- | :---: | :---: |
+| Unregistered / Sole Proprietor / Unspecified | 596 | 49.7% |
+| GmbH | 445 | 37.1% |
+| GmbH & Co. KG | 32 | 2.7% |
+| e.K. (Registered Merchant) | 31 | 2.6% |
+| AG (Public Limited Company) | 24 | 2.0% |
+| eG (Housing Cooperative) | 21 | 1.8% |
+| KG (Limited Partnership) | 18 | 1.5% |
+| GbR (Civil Law Partnership) | 15 | 1.3% |
+| OHG (General Partnership) | 8 | 0.7% |
+| UG (haftungsbeschränkt) | 7 | 0.6% |
+| Other Formats (SE, UG & Co. KG, GmbH & Co. OHG) | 3 | 0.3% |
+| **Total Classified Entities** | **1,200** | **100.0%** |
+
 ---
 
 ## 3. Web Intelligence, PropTech ERP Fingerprinting, and Statutory Extraction
@@ -71,6 +108,21 @@ where $d_i$ denotes the canonical corporate domain, $p_i$ is the E.164 phone num
 Among the 1,200 resolved canonical entities, **243 entities (20.2%)** operate a dedicated corporate web domain. An asynchronous HTTP/2 crawler visits each domain, scanning the homepage and traversing prioritized subpage candidates (specifically `/impressum`, `/team`, `/ueber-uns`, `/leistungen`, and `/referenzen`). Across the reachable domains, the crawler retrieved and analyzed **885 web pages** across 196 HTTP 200 live endpoints.
 
 Software maturity is a primary indicator of operational sophistication. Property managers utilizing specialized enterprise resource planning (ERP) systems or digital tenant portals process utility data electronically and possess the capacity to integrate telemetry feeds. Before converting HTML documents to unstructured text, a Document Object Model (DOM) signature engine inspects script tags, iframe embeds, and external anchor references for eight dominant German real estate ERP platforms: **Casavi, Domus (DOMUS 4000 / DOMUS Navi), Wodis Sigma (Aareon), Haufe PowerHaus / axera, Immoware24, etg24, Facilioo**, and custom tenant login portals. In total, **41 companies (3.4% of all entities, 20.9% of reachable web domains)** exhibited active PropTech ERP or tenant portal signatures in their client-side DOM.
+
+**Table 5:** *Detected PropTech ERP Systems and Tenant Portals Across Reachable Berlin Websites*
+
+| Detected PropTech Platform / ERP Signature | Detected Entities | Share of Web Domains ($N = 243$) |
+| :--- | :---: | :---: |
+| Casavi | 6 | 2.5% |
+| Facilioo | 2 | 0.8% |
+| Immoware24 | 2 | 0.8% |
+| Haufe PowerHaus / axera | 1 | 0.4% |
+| Immoware24, etg24 (Multi-stack) | 1 | 0.4% |
+| WinCASA | 1 | 0.4% |
+| Wodis Sigma / Aareon | 1 | 0.4% |
+| etg24 | 1 | 0.4% |
+| Online-Kundenportal / Mieterportal Links | 26 | 10.7% |
+| **Total Detected PropTech / Portal Deployments** | **41** | **16.9%** |
 
 ### 3.2 Verbatim Evidence-Grounded Statutory Attribute Extraction
 Statutory disclosure pages are processed using a hybrid information extraction engine. Deterministic regular expressions parse structured statutory declarations: corporate registration details (e.g., *Amtsgericht Charlottenburg HRB...*), tax identifiers, founding dates, and explicit portfolio unit counts (e.g., *Verwaltung von über 2.500 Wohneinheiten*). Language models are subsequently deployed to interpret nuanced asset-class narratives (condominium WEG management, rental housing, commercial property, and individual tenancy administration).
@@ -122,9 +174,9 @@ To circumvent generic mailboxes without violating data integrity, the system imp
 ## 6. Empirical Ablation Analysis and Data Validation
 
 ### 6.1 Pipeline Stage Ablation Study
-To quantify the exact engineering value added by each architectural phase, an automated ablation evaluation was conducted across the live dataset ($N = 1,200$). Table 3 presents the incremental gains achieved over a single-directory baseline.
+To quantify the exact engineering value added by each architectural phase, an automated ablation evaluation was conducted across the live dataset ($N = 1,200$). Table 6 presents the incremental gains achieved over a single-directory baseline.
 
-**Table 3:** *Incremental Architectural Ablation Benchmark Across the Canonical Berlin Dataset*
+**Table 6:** *Incremental Architectural Ablation Benchmark Across the Canonical Berlin Dataset*
 
 | Pipeline Configuration (Ablation Stage) | Entities | Website Rate | KPIs Populated | Named Executive | Personal Mail (Non-info@) |
 | :--- | :---: | :---: | :---: | :---: | :---: |
@@ -135,9 +187,9 @@ To quantify the exact engineering value added by each architectural phase, an au
 | Stage 5: Full Architecture (+ DNS MX Verifier + Scorer) | **1,200 Scored** | **20.2% (243)** | **100.0% (1,200)** | **8.7% (104 Entities)** | **8.5% (102 Entities / 118 Execs)** |
 
 ### 6.2 Automated Multi-Layer Verification Results
-Prior to final data export, the system executes four programmatic verification gates across the entire 1,200 golden entity cohort (Table 4).
+Prior to final data export, the system executes four programmatic verification gates across the entire 1,200 golden entity cohort (Table 7).
 
-**Table 4:** *Automated Verification Gate Performance Across the Canonical Dataset*
+**Table 7:** *Automated Verification Gate Performance Across the Canonical Dataset*
 
 | Verification Gate | Evaluated Quality Metric | Observed Result | Validation Enforcement Protocol |
 | :--- | :--- | :---: | :--- |

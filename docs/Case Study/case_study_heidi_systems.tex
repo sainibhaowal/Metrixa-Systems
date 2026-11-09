@@ -101,12 +101,90 @@ E(r_i, r_j) = 1 \iff \left(d_i = d_j \land d_i \notin D_{\text{excl}}\right) \lo
 \end{equation}
 where $d_i$ denotes the canonical corporate domain, $p_i$ is the E.164 phone number, and $\text{Sim}_{\text{JW}}(n_i, n_j)$ is the token-sort Jaro-Winkler string similarity between normalized corporate names within identical five-digit postal boundaries ($\text{PLZ}_i = \text{PLZ}_j$) (Navarro, 2001). Executing Equation~(1) across all 1,375 raw directory records consolidated \textbf{175 redundant listings}, establishing an authoritative golden ledger of \textbf{1,200 unique operating entities}.
 
+\begin{table}[htbp]
+\centering
+\caption{Complete Geographic Distribution Across All 12 Berlin Administrative Districts ($N = 1,200$)}
+\label{tab:districts}
+\footnotesize
+\begin{tabularx}{\textwidth}{l r r}
+\toprule
+\textbf{Administrative District (Bezirk)} & \textbf{Verified Entities} & \textbf{Market Share (\%)} \\
+\midrule
+Charlottenburg-Wilmersdorf & 211 & 17.6\% \\
+Steglitz-Zehlendorf & 150 & 12.5\% \\
+Tempelhof-Sch\"oneberg & 141 & 11.8\% \\
+Friedrichshain-Kreuzberg & 120 & 10.0\% \\
+Pankow & 113 & 9.4\% \\
+Mitte & 97 & 8.1\% \\
+Reinickendorf & 83 & 6.9\% \\
+Treptow-K\"openick & 66 & 5.5\% \\
+Spandau & 61 & 5.1\% \\
+Berlin (Citywide / General) & 55 & 4.6\% \\
+Neuk\"olln & 52 & 4.3\% \\
+Lichtenberg & 38 & 3.2\% \\
+Marzahn-Hellersdorf & 13 & 1.1\% \\
+\midrule
+\textbf{Total Berlin Canonical Entity Ledger} & \textbf{1,200} & \textbf{100.0\%} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{Corporate Legal Form Distribution Among Berlin Property Management Entities}
+\label{tab:legalforms}
+\footnotesize
+\begin{tabularx}{\textwidth}{l r r}
+\toprule
+\textbf{Corporate Legal Designation} & \textbf{Entity Count} & \textbf{Share of Market} \\
+\midrule
+Unregistered / Sole Proprietor / Unspecified & 596 & 49.7\% \\
+GmbH & 445 & 37.1\% \\
+GmbH \& Co. KG & 32 & 2.7\% \\
+e.K. (Registered Merchant) & 31 & 2.6\% \\
+AG (Public Limited Company) & 24 & 2.0\% \\
+eG (Housing Cooperative) & 21 & 1.8\% \\
+KG (Limited Partnership) & 18 & 1.5\% \\
+GbR (Civil Law Partnership) & 15 & 1.3\% \\
+OHG (General Partnership) & 8 & 0.7\% \\
+UG (haftungsbeschr\"ankt) & 7 & 0.6\% \\
+Other Formats (SE, UG \& Co. KG, GmbH \& Co. OHG) & 3 & 0.3\% \\
+\midrule
+\textbf{Total Classified Entities} & \textbf{1,200} & \textbf{100.0\%} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
 \section{Web Intelligence, PropTech ERP Fingerprinting, and Statutory Extraction}
 
 \subsection{Asynchronous Web Crawling and DOM Software Fingerprinting}
 Among the 1,200 resolved canonical entities, \textbf{243 entities (20.2\%)} operate a dedicated corporate web domain. An asynchronous HTTP/2 crawler visits each domain, scanning the homepage and traversing prioritized subpage candidates (specifically \texttt{/impressum}, \texttt{/team}, \texttt{/ueber-uns}, \texttt{/leistungen}, and \texttt{/referenzen}). Across the reachable domains, the crawler retrieved and analyzed \textbf{885 web pages} across 196 HTTP 200 live endpoints.
 
-Software maturity is a primary indicator of operational sophistication. Property managers utilizing specialized enterprise resource planning (ERP) systems or digital tenant portals process utility data electronically and possess the capacity to integrate telemetry feeds. Before converting HTML documents to unstructured text, a Document Object Model (DOM) signature engine inspects script tags, iframe embeds, and external anchor references for eight dominant German real estate ERP platforms: \textbf{Casavi, Domus (DOMUS 4000 / DOMUS Navi), Wodis Sigma (Aareon), Haufe PowerHaus / axera, Immoware24, etg24, Facilioo}, and custom tenant login portals. In total, \textbf{41 companies (3.4% of all entities, 20.9% of reachable web domains)} exhibited active PropTech ERP or tenant portal signatures in their client-side DOM.
+Software maturity is a primary indicator of operational sophistication. Property managers utilizing specialized enterprise resource planning (ERP) systems or digital tenant portals process utility data electronically and possess the capacity to integrate telemetry feeds. Before converting HTML documents to unstructured text, a Document Object Model (DOM) signature engine inspects script tags, iframe embeds, and external anchor references for eight dominant German real estate ERP platforms: \textbf{Casavi, Domus (DOMUS 4000 / DOMUS Navi), Wodis Sigma (Aareon), Haufe PowerHaus / axera, Immoware24, etg24, Facilioo}, and custom tenant login portals. In total, \textbf{41 companies (3.4\% of all entities, 20.9\% of reachable web domains)} exhibited active PropTech ERP or tenant portal signatures in their client-side DOM.
+
+\begin{table}[htbp]
+\centering
+\caption{Detected PropTech ERP Systems and Tenant Portals Across Reachable Berlin Websites ($N = 243$ Domains)}
+\label{tab:erp}
+\footnotesize
+\begin{tabularx}{\textwidth}{l r r}
+\toprule
+\textbf{Detected PropTech Platform / ERP Signature} & \textbf{Detected Entities} & \textbf{Share of Web Domains (\%)} \\
+\midrule
+Casavi & 6 & 2.5\% \\
+Facilioo & 2 & 0.8\% \\
+Immoware24 & 2 & 0.8\% \\
+Haufe PowerHaus / axera & 1 & 0.4\% \\
+Immoware24, etg24 (Multi-stack) & 1 & 0.4\% \\
+WinCASA & 1 & 0.4\% \\
+Wodis Sigma / Aareon & 1 & 0.4\% \\
+etg24 & 1 & 0.4\% \\
+Online-Kundenportal / Mieterportal Links & 26 & 10.7\% \\
+\midrule
+\textbf{Total Detected PropTech / Portal Deployments} & \textbf{41} & \textbf{16.9\%} \\
+\bottomrule
+\end{tabularx}
+\end{table}
 
 \subsection{Verbatim Evidence-Grounded Statutory Attribute Extraction}
 Statutory disclosure pages are processed using a hybrid information extraction engine. Deterministic regular expressions parse structured statutory declarations: corporate registration details (e.g., \textit{Amtsgericht Charlottenburg HRB...}), tax identifiers, founding dates, and explicit portfolio unit counts (e.g., \textit{Verwaltung von \"uber 2.500 Wohneinheiten}). Language models are subsequently deployed to interpret nuanced asset-class narratives (condominium WEG management, rental housing, commercial property, and individual tenancy administration).
@@ -158,10 +236,10 @@ Evaluating the 1,200 resolved entities across Equation~(3) segments the regional
 \section{Executive Contact Synthesis and RFC 5321 Mail Verification}
 To circumvent generic mailboxes without violating data integrity, the system implements a four-stage executive resolution protocol:
 \begin{enumerate}
-    \item \textbf{Statutory Role Isolation:} From crawled \texttt{/impressum} documents, the system isolates individuals holding statutory representation roles (\textit{Gesch\"aftsf\"uhrer}, \textit{Vorstand}, or \textit{Inhaber}), while filtering out non-executive personnel such as data protection officers (\textit{Datenschutzbeauftragte}) and web designers. This yielded named managing directors for \textbf{104 entities (8.7% of all entities, 53.1% of reachable web domains)}.
+    \item \textbf{Statutory Role Isolation:} From crawled \texttt{/impressum} documents, the system isolates individuals holding statutory representation roles (\textit{Gesch\"aftsf\"uhrer}, \textit{Vorstand}, or \textit{Inhaber}), while filtering out non-executive personnel such as data protection officers (\textit{Datenschutzbeauftragte}) and web designers. This yielded named managing directors for \textbf{104 entities (8.7\% of all entities, 53.1\% of reachable web domains)}.
     \item \textbf{Generic Mailbox Partitioning:} All discovered email addresses are filtered against an administrative role blocklist (\texttt{info@}, \texttt{kontakt@}, \texttt{office@}, \texttt{service@}, \texttt{verwaltung@}). Generic mailboxes are routed strictly to general organizational records, while personal executive mailboxes are partitioned into separate decision-maker fields.
     \item \textbf{Orthographic Transliteration and Pattern Synthesis:} Where an executive name is authenticated on the statutory disclosure page of a verified corporate domain, German diacritics are transliterated (\texttt{\"a} $\to$ \texttt{ae}, \texttt{\"o} $\to$ \texttt{oe}, \texttt{\"u} $\to$ \texttt{ue}, \texttt{\ss} $\to$ \texttt{ss}) to construct standard institutional syntax patterns (e.g., \texttt{vorname.nachname@domain.de}).
-    \item \textbf{RFC 5321 DNS MX Validation:} Each synthesized corporate email domain is submitted to an asynchronous DNS resolver to query Mail Exchange (MX) resource records (Klensin, 2008). Domains failing to return a responsive MX record are invalidated. Across the market, the pipeline established \textbf{102 entities (8.5%)} (comprising 118 executive contact records) with DNS MX-verified personal executive addresses (12 direct public personal addresses and 90 MX-verified corporate executive syntax patterns).
+    \item \textbf{RFC 5321 DNS MX Validation:} Each synthesized corporate email domain is submitted to an asynchronous DNS resolver to query Mail Exchange (MX) resource records (Klensin, 2008). Domains failing to return a responsive MX record are invalidated. Across the market, the pipeline established \textbf{102 entities (8.5\%)} (comprising 118 executive contact records) with DNS MX-verified personal executive addresses (12 direct public personal addresses and 90 MX-verified corporate executive syntax patterns).
 \end{enumerate}
 
 \section{Empirical Ablation Analysis and Data Validation}
