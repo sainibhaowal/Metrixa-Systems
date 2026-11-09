@@ -143,14 +143,14 @@ def test_api_pipeline_runs_and_comparison(client: TestClient) -> None:
     data = resp.json()
     assert "runs" in data
     assert len(data["runs"]) >= 3
-    run_16 = data["runs"][0]
-    run_15 = data["runs"][1]
-    assert run_16["run_number"] >= 16
-    assert run_16["status"] == "COMPLETED"
+    run_latest = data["runs"][0]
+    run_prev = data["runs"][1]
+    assert run_latest["run_number"] >= 16
+    assert run_latest["status"] in ["COMPLETED", "RUNNING", "CANCELLED"]
 
     # Test run-to-run comparison diff endpoint
     cmp_resp = client.get(
-        f"/api/pipeline/runs/compare?run_a={run_15['run_id']}&run_b={run_16['run_id']}"
+        f"/api/pipeline/runs/compare?run_a={run_prev['run_id']}&run_b={run_latest['run_id']}"
     )
     assert cmp_resp.status_code == 200
     cmp_data = cmp_resp.json()

@@ -6,7 +6,6 @@ and thread-safety under heavy parallel traffic.
 
 from __future__ import annotations
 
-import asyncio
 from concurrent.futures import ThreadPoolExecutor
 import pytest
 from fastapi.testclient import TestClient
@@ -46,6 +45,7 @@ def test_stress_concurrent_leads_queries(client: TestClient) -> None:
 
 def test_stress_concurrent_metrics_endpoints(client: TestClient) -> None:
     """Stress test: 30 concurrent telemetry metric fetches."""
+
     def _fetch_metrics(_: int) -> int:
         resp = client.get("/api/metrics")
         return resp.status_code
@@ -64,7 +64,9 @@ async def test_stress_event_bus_multi_subscriber_broadcasting() -> None:
     try:
         # Emit 15 broadcast events
         for idx in range(15):
-            await event_bus.emit("LOG", {"level": "INFO", "message": f"Stress test log {idx}"})
+            await event_bus.emit(
+                "LOG", {"level": "INFO", "message": f"Stress test log {idx}"}
+            )
 
         # Verify all 20 queues received all 15 events
         for q in subscribers:

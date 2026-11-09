@@ -471,11 +471,11 @@ export default function MissionControlPage() {
   });
 
   return (
-    <div className="w-full flex-1 flex flex-col space-y-3 min-h-[calc(100vh-105px)]">
+    <div className="w-full flex-1 flex flex-col h-full min-h-0 max-h-full space-y-2.5 overflow-hidden">
       {/* ========================================================================= */}
       {/* 1. TOP MASTER BAR: Operational Status, Metrics & Global Action Controls   */}
       {/* ========================================================================= */}
-      <div className="p-3.5 rounded-2xl bg-[#111114] border border-white/[0.06] shadow-matte flex flex-col xl:flex-row xl:items-center justify-between gap-3 shrink-0">
+      <div className="p-3 rounded-2xl bg-[#111114] border border-white/[0.06] shadow-matte flex flex-col xl:flex-row xl:items-center justify-between gap-2.5 shrink-0">
         {/* Left Title & Status */}
         <div className="flex flex-wrap items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
@@ -588,12 +588,12 @@ export default function MissionControlPage() {
       {/* ========================================================================= */}
       {/* 2. THE 3-PANEL WIDESCREEN WORKSPACE (100% DISPLAY UTILIZATION)            */}
       {/* ========================================================================= */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 flex-1 items-stretch">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-2.5 flex-1 min-h-0 items-stretch overflow-hidden">
         {/* ======================================================================= */}
         {/* LEFT PANEL (Col 1-3): Execution History, Audit Ledger & Comparison Diff */}
         {/* ======================================================================= */}
-        <div className="lg:col-span-3 flex flex-col h-full">
-          <div className="p-3.5 rounded-2xl bg-[#111114] border border-white/[0.06] shadow-matte flex flex-col h-full space-y-3">
+        <div className="lg:col-span-3 flex flex-col h-full min-h-0 overflow-hidden">
+          <div className="p-3 rounded-2xl bg-[#111114] border border-white/[0.06] shadow-matte flex flex-col h-full min-h-0 space-y-2 overflow-hidden">
             {/* Header */}
             <div className="flex items-center justify-between pb-2 border-b border-white/[0.06] shrink-0">
               <div className="flex items-center gap-2">
@@ -690,8 +690,11 @@ export default function MissionControlPage() {
               </div>
             )}
 
-            {/* Runs List (Expands to fill vertical height) */}
-            <div className="space-y-1.5 flex-1 overflow-y-auto pr-1 min-h-[260px]">
+            {/* Runs List (Expands to fill vertical height with internal scroll) */}
+            <div
+              className="space-y-1.5 flex-1 min-h-0 overflow-y-auto pr-1"
+              style={{ scrollbarWidth: "thin" }}
+            >
               {runs.map((r) => {
                 const isSelected = selectedRun?.run_id === r.run_id;
                 const isSuccess = r.status === "COMPLETED";
@@ -700,13 +703,13 @@ export default function MissionControlPage() {
                   <div
                     key={r.run_id}
                     onClick={() => setSelectedRun(r)}
-                    className={`p-2.5 rounded-xl cursor-pointer transition-all border text-left ${
+                    className={`p-2 rounded-xl cursor-pointer transition-all border text-left ${
                       isSelected
                         ? "border-emerald-500/35 bg-zinc-900/90 shadow-[0_0_12px_rgba(16,185,129,0.06)] ring-1 ring-emerald-500/20"
                         : "border-white/[0.05] bg-[#141418] hover:bg-zinc-850 hover:border-white/[0.1]"
                     }`}
                   >
-                    <div className="flex items-center justify-between text-xs mb-1">
+                    <div className="flex items-center justify-between text-xs mb-0.5">
                       <span className="font-semibold font-mono text-zinc-200 flex items-center gap-1.5">
                         <span
                           className={`w-1.5 h-1.5 rounded-full ${
@@ -731,7 +734,7 @@ export default function MissionControlPage() {
                       <span>{r.duration_seconds}s</span>
                     </div>
 
-                    <div className="flex items-center justify-between text-[10px] text-zinc-500 mt-1 font-mono">
+                    <div className="flex items-center justify-between text-[10px] text-zinc-500 mt-0.5 font-mono">
                       <span>{r.target_city}</span>
                       <span>{r.total_companies_out} leads</span>
                     </div>
@@ -741,7 +744,7 @@ export default function MissionControlPage() {
             </div>
 
             {/* Persistent Run Telemetry KPI Summary Footer (Anchors bottom) */}
-            <div className="pt-2.5 border-t border-white/[0.06] bg-zinc-950/70 p-2.5 rounded-xl border border-white/[0.04] space-y-1.5 text-[11px] font-mono shrink-0">
+            <div className="pt-2 border-t border-white/[0.06] bg-zinc-950/70 p-2.5 rounded-xl border border-white/[0.04] space-y-1 text-[11px] font-mono shrink-0">
               <div className="flex justify-between items-center text-zinc-400">
                 <span className="text-[10px] text-zinc-500">DATABASE</span>
                 <span className="text-emerald-400 font-semibold text-[11px]">
@@ -767,9 +770,9 @@ export default function MissionControlPage() {
         {/* ======================================================================= */}
         {/* MIDDLE PANEL (Col 4-9): Visual DAG, Telemetry Timeline & Deep Inspector */}
         {/* ======================================================================= */}
-        <div className="lg:col-span-6 flex flex-col h-full gap-3">
+        <div className="lg:col-span-6 flex flex-col h-full min-h-0 gap-2.5 overflow-hidden">
           {/* Active Dynamic DAG Visualizer Card */}
-          <div className="p-3.5 rounded-2xl bg-[#111114] border border-white/[0.06] shadow-matte space-y-2.5 shrink-0">
+          <div className="p-3 rounded-2xl bg-[#111114] border border-white/[0.06] shadow-matte space-y-2 shrink-0">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-zinc-300 flex items-center gap-2">
                 <Activity className="w-4 h-4 text-emerald-400" />
@@ -824,9 +827,9 @@ export default function MissionControlPage() {
           </div>
 
           {/* Real-Time Live Telemetry Stream / Inspector (Expands to bottom) */}
-          <div className="p-3.5 rounded-2xl bg-[#111114] border border-white/[0.06] shadow-matte flex-1 flex flex-col space-y-2.5">
+          <div className="p-3 rounded-2xl bg-[#111114] border border-white/[0.06] shadow-matte flex-1 min-h-0 flex flex-col space-y-2 overflow-hidden">
             {/* Console Subheader */}
-            <div className="flex items-center justify-between border-b border-white/[0.06] pb-2.5 shrink-0">
+            <div className="flex items-center justify-between border-b border-white/[0.06] pb-2 shrink-0">
               <div className="flex items-center gap-2">
                 <TerminalIcon className="w-4 h-4 text-emerald-400" />
                 <h2 className="text-xs font-bold uppercase tracking-wider text-zinc-200">
@@ -860,8 +863,11 @@ export default function MissionControlPage() {
               </div>
             </div>
 
-            {/* Console Log Area (Expands to bottom of panel) */}
-            <div className="flex-1 min-h-[360px] overflow-y-auto font-mono text-[11px] space-y-1 p-3 rounded-xl bg-[#09090b] border border-white/[0.05]">
+            {/* Console Log Area (Expands to bottom of panel with internal scroll) */}
+            <div
+              className="flex-1 min-h-0 overflow-y-auto font-mono text-[11px] space-y-1 p-2.5 rounded-xl bg-[#09090b] border border-white/[0.05]"
+              style={{ scrollbarWidth: "thin" }}
+            >
               {visibleLogs.map((log) => {
                 let badgeColor =
                   "text-zinc-400 bg-zinc-900 border-white/[0.05]";
@@ -910,7 +916,7 @@ export default function MissionControlPage() {
 
             {/* Deep-Dive Inspection Drawer (When an event is clicked) */}
             {selectedEvent && (
-              <div className="p-3 rounded-xl bg-zinc-950 border border-emerald-500/30 space-y-2 text-xs font-mono shrink-0">
+              <div className="p-2.5 rounded-xl bg-zinc-950 border border-emerald-500/30 space-y-1.5 text-xs font-mono shrink-0 max-h-36 overflow-y-auto">
                 <div className="flex items-center justify-between">
                   <span className="text-emerald-400 font-semibold flex items-center gap-1.5">
                     <Activity className="w-3.5 h-3.5" />
@@ -949,10 +955,10 @@ export default function MissionControlPage() {
         {/* ======================================================================= */}
         {/* RIGHT PANEL (Col 10-12): Stage Controls, Config & Live Tool Benches     */}
         {/* ======================================================================= */}
-        <div className="lg:col-span-3 flex flex-col h-full gap-3">
+        <div className="lg:col-span-3 flex flex-col h-full min-h-0 gap-2.5 overflow-hidden">
           {/* Stage Controls Card */}
-          <div className="p-3.5 rounded-2xl bg-[#111114] border border-white/[0.06] shadow-matte flex-1 flex flex-col space-y-2.5">
-            <div className="flex items-center justify-between pb-2 border-b border-white/[0.06] shrink-0">
+          <div className="p-3 rounded-2xl bg-[#111114] border border-white/[0.06] shadow-matte flex-1 min-h-0 flex flex-col space-y-2 overflow-hidden">
+            <div className="flex items-center justify-between pb-1.5 border-b border-white/[0.06] shrink-0">
               <span className="text-xs font-bold uppercase tracking-wider text-zinc-300 flex items-center gap-1.5">
                 <Sliders className="w-4 h-4 text-emerald-400" />
                 Stage Controls (1-6)
@@ -963,7 +969,10 @@ export default function MissionControlPage() {
             </div>
 
             {/* 6 Stage Mini-Action Cards */}
-            <div className="space-y-1.5 flex-1 overflow-y-auto pr-0.5">
+            <div
+              className="space-y-1.5 flex-1 min-h-0 overflow-y-auto pr-0.5"
+              style={{ scrollbarWidth: "thin" }}
+            >
               {STAGES.map((s, idx) => {
                 const isRunningThis = activeStage === s.id;
 
@@ -1012,8 +1021,8 @@ export default function MissionControlPage() {
           </div>
 
           {/* Embedded Real-Time Live Tool Benches */}
-          <div className="p-3.5 rounded-2xl bg-[#111114] border border-white/[0.06] shadow-matte flex-1 flex flex-col space-y-2.5">
-            <div className="flex items-center justify-between pb-2 border-b border-white/[0.06] shrink-0">
+          <div className="p-3 rounded-2xl bg-[#111114] border border-white/[0.06] shadow-matte shrink-0 space-y-2">
+            <div className="flex items-center justify-between pb-1.5 border-b border-white/[0.06] shrink-0">
               <span className="text-xs font-bold uppercase tracking-wider text-zinc-300 flex items-center gap-1.5">
                 <Zap className="w-4 h-4 text-amber-400" />
                 Live Tooling Benches
@@ -1067,8 +1076,11 @@ export default function MissionControlPage() {
               </button>
             </div>
 
-            {/* Tool Result Output (Expands in bottom of right panel) */}
-            <div className="flex-1 min-h-[120px] max-h-[180px] overflow-y-auto p-2 rounded-xl bg-[#09090b] border border-white/[0.05] space-y-1 text-[10px] font-mono">
+            {/* Tool Result Output (Compact scroll area in bottom of right panel) */}
+            <div
+              className="h-24 max-h-28 overflow-y-auto p-2 rounded-xl bg-[#09090b] border border-white/[0.05] space-y-1 text-[10px] font-mono"
+              style={{ scrollbarWidth: "thin" }}
+            >
               <div className="flex items-center justify-between text-zinc-400">
                 <span className="text-[9px] text-zinc-500">
                   Telemetry Output:

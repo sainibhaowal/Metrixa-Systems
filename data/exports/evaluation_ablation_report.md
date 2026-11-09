@@ -1,6 +1,6 @@
 # Metrixa Engine :  Task 3 Evaluation, Data Validation & Ablation Report
 
-**Generated At:** `2026-11-09 17:54 UTC`
+**Generated At:** `2026-11-09 18:59 UTC`
 **Database:** `data/metrixa_leads.db`
 **Primary Excel Deliverable:** `data/exports/metrixa_berlin_hausverwaltungen.xlsx`
 
@@ -19,7 +19,7 @@
 | **Total Website & *Impressum* Pages Crawled** | **890** | Homepage + `/impressum`, `/team`, `/leistungen`, `/referenzen` |
 | **Companies with Detected PropTech / ERP / Portal** | **41 (3.4%)** | Casavi, Domus, Wodis, Haufe, Immoware24, etg24, Facilioo, Online-Kundenportal |
 | **Companies with Named Decision Maker (*Geschäftsführer*)** | **105 (8.7%)** | Extracted from German § 5 DDG *Impressum* and Team pages |
-| **Companies with Personal Decision-Maker Email (`Non-info@`)** | **102 (8.5%)** | Direct website personal emails + DNS `MX`-verified corporate patterns |
+| **Companies with Personal Decision-Maker Email (`Non-info@`)** | **103 (8.5%)** | Direct website personal emails + DNS `MX`-verified corporate patterns |
 
 ---
 

@@ -17,12 +17,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark">
-      <body className="bg-background text-zinc-100 flex min-h-screen antialiased">
+      <body className="bg-background text-zinc-100 flex h-screen overflow-hidden antialiased">
         <SidebarProvider>
           <SidebarNav />
-          <div className="flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out">
+          <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden transition-all duration-300 ease-in-out">
             <StickyTopbar />
-            <main className="flex-1 flex flex-col p-3 sm:p-4 lg:p-5 overflow-y-auto">
+            <main className="flex-1 flex flex-col min-h-0 px-3 pb-3 overflow-y-auto">
               {children}
             </main>
           </div>
