@@ -195,8 +195,23 @@ CREATE TABLE IF NOT EXISTS deliverables_sync_log (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS pipeline_run_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_id TEXT NOT NULL,
+    seq INTEGER NOT NULL,
+    timestamp TEXT NOT NULL,
+    stage TEXT NOT NULL,
+    step_name TEXT NOT NULL,
+    event_type TEXT NOT NULL,
+    level TEXT NOT NULL DEFAULT 'INFO',
+    duration_ms INTEGER DEFAULT 0,
+    message TEXT NOT NULL,
+    payload_json TEXT
+);
+
 CREATE INDEX IF NOT EXISTS idx_pipeline_runs_num ON pipeline_runs(run_number DESC);
 CREATE INDEX IF NOT EXISTS idx_deliv_sync_created ON deliverables_sync_log(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_run_events_run_seq ON pipeline_run_events(run_id, seq);
 """
 
 
@@ -337,50 +352,39 @@ class Database:
                 "SELECT COUNT(*) FROM crawled_pages"
             ).fetchone()[0]
 
-            kpi_cnt = conn.execute(
-                """
+            kpi_cnt = conn.execute("""
                 SELECT COUNT(*) FROM kpi_extractions k
                 JOIN companies_golden c ON c.company_id = k.company_id
                 WHERE c.pipeline_stage != 'DISQUALIFIED'
-                """
-            ).fetchone()[0]
+                """).fetchone()[0]
 
-            with_erp = conn.execute(
-                """
+            with_erp = conn.execute("""
                 SELECT COUNT(*) FROM kpi_extractions k
                 JOIN companies_golden c ON c.company_id = k.company_id
                 WHERE c.pipeline_stage != 'DISQUALIFIED'
                   AND k.detected_erp_proptech IS NOT NULL AND k.detected_erp_proptech != ''
-                """
-            ).fetchone()[0]
+                """).fetchone()[0]
 
-            with_portal = conn.execute(
-                """
+            with_portal = conn.execute("""
                 SELECT COUNT(*) FROM kpi_extractions k
                 JOIN companies_golden c ON c.company_id = k.company_id
                 WHERE c.pipeline_stage != 'DISQUALIFIED' AND k.has_customer_portal = 1
-                """
-            ).fetchone()[0]
+                """).fetchone()[0]
 
-            dm_companies = conn.execute(
-                """
+            dm_companies = conn.execute("""
                 SELECT COUNT(DISTINCT d.company_id) FROM decision_makers d
                 JOIN companies_golden c ON c.company_id = d.company_id
                 WHERE c.pipeline_stage != 'DISQUALIFIED'
-                """
-            ).fetchone()[0]
+                """).fetchone()[0]
 
-            personal_emails = conn.execute(
-                """
+            personal_emails = conn.execute("""
                 SELECT COUNT(DISTINCT d.company_id) FROM decision_makers d
                 JOIN companies_golden c ON c.company_id = d.company_id
                 WHERE c.pipeline_stage != 'DISQUALIFIED'
                   AND d.personal_email IS NOT NULL AND d.personal_email != ''
-                """
-            ).fetchone()[0]
+                """).fetchone()[0]
 
-            linkedin_cnt = conn.execute(
-                """
+            linkedin_cnt = conn.execute("""
                 SELECT COUNT(DISTINCT c.company_id) FROM companies_golden c
                 LEFT JOIN decision_makers d ON d.company_id = c.company_id
                 WHERE c.pipeline_stage != 'DISQUALIFIED'
@@ -388,11 +392,9 @@ class Database:
                     (c.company_linkedin_url IS NOT NULL AND c.company_linkedin_url != '')
                     OR (d.linkedin_url IS NOT NULL AND d.linkedin_url != '')
                   )
-                """
-            ).fetchone()[0]
+                """).fetchone()[0]
 
-            llm_stats = conn.execute(
-                """
+            llm_stats = conn.execute("""
                 SELECT
                     COUNT(*) as total_calls,
                     COALESCE(SUM(prompt_tokens), 0) as total_prompt_tokens,
@@ -400,8 +402,7 @@ class Database:
                     COALESCE(AVG(latency_ms), 0) as avg_latency_ms,
                     COALESCE(SUM(hallucination_blocked), 0) as hallucinations_blocked
                 FROM llm_audit_logs
-                """
-            ).fetchone()
+                """).fetchone()
 
             return {
                 "raw_total": raw_total,
@@ -420,6 +421,82 @@ class Database:
                 "companies_with_linkedin": linkedin_cnt,
                 "llm_stats": dict(llm_stats) if llm_stats else {},
             }
+
+    def record_run_event(
+        self,
+        run_id: str,
+        seq: int,
+        stage: str,
+        step_name: str,
+        event_type: str,
+        level: str,
+        duration_ms: int,
+        message: str,
+        payload: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """Persist a granular telemetry event for a pipeline run."""
+        ts = datetime.now(timezone.utc).isoformat()
+        payload_str = json.dumps(payload) if payload else None
+        with self.connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO pipeline_run_events (
+                    run_id, seq, timestamp, stage, step_name, event_type, level,
+                    duration_ms, message, payload_json
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    run_id,
+                    seq,
+                    ts,
+                    stage,
+                    step_name,
+                    event_type,
+                    level,
+                    duration_ms,
+                    message,
+                    payload_str,
+                ),
+            )
+
+    def get_run_events(self, run_id: str, limit: int = 500) -> List[Dict[str, Any]]:
+        """Retrieve all chronological telemetry events for a given run_id."""
+        with self.connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT id, run_id, seq, timestamp, stage, step_name, event_type, level,
+                       duration_ms, message, payload_json
+                FROM pipeline_run_events
+                WHERE run_id = ?
+                ORDER BY seq ASC, id ASC
+                LIMIT ?
+                """,
+                (run_id, limit),
+            ).fetchall()
+        events = []
+        for r in rows:
+            p_json = None
+            if r["payload_json"]:
+                try:
+                    p_json = json.loads(r["payload_json"])
+                except Exception:
+                    p_json = None
+            events.append(
+                {
+                    "id": r["id"],
+                    "run_id": r["run_id"],
+                    "seq": r["seq"],
+                    "timestamp": r["timestamp"],
+                    "stage": r["stage"],
+                    "step_name": r["step_name"],
+                    "event_type": r["event_type"],
+                    "level": r["level"],
+                    "duration_ms": r["duration_ms"],
+                    "message": r["message"],
+                    "payload": p_json,
+                }
+            )
+        return events
 
     def seed_initial_pipeline_runs(self) -> None:
         """Seed baseline historical pipeline runs for execution tracking and comparison diffing."""

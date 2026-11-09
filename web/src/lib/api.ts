@@ -273,6 +273,17 @@ export async function fetchPipelineRuns(limit: number = 100) {
   return res.json();
 }
 
+export async function fetchPipelineRunEvents(runId: string) {
+  const res = await fetch(
+    `${API_BASE}/api/pipeline/runs/${encodeURIComponent(runId)}/events`,
+    {
+      cache: "no-store",
+    },
+  );
+  if (!res.ok) throw new Error("Failed to fetch pipeline run events");
+  return res.json();
+}
+
 export async function deletePipelineRun(runId: string) {
   const res = await fetch(
     `${API_BASE}/api/pipeline/runs/${encodeURIComponent(runId)}`,

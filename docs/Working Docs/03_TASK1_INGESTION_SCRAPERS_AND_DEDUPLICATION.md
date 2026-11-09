@@ -9,6 +9,7 @@
 ## 1. Why Single-Source Scraping Fails in Berlin (And How We Solve It)
 
 A naive scraper that runs a single query (`"Hausverwaltung Berlin"`) on one directory or search engine will cap out at 100-300 results because:
+
 1. Directories paginate up to a maximum depth per query.
 2. Many Berlin property managers register under specific sub-terms:
    * *Hausverwaltung* (General Property Management)
@@ -49,6 +50,7 @@ flowchart TD
 ## 2. Detailed Specification of Each Scraper (`src/metrixa_engine/scrapers/`)
 
 ### 2.1 Scraper 1: Gelbe Seiten (`gelbeseiten.de`)
+
 * **File:** `src/metrixa_engine/scrapers/gelbe_seiten.py`
 * **Why we include it:** Gelbe Seiten is Germany's largest commercial directory (~700-1,000+ Berlin property management entries) with high website URL and phone number completeness.
 * **How it works:**
@@ -63,6 +65,7 @@ flowchart TD
      * `detail_page_url` & `rating` / `review_count`
 
 ### 2.2 Scraper 2: 11880.com (`11880.com`)
+
 * **File:** `src/metrixa_engine/scrapers/dir_11880.py`
 * **Why we include it:** 11880.com indexes thousands of German SMBs and often contains direct email addresses (`mailto:`) and secondary websites not listed in Gelbe Seiten.
 * **How it works:**
@@ -71,6 +74,7 @@ flowchart TD
   3. Captures `name`, `streetAddress`, `postalCode`, `addressLocality`, `telephone`, `url`, and summary description.
 
 ### 2.3 Scraper 3: VDIV Berlin-Brandenburg (`vdiv.de` / Regional Member Directory)
+
 * **File:** `src/metrixa_engine/scrapers/vdiv.py`
 * **Why we include it:** The *Verband der Immobilienverwalter (VDIV)* is the premier German industry association for professional property managers. VDIV members are **Tier-A targets** for Metrixa Systems because membership requires professional certification, insurance, and typically indicates an established portfolio (`500-20,000+` units).
 * **How it works:**
@@ -79,6 +83,7 @@ flowchart TD
   3. Sets a boolean flag `is_vdiv_member = True` on all matched records (which boosts their Lead Qualification Score in Task 2).
 
 ### 2.4 Scraper 4: OpenStreetMap Overpass API (`osm_overpass.py`)
+
 * **File:** `src/metrixa_engine/scrapers/osm_overpass.py`
 * **Why we include it:** OpenStreetMap contains community-verified geospatial nodes for offices in Berlin with tags `office=property_management`, `office=estate_agent` (filtered by `"Hausverwaltung"` in name/description). It costs 0 API credits and finishes in 3 seconds.
 * **How it works:**
@@ -94,9 +99,11 @@ flowchart TD
   );
   out center tags;
   ```
+
   Extracts `name`, `addr:street`, `addr:housenumber`, `addr:postcode`, `contact:website` / `website`, `contact:phone` / `phone`, `contact:email` / `email`, and exact `lat`/`lon` coordinates.
 
 ### 2.5 Scraper 5: Search Discovery via Local SearXNG & Tavily (`search_discovery.py`)
+
 * **File:** `src/metrixa_engine/scrapers/search_discovery.py`
 * **Why we include it:** Modern digital-first property managers (launched in the last 3-5 years) may not pay for yellow-page directory listings, but rank on Google/Bing/DuckDuckGo for queries like `"WEG Verwaltung Berlin GmbH Impressum"`.
 * **How it works:**
@@ -126,6 +133,7 @@ When scraping 5 sources, a major company like *"Dussmann Hausverwaltung GmbH"* o
 We solve this using a **3-Step Entity Resolution Algorithm** (`Normalizer` → `Multi-Key Blocking` → `Weighted Similarity + Disjoint-Set Union-Find Clustering`).
 
 ### 4.1 Step 1: Canonical Normalization (`normalizer.py`)
+
 For every raw listing $r_i$, we compute four canonical attributes:
 
 1. **Canonical Domain ($D_i$):**
@@ -143,7 +151,9 @@ For every raw listing $r_i$, we compute four canonical attributes:
    * Standardize `straße` / `str.` → `str`, extract 5-digit `postal_code` + normalized street name + house number (e.g., `10789_kurfuerstendamm_21`).
 
 ### 4.2 Step 2: Multi-Key Blocking & Pairwise Similarity Scoring (`deduplicator.py`)
+
 Comparing $N \times N$ records naively is $O(N^2)$. Using **Blocking Keys**, we only compare records that share at least one of:
+
 * **Block 1:** Exact Canonical Domain ($D_i = D_j \neq \text{null}$)
 * **Block 2:** Exact Canonical Phone ($P_i = P_j \neq \text{null}$)
 * **Block 3:** Same 5-digit Berlin `postal_code` (`PLZ`)
@@ -151,10 +161,14 @@ Comparing $N \times N$ records naively is $O(N^2)$. Using **Blocking Keys**, we 
 
 Within each block, two records $(r_i, r_j)$ are merged as the **same real-world company** if any of the following deterministic or fuzzy rules hold:
 
-$$\text{Match}(r_i, r_j) = \begin{cases} \text{True} & \text{if } D_i = D_j \text{ and } \text{TokenSortRatio}(N_i, N_j) \ge 65 \\ \text{True} & \text{if } P_i = P_j \text{ and } \text{TokenSortRatio}(N_i, N_j) \ge 70 \\ \text{True} & \text{if } A_i = A_j \text{ and } \text{TokenSortRatio}(N_i, N_j) \ge 80 \\ \text{True} & \text{if } \text{PLZ}_i = \text{PLZ}_j \text{ and } \text{TokenSortRatio}(N_i, N_j) \ge 90 \\ \text{False} & \text{otherwise} \end{cases}$$
+$$
+\text{Match}(r_i, r_j) = \begin{cases} \text{True} & \text{if } D_i = D_j \text{ and } \text{TokenSortRatio}(N_i, N_j) \ge 65 \\ \text{True} & \text{if } P_i = P_j \text{ and } \text{TokenSortRatio}(N_i, N_j) \ge 70 \\ \text{True} & \text{if } A_i = A_j \text{ and } \text{TokenSortRatio}(N_i, N_j) \ge 80 \\ \text{True} & \text{if } \text{PLZ}_i = \text{PLZ}_j \text{ and } \text{TokenSortRatio}(N_i, N_j) \ge 90 \\ \text{False} & \text{otherwise} \end{cases}
+$$
 
 ### 4.3 Step 3: Disjoint-Set (Union-Find) Data Structure & Golden Record Survival
+
 If Record A matches Record B (via phone), and Record B matches Record C (via website domain), then `{A, B, C}` belong to the same connected component.
+
 * **Data Structure:** Path-compressed **Union-Find (Disjoint Set)** structure (`O(N α(N))` time complexity).
 * **Golden Record Survivorship Rules:** For each connected cluster, we synthesize one `GoldenCompany` row by selecting the highest-trust attribute across the cluster:
   * **Name:** Prefer `VDIV` > `Impressum Legal Name` > `Gelbe Seiten` > `11880` > `OSM`.
@@ -166,12 +180,12 @@ If Record A matches Record B (via phone), and Record B matches Record C (via web
 
 ## 5. Final Verified Ingestion & Deduplication Yields
 
-| Ingestion Connector Source | Source Classification | Harvested Records | Share of Raw | Primary Value Contributed to Canonical Record |
-| :--- | :--- | :---: | :---: | :--- |
-| 1. Directory 11880 | General Commercial B2B | 838 | 60.9% | Broad regional coverage, physical postal addresses, phone numbers |
-| 2. Gelbe Seiten (Yellow Pages) | Commercial Directory | 405 | 29.5% | High corporate web presence density (35.1%), structured district tags |
-| 3. OpenStreetMap Overpass | Spatial Node API | 100 | 7.3% | Exact spatial coordinates (WGS84 lat/lon), verified branch offices |
-| 4. VDIV Regional Association | Professional Roster | 30 | 2.2% | Verified association certification (high-trust credit signal) |
-| 5. Programmatic Web Discovery | Meta-Search Discovery | 2 | 0.1% | Discovery of digital-native agencies absent from directories |
-| **Total Raw Records Harvested** | **All 5 Shards Combined** | **1,375** | **100.0%** | **175 cross-source duplicate entities identified and merged** |
-| **Resolved Canonical Entities** | **Golden Entity Master** | **1,200** | **87.3%** | **100.0% unique, verified operating entities** |
+| Ingestion Connector Source            | Source Classification           | Harvested Records |   Share of Raw   | Primary Value Contributed to Canonical Record                         |
+| :------------------------------------ | :------------------------------ | :---------------: | :--------------: | :-------------------------------------------------------------------- |
+| 1. Directory 11880                    | General Commercial B2B          |        838        |      60.9%      | Broad regional coverage, physical postal addresses, phone numbers     |
+| 2. Gelbe Seiten (Yellow Pages)        | Commercial Directory            |        405        |      29.5%      | High corporate web presence density (35.1%), structured district tags |
+| 3. OpenStreetMap Overpass             | Spatial Node API                |        100        |       7.3%       | Exact spatial coordinates (WGS84 lat/lon), verified branch offices    |
+| 4. VDIV Regional Association          | Professional Roster             |        30        |       2.2%       | Verified association certification (high-trust credit signal)         |
+| 5. Programmatic Web Discovery         | Meta-Search Discovery           |         2         |       0.1%       | Discovery of digital-native agencies absent from directories          |
+| **Total Raw Records Harvested** | **All 5 Shards Combined** |  **1,375**  | **100.0%** | **175 cross-source duplicate entities identified and merged**   |
+| **Resolved Canonical Entities** | **Golden Entity Master**  |  **1,200**  | **87.3%** | **100.0% unique, verified operating entities**                  |

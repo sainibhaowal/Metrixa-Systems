@@ -136,8 +136,7 @@ class LeadScorer:
         }
 
         with self.db.connect() as conn:
-            rows = conn.execute(
-                """
+            rows = conn.execute("""
                 SELECT
                     c.company_id, c.legal_form, c.commercial_register_id,
                     c.website_url, c.phone_e164, c.company_linkedin_url,
@@ -149,8 +148,7 @@ class LeadScorer:
                 FROM companies_golden c
                 LEFT JOIN kpi_extractions k ON k.company_id = c.company_id
                 WHERE c.pipeline_stage != 'DISQUALIFIED'
-                """
-            ).fetchall()
+                """).fetchall()
 
             for r in rows:
                 cid = r["company_id"]

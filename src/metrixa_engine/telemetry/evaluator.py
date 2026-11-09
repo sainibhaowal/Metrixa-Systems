@@ -51,52 +51,40 @@ class PipelineEvaluator:
             crawled_companies = conn.execute(
                 "SELECT COUNT(DISTINCT company_id) FROM crawled_pages WHERE http_status = 200"
             ).fetchone()[0]
-            dom_portal_or_erp = conn.execute(
-                """
+            dom_portal_or_erp = conn.execute("""
                 SELECT COUNT(DISTINCT company_id) FROM crawled_pages
                 WHERE http_status = 200 AND (has_portal_link = 1 OR (detected_erp_csv IS NOT NULL AND detected_erp_csv != ''))
-                """
-            ).fetchone()[0]
+                """).fetchone()[0]
 
             # Stage 4: KPI & Impressum Extraction
-            kpi_populated = conn.execute(
-                """
+            kpi_populated = conn.execute("""
                 SELECT COUNT(*) FROM kpi_extractions k
                 JOIN companies_golden c ON c.company_id = k.company_id
                 WHERE c.pipeline_stage != 'DISQUALIFIED'
-                """
-            ).fetchone()[0]
-            dm_extracted = conn.execute(
-                """
+                """).fetchone()[0]
+            dm_extracted = conn.execute("""
                 SELECT COUNT(DISTINCT d.company_id) FROM decision_makers d
                 JOIN companies_golden c ON c.company_id = d.company_id
                 WHERE c.pipeline_stage != 'DISQUALIFIED'
-                """
-            ).fetchone()[0]
-            public_direct_emails = conn.execute(
-                """
+                """).fetchone()[0]
+            public_direct_emails = conn.execute("""
                 SELECT COUNT(DISTINCT d.company_id) FROM decision_makers d
                 JOIN companies_golden c ON c.company_id = d.company_id
                 WHERE c.pipeline_stage != 'DISQUALIFIED' AND d.email_status = 'PUBLIC_DIRECT_VERIFIED'
-                """
-            ).fetchone()[0]
+                """).fetchone()[0]
 
             # Stage 5: Full Enrichment (MX Verified Personal Emails + LinkedIn + Lead Scoring)
-            total_pers_emails = conn.execute(
-                """
+            total_pers_emails = conn.execute("""
                 SELECT COUNT(DISTINCT d.company_id) FROM decision_makers d
                 JOIN companies_golden c ON c.company_id = d.company_id
                 WHERE c.pipeline_stage != 'DISQUALIFIED'
                   AND d.personal_email IS NOT NULL AND d.personal_email != ''
-                """
-            ).fetchone()[0]
-            mx_verified_domains = conn.execute(
-                """
+                """).fetchone()[0]
+            mx_verified_domains = conn.execute("""
                 SELECT COUNT(DISTINCT d.company_id) FROM decision_makers d
                 JOIN companies_golden c ON c.company_id = d.company_id
                 WHERE c.pipeline_stage != 'DISQUALIFIED' AND d.mx_valid = 1
-                """
-            ).fetchone()[0]
+                """).fetchone()[0]
 
             denom = max(1, golden_total)
             return {
@@ -138,21 +126,17 @@ class PipelineEvaluator:
                 "SELECT COUNT(*) FROM companies_golden WHERE pipeline_stage != 'DISQUALIFIED'"
             ).fetchone()[0]
 
-            valid_berlin_plz = conn.execute(
-                """
+            valid_berlin_plz = conn.execute("""
                 SELECT COUNT(*) FROM companies_golden
                 WHERE pipeline_stage != 'DISQUALIFIED'
                   AND CAST(postal_code AS INTEGER) BETWEEN 10115 AND 14199
-                """
-            ).fetchone()[0]
+                """).fetchone()[0]
 
-            units_rows = conn.execute(
-                """
+            units_rows = conn.execute("""
                 SELECT exact_units_managed, units_evidence_quote
                 FROM kpi_extractions
                 WHERE exact_units_managed IS NOT NULL
-                """
-            ).fetchall()
+                """).fetchall()
             grounded_units = sum(
                 1
                 for r in units_rows

@@ -360,7 +360,11 @@ class KPIExtractionPipeline:
             if reprocess_all or crawled_count == 0:
                 stage_filter = "pipeline_stage != 'DISQUALIFIED'"
                 # When all leads are already scored and user triggers extract on-demand without explicit limit, process a batch of 10
-                effective_limit = limit if limit is not None else (10 if crawled_count == 0 and not reprocess_all else None)
+                effective_limit = (
+                    limit
+                    if limit is not None
+                    else (10 if crawled_count == 0 and not reprocess_all else None)
+                )
             else:
                 stage_filter = "pipeline_stage = 'CRAWLED'"
                 effective_limit = limit
@@ -384,7 +388,13 @@ class KPIExtractionPipeline:
 
         # Concurrency throttle: local inference daemons (LM Studio, Ollama) require serial or max 2 concurrent requests
         prov_str = (requested_provider or settings.default_llm_provider or "").lower()
-        max_concurrency = 2 if any(loc in prov_str for loc in ("local", "studio", "ollama", "lm_studio")) else 5
+        max_concurrency = (
+            2
+            if any(
+                loc in prov_str for loc in ("local", "studio", "ollama", "lm_studio")
+            )
+            else 5
+        )
         sem = asyncio.Semaphore(max_concurrency)
 
         async def _bounded_extract(row: Dict[str, Any]) -> Dict[str, Any]:

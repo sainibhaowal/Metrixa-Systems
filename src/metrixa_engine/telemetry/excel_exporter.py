@@ -73,8 +73,7 @@ class ExcelExporter:
         out_csv = csv_path or (settings.export_dir / "metrixa_berlin_leads_master.csv")
 
         with self.db.connect() as conn:
-            master_rows = conn.execute(
-                """
+            master_rows = conn.execute("""
                 SELECT
                     c.company_id, c.display_name, c.legal_form, c.commercial_register_id,
                     c.street_address, c.postal_code, c.city, c.district,
@@ -91,22 +90,18 @@ class ExcelExporter:
                 LEFT JOIN kpi_extractions k ON k.company_id = c.company_id
                 WHERE c.pipeline_stage != 'DISQUALIFIED'
                 ORDER BY c.metrixa_lead_score DESC, c.is_vdiv_member DESC, c.source_count DESC, c.display_name ASC
-                """
-            ).fetchall()
+                """).fetchall()
 
-            dm_rows = conn.execute(
-                """
+            dm_rows = conn.execute("""
                 SELECT
                     d.*, c.display_name as company_name, c.lead_tier, c.metrixa_lead_score, c.website_url
                 FROM decision_makers d
                 JOIN companies_golden c ON c.company_id = d.company_id
                 WHERE c.pipeline_stage != 'DISQUALIFIED'
                 ORDER BY c.metrixa_lead_score DESC, d.is_primary_contact DESC, d.contact_id ASC
-                """
-            ).fetchall()
+                """).fetchall()
 
-            audit_rows = conn.execute(
-                """
+            audit_rows = conn.execute("""
                 SELECT
                     c.company_id, c.display_name, c.metrixa_lead_score, c.lead_tier,
                     p.page_type, p.url, p.http_status, p.detected_erp_csv,
@@ -117,8 +112,7 @@ class ExcelExporter:
                 LEFT JOIN kpi_extractions k ON k.company_id = c.company_id
                 WHERE c.pipeline_stage != 'DISQUALIFIED'
                 ORDER BY c.metrixa_lead_score DESC, c.company_id ASC
-                """
-            ).fetchall()
+                """).fetchall()
 
         # Index primary decision maker per company_id
         primary_dm_by_comp: Dict[int, Dict[str, Any]] = {}

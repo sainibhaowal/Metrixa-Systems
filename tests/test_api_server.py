@@ -160,18 +160,28 @@ def test_api_pipeline_runs_and_comparison(client: TestClient) -> None:
     assert "leads_delta" in cmp_data["diff"]
     assert "duration_delta_seconds" in cmp_data["diff"]
 
+    # Test run events retrieval
+    ev_resp = client.get(f"/api/pipeline/runs/{run_latest['run_id']}/events")
+    assert ev_resp.status_code == 200
+    ev_data = ev_resp.json()
+    assert "events" in ev_data
+    assert len(ev_data["events"]) > 0
+    first_ev = ev_data["events"][0]
+    assert "stage" in first_ev
+    assert "step_name" in first_ev
+    assert "event_type" in first_ev
+
     # Test single run deletion
     # Insert a temporary test run to safely delete
     from metrixa_engine.api.server import db
+
     with db.connect() as conn:
-        conn.execute(
-            """
+        conn.execute("""
             INSERT INTO pipeline_runs (
                 run_id, run_number, trigger_type, target_city, active_stage, status,
                 started_at, duration_seconds
             ) VALUES ('test-run-del-1', 9999, 'MANUAL_STAGE', 'Berlin', 'ingest', 'CANCELLED', '2026-11-09T00:00:00Z', 1.0)
-            """
-        )
+            """)
         conn.commit()
 
     del_resp = client.delete("/api/pipeline/runs/test-run-del-1")
@@ -180,14 +190,12 @@ def test_api_pipeline_runs_and_comparison(client: TestClient) -> None:
 
     # Test clear cancelled filter
     with db.connect() as conn:
-        conn.execute(
-            """
+        conn.execute("""
             INSERT INTO pipeline_runs (
                 run_id, run_number, trigger_type, target_city, active_stage, status,
                 started_at, duration_seconds
             ) VALUES ('test-run-del-2', 9998, 'MANUAL_STAGE', 'Berlin', 'ingest', 'CANCELLED', '2026-11-09T00:00:00Z', 1.0)
-            """
-        )
+            """)
         conn.commit()
 
     clear_resp = client.delete("/api/pipeline/runs?filter=cancelled")
@@ -196,16 +204,14 @@ def test_api_pipeline_runs_and_comparison(client: TestClient) -> None:
 
     # Test batch deletion endpoint
     with db.connect() as conn:
-        conn.execute(
-            """
+        conn.execute("""
             INSERT INTO pipeline_runs (
                 run_id, run_number, trigger_type, target_city, active_stage, status,
                 started_at, duration_seconds
             ) VALUES
                 ('test-run-batch-1', 9997, 'MANUAL_STAGE', 'Berlin', 'ingest', 'COMPLETED', '2026-11-09T00:00:00Z', 1.0),
                 ('test-run-batch-2', 9996, 'MANUAL_STAGE', 'Berlin', 'ingest', 'COMPLETED', '2026-11-09T00:00:00Z', 1.0)
-            """
-        )
+            """)
         conn.commit()
 
     batch_resp = client.post(

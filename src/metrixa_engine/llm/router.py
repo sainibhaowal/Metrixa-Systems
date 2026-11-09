@@ -568,7 +568,11 @@ class LLMRouter:
         if provider_cfg["provider"] in ("openai", "deepseek", "gemini"):
             payload["response_format"] = {"type": "json_object"}
 
-        timeout_sec = 18.0 if provider_cfg["provider"] in ("lm_studio", "ollama", "local_llamacpp") else 30.0
+        timeout_sec = (
+            18.0
+            if provider_cfg["provider"] in ("lm_studio", "ollama", "local_llamacpp")
+            else 30.0
+        )
         try:
             async with httpx.AsyncClient(timeout=timeout_sec) as client:
                 resp = await client.post(endpoint, headers=headers, json=payload)
