@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import {
   Cpu,
   Globe,
@@ -16,6 +16,9 @@ import {
   Search,
   ShieldCheck,
   RefreshCw,
+  ChevronDown,
+  X,
+  Check,
 } from "lucide-react";
 import {
   fetchSettings,
@@ -232,6 +235,57 @@ export default function SettingsHubPage() {
   const [discoveryLatency, setDiscoveryLatency] = useState<number>(0);
   const [discoveringModels, setDiscoveringModels] = useState<boolean>(false);
 
+  // Model Live Search & Combobox states
+  const [modelSearchInput, setModelSearchInput] = useState<string>("");
+  const [modelDropdownOpen, setModelDropdownOpen] = useState<boolean>(false);
+  const modelComboboxRef = useRef<HTMLDivElement>(null);
+
+  // Filter and rank models so search query matches appear at the top
+  const filteredModels = useMemo(() => {
+    if (!discoveredModels || discoveredModels.length === 0) return [];
+    const q = modelSearchInput.trim().toLowerCase();
+    if (!q) return discoveredModels;
+
+    return [...discoveredModels]
+      .filter((m) => {
+        const idLower = (m.id || "").toLowerCase();
+        const nameLower = (m.name || "").toLowerCase();
+        const capLower = (m.capabilities || "").toLowerCase();
+        return (
+          idLower.includes(q) || nameLower.includes(q) || capLower.includes(q)
+        );
+      })
+      .sort((a, b) => {
+        const aId = (a.id || "").toLowerCase();
+        const bId = (b.id || "").toLowerCase();
+        if (aId === q) return -1;
+        if (bId === q) return 1;
+        const aStarts = aId.startsWith(q);
+        const bStarts = bId.startsWith(q);
+        if (aStarts && !bStarts) return -1;
+        if (!aStarts && bStarts) return 1;
+        return aId.localeCompare(bId);
+      });
+  }, [discoveredModels, modelSearchInput]);
+
+  // Close model suggestions dropdown on outside click
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (
+        modelComboboxRef.current &&
+        !modelComboboxRef.current.contains(e.target as Node)
+      ) {
+        setModelDropdownOpen(false);
+      }
+    };
+    if (modelDropdownOpen) {
+      document.addEventListener("mousedown", handleOutsideClick);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+    };
+  }, [modelDropdownOpen]);
+
   // Form states for Search
   const [searchBaseUrl, setSearchBaseUrl] = useState<string>("");
   const [searchApiKey, setSearchApiKey] = useState<string>("");
@@ -384,8 +438,7 @@ export default function SettingsHubPage() {
       setDiscoveryLatency(res.latency_ms || 0);
 
       if (res.source === "live_api" && liveModels.length > 0) {
-        const rec =
-          liveModels.find((m: any) => m.recommended) || liveModels[0];
+        const rec = liveModels.find((m: any) => m.recommended) || liveModels[0];
         setLlmModel((prev) =>
           prev && liveModels.some((m: any) => m.id === prev)
             ? prev
@@ -958,52 +1011,192 @@ export default function SettingsHubPage() {
                     )}
                   </div>
 
-                  {/* Combined Dropdown + Custom Model ID Input */}
-                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
-                    {selectedLLMDef.category !== "system" &&
-                      discoveredModels.length > 0 && (
-                        <div className="sm:col-span-6">
-                          <RoundedSelect
-                            value={llmModel}
-                            onChange={(val) => {
-                              if (val) setLlmModel(val);
-                            }}
-                            options={discoveredModels.map((m) => ({
-                              value: m.id,
-                              label: m.id,
-                              badge: m.context_window,
-                            }))}
-                            placeholder={`Select Discovered Model (${discoveredModels.length})...`}
-                            className="w-full"
-                          />
-                        </div>
-                      )}
-
-                    <div
-                      className={
-                        selectedLLMDef.category !== "system" &&
-                        discoveredModels.length > 0
-                          ? "sm:col-span-6"
-                          : "sm:col-span-12"
-                      }
-                    >
+                  {/* Searchable Autocomplete Model Selector */}
+                  <div ref={modelComboboxRef} className="relative">
+                    <div className="relative flex items-center">
+                      <Search className="w-4 h-4 text-zinc-500 absolute left-3.5 pointer-events-none" />
                       <input
                         type="text"
-                        value={llmModel}
-                        onChange={(e) => setLlmModel(e.target.value)}
+                        value={modelSearchInput}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setModelSearchInput(val);
+                          setModelDropdownOpen(true);
+                          if (!discoveredModels.some((m) => m.id === val)) {
+                            setLlmModel(val);
+                          }
+                        }}
+                        onFocus={() => {
+                          if (
+                            selectedLLMDef.category !== "system" &&
+                            discoveredModels.length > 0
+                          ) {
+                            setModelDropdownOpen(true);
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            if (filteredModels.length > 0) {
+                              const chosen = filteredModels[0].id;
+                              setLlmModel(chosen);
+                              setModelSearchInput(chosen);
+                              setModelDropdownOpen(false);
+                            } else if (modelSearchInput.trim()) {
+                              setLlmModel(modelSearchInput.trim());
+                              setModelDropdownOpen(false);
+                            }
+                          } else if (e.key === "Escape") {
+                            setModelDropdownOpen(false);
+                          }
+                        }}
                         placeholder={
                           selectedLLMDef.category === "system"
                             ? selectedLLMDef.defaultModel
                             : discoveredModels.length > 0
-                              ? "Select a discovered model or enter model ID..."
+                              ? `Search ${discoveredModels.length} models or enter model ID (e.g. nemotron, llama)...`
                               : selectedLLMDef.requiresKey
-                                ? "No models loaded :  enter API Key above to auto-discover live models"
-                                : "No models loaded :  start local server to auto-discover models"
+                                ? "No models loaded : enter API Key above to auto-discover live models"
+                                : "No models loaded : start local server to auto-discover models"
                         }
                         disabled={selectedLLMDef.category === "system"}
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-mono text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-emerald-500 disabled:opacity-50 transition-all"
+                        spellCheck={false}
+                        autoComplete="off"
+                        autoCorrect="off"
+                        autoCapitalize="off"
+                        className="w-full pl-10 pr-24 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-mono text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-emerald-500/70 focus:ring-1 focus:ring-emerald-500/30 disabled:opacity-50 transition-all shadow-sm"
                       />
+
+                      <div className="absolute right-2.5 flex items-center gap-1.5">
+                        {modelSearchInput && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setModelSearchInput("");
+                              setLlmModel("");
+                              setModelDropdownOpen(true);
+                            }}
+                            className="p-1 rounded-md text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-colors"
+                            title="Clear search"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+
+                        {selectedLLMDef.category !== "system" &&
+                          discoveredModels.length > 0 && (
+                            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-zinc-800 text-zinc-400 border border-zinc-700/80">
+                              {filteredModels.length}
+                            </span>
+                          )}
+
+                        {selectedLLMDef.category !== "system" &&
+                          discoveredModels.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setModelDropdownOpen((prev) => !prev)
+                              }
+                              className="p-1 rounded-md text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
+                              title="Toggle suggestions list"
+                            >
+                              <ChevronDown
+                                className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                                  modelDropdownOpen
+                                    ? "rotate-180 text-emerald-400"
+                                    : ""
+                                }`}
+                              />
+                            </button>
+                          )}
+                      </div>
                     </div>
+
+                    {/* Floating Autocomplete Suggestions Dropdown (Ranked at Top) */}
+                    {modelDropdownOpen &&
+                      selectedLLMDef.category !== "system" &&
+                      discoveredModels.length > 0 && (
+                        <div
+                          className="absolute left-0 right-0 mt-1.5 rounded-2xl bg-[#141418] border border-zinc-800/95 shadow-2xl p-2 backdrop-blur-xl z-50 animate-in fade-in-0 zoom-in-95 max-h-72 overflow-y-auto space-y-1"
+                          style={{ scrollbarWidth: "thin" }}
+                        >
+                          {/* Dropdown Header */}
+                          <div className="px-2.5 py-1.5 text-[10px] font-mono text-zinc-400 border-b border-zinc-800 flex items-center justify-between">
+                            <span>
+                              {modelSearchInput.trim()
+                                ? `Matching Models (${filteredModels.length} of ${discoveredModels.length}) :`
+                                : `All Discovered Models (${discoveredModels.length}) :`}
+                            </span>
+                            <span className="text-zinc-500">
+                              Click or Press Enter
+                            </span>
+                          </div>
+
+                          {/* Suggestions List - Ranked with query matches at top */}
+                          {filteredModels.length > 0 ? (
+                            <div className="space-y-0.5 pt-1">
+                              {filteredModels.map((m) => {
+                                const isPicked = llmModel === m.id;
+                                return (
+                                  <div
+                                    key={m.id}
+                                    onClick={() => {
+                                      setLlmModel(m.id);
+                                      setModelSearchInput(m.id);
+                                      setModelDropdownOpen(false);
+                                    }}
+                                    className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-xs transition-all cursor-pointer select-none ${
+                                      isPicked
+                                        ? "bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-semibold"
+                                        : "text-zinc-300 hover:bg-zinc-800/80 hover:text-white"
+                                    }`}
+                                  >
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <span className="font-mono text-xs truncate">
+                                        {m.id}
+                                      </span>
+                                      {m.recommended && (
+                                        <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shrink-0">
+                                          REC
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    <div className="flex items-center gap-2 shrink-0 font-mono text-[10px]">
+                                      {m.context_window && (
+                                        <span className="text-zinc-400 bg-zinc-900 px-2 py-0.5 rounded border border-zinc-800">
+                                          {m.context_window}
+                                        </span>
+                                      )}
+                                      {isPicked && (
+                                        <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <div className="p-3 text-center space-y-2">
+                              <p className="text-xs font-mono text-zinc-400">
+                                No discovered models match &quot;
+                                {modelSearchInput}&quot;.
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setLlmModel(modelSearchInput.trim());
+                                  setModelDropdownOpen(false);
+                                }}
+                                className="px-3 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/25 text-xs font-mono font-semibold transition-all"
+                              >
+                                Use &quot;{modelSearchInput.trim()}&quot; as
+                                custom Model ID
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
                   </div>
 
                   {/* Empty State Notice when No API Key / Offline */}
@@ -1013,8 +1206,8 @@ export default function SettingsHubPage() {
                         <span>
                           {discoveryMessage ||
                             (selectedLLMDef.requiresKey
-                              ? "No API key configured :  enter your API key above to auto-discover live models from the provider."
-                              : "Local server unreachable :  start your local LLM server to auto-discover installed models.")}
+                              ? "No API key configured : enter your API key above to auto-discover live models from the provider."
+                              : "Local server unreachable : start your local LLM server to auto-discover installed models.")}
                         </span>
                         <span className="text-[10px] text-zinc-500 shrink-0">
                           Live Discovery Only
@@ -1027,22 +1220,41 @@ export default function SettingsHubPage() {
                     discoveredModels.length > 0 && (
                       <div className="p-3 rounded-xl bg-zinc-950/90 border border-zinc-800/80 space-y-2.5">
                         <div className="flex items-center justify-between text-[10px] font-mono text-zinc-400">
-                          <span>
-                            Available Model IDs & Tags (Click to Select):
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span>
+                              {modelSearchInput.trim()
+                                ? `Filtered Models (${filteredModels.length} of ${discoveredModels.length}) :`
+                                : "Available Model IDs & Tags (Click to Select):"}
+                            </span>
+                            {modelSearchInput.trim() && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setModelSearchInput("");
+                                  setLlmModel("");
+                                }}
+                                className="text-emerald-400 hover:text-emerald-300 underline font-medium"
+                              >
+                                Show All
+                              </button>
+                            )}
+                          </div>
                           <span className="text-zinc-500">
                             {discoveryMessage}
                           </span>
                         </div>
 
                         <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto pr-1">
-                          {discoveredModels.map((m) => {
+                          {filteredModels.map((m) => {
                             const isPicked = llmModel === m.id;
                             return (
                               <button
                                 key={m.id}
                                 type="button"
-                                onClick={() => setLlmModel(m.id)}
+                                onClick={() => {
+                                  setLlmModel(m.id);
+                                  setModelSearchInput(m.id);
+                                }}
                                 className={`px-2.5 py-1 rounded-lg text-[11px] font-mono transition-all border flex items-center gap-1.5 ${
                                   isPicked
                                     ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/60 font-bold shadow-sm"
