@@ -38,12 +38,12 @@ gantt
 ### Phase 1: FastAPI Process Bridge & Next.js Scaffold
 - **Goal:** Establish the communication backbone between the Python engine and the web application.
 - **Backend Tasks:**
-  - Create `src/heidi_engine/api/` module (`server.py`, `routes_leads.py`, `routes_pipeline.py`, `routes_tools.py`, `routes_settings.py`).
+  - Create `src/metrixa_engine/api/` module (`server.py`, `routes_leads.py`, `routes_pipeline.py`, `routes_tools.py`, `routes_settings.py`).
   - Wire FastAPI endpoints directly into `Database`, `EntityDeduplicator`, `AsyncWebsiteCrawler`, `KPIExtractionPipeline`, `ContactEnricher`, and `LeadScorer`.
   - Implement the thread-safe `EventBus` class using `asyncio.Queue` for Server-Sent Events (SSE).
 - **Frontend Tasks:**
   - Initialize `web/` with Next.js 14 (TypeScript, Tailwind CSS, Lucide React).
-  - Configure `tailwind.config.ts` with custom brand palette (Heidi Navy `#0F172A`, Sky `#0EA5E9`, Emerald `#10B981`).
+  - Configure `tailwind.config.ts` with custom brand palette (Metrixa Navy `#0F172A`, Sky `#0EA5E9`, Emerald `#10B981`).
   - Install and configure shadcn/ui components (`button`, `card`, `badge`, `table`, `dialog`, `sheet`, `tabs`, `progress`, `tooltip`, `toast`).
   - Build persistent layout: `SidebarNav` and `StickyTopbar`.
 - **Exit Criteria:** Visiting `http://localhost:3000` loads the branded shell; `http://127.0.0.1:8000/docs` serves OpenAPI documentation.

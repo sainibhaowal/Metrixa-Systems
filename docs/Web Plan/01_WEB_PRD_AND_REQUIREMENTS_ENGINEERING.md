@@ -2,7 +2,7 @@
 
 **Project Name:** Metrixa Cockpit — Autonomous LeadOps & Metering Intelligence Suite
 **Target Organization:** Metrixa Systems GmbH (Berlin, Germany)
-**Parent Pipeline:** `heidi-engine` (Python 3.12, SQLite WAL, Multi-LLM, Async Crawler)
+**Parent Pipeline:** `metrixa-engine` (Python 3.12, SQLite WAL, Multi-LLM, Async Crawler)
 **Document Order:** `01 of 06` in `docs/Web Plan/`
 **Location:** `C:\Users\Ravin\Projects\Projetcs Alpha\Metrixa Systems\docs\Web Plan\01_WEB_PRD_AND_REQUIREMENTS_ENGINEERING.md`
 

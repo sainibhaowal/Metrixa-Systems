@@ -91,7 +91,7 @@ class AcademicNumberedCanvas(canvas.Canvas):
         self.drawString(
             36,
             24,
-            "Copyright (c) 2026 Metrixa Systems GmbH & Heidi Systems. Technical Case Study Deliverable. All rights reserved.",
+            "Copyright (c) 2026 Metrixa Systems GmbH & Metrixa Systems. Technical Case Study Deliverable. All rights reserved.",
         )
         self.drawRightString(
             A4[0] - 36, 24, f"Page {self._pageNumber} of {total_pages}"
@@ -430,7 +430,7 @@ def generate_publication_paper(output_path: Path):
     )
     story.append(
         Paragraph(
-            "For enterprise software and submetering hardware providers (such as Heidi Systems and Metrixa Systems), property management companies "
+            "For enterprise software and submetering hardware providers (such as Metrixa Systems and Metrixa Systems), property management companies "
             "(<i>Hausverwaltungen</i>) represent the primary institutional buyer. However, acquiring actionable commercial intelligence on these entities "
             "is impeded by three fundamental market dynamics: (1) <i>Extreme SME Fragmentation</i>: German property managers are private SME entities "
             "(GmbH, UG, KG) managing 300 to 5,000 residential units [3]; (2) <i>Social Media Invisibility</i>: fewer than 18% of German property management "
@@ -962,13 +962,13 @@ def generate_publication_paper(output_path: Path):
 if __name__ == "__main__":
     out_dir = Path("docs/Case Study")
     out_dir.mkdir(parents=True, exist_ok=True)
-    pdf_path = out_dir / "Case_Study_Heidi_Systems.pdf"
+    pdf_path = out_dir / "Case_Study_Metrixa_Systems.pdf"
     generate_publication_paper(pdf_path)
 
     # Also sync to data/exports/ for the web cockpit deliverables vault
     exports_dir = Path("data/exports")
     if exports_dir.exists():
-        shutil.copy2(pdf_path, exports_dir / "Case_Study_Heidi_Systems.pdf")
+        shutil.copy2(pdf_path, exports_dir / "Case_Study_Metrixa_Systems.pdf")
         print(
-            f"Synced academic publication PDF to: {exports_dir / 'Case_Study_Heidi_Systems.pdf'}"
+            f"Synced academic publication PDF to: {exports_dir / 'Case_Study_Metrixa_Systems.pdf'}"
         )

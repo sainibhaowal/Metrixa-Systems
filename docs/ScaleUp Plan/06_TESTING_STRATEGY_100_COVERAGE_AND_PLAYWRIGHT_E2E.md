@@ -1,6 +1,6 @@
 # 06 — Comprehensive Testing Strategy: 100% Feature Coverage & Headless Playwright E2E Suite
 
-**Project Name:** Metrixa Engine (Heidi Systems B2B PropTech & Submetering Intelligence Platform)
+**Project Name:** Metrixa Engine (Metrixa Systems B2B PropTech & Submetering Intelligence Platform)
 **Document Scope:** Unit, Integration, API Contract, Coverage Verification (`pytest-cov`), and Headless Playwright Browser E2E Testing Blueprint
 **Document Order:** `06 of 07`
 
@@ -17,14 +17,14 @@ To publicly and credibly claim that **Metrixa Engine** is a **100% verified, pro
 ```mermaid
 flowchart TB
     subgraph BackendPytest["Backend Pytest Suite (tests/)"]
-        T1["tests/test_heidi_engine.py (Core Berlin Baseline & Normalizer)"]
+        T1["tests/test_metrixa_engine.py (Core Berlin Baseline & Normalizer)"]
         T2["tests/test_api_server.py (FastAPI REST Contracts & Vault)"]
         T3["tests/test_multi_city_expansion.py (Berlin, Munich, Hamburg, Frankfurt, Cologne PLZ & Districts)"]
         T4["tests/test_scaleup_capabilities.py (Capabilities 1–6 Unit & Integration Tests)"]
         T5["tests/test_logging_and_diagnostics.py (Structured Logger, Trace IDs & Diagnostics API)"]
     end
 
-    BackendPytest --> Cov["pytest --cov=src/heidi_engine (100% Feature & Capability Coverage)"]
+    BackendPytest --> Cov["pytest --cov=src/metrixa_engine (100% Feature & Capability Coverage)"]
 ```
 
 ### 2.1 `tests/test_multi_city_expansion.py`

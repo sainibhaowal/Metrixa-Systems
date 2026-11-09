@@ -58,7 +58,7 @@ repos:
 
       - id: backend-mypy-typecheck
         name: Mypy Static Type Verification
-        entry: .venv/Scripts/mypy.exe src/heidi_engine/config.py src/heidi_engine/models.py --ignore-missing-imports
+        entry: .venv/Scripts/mypy.exe src/metrixa_engine/config.py src/metrixa_engine/models.py --ignore-missing-imports
         language: system
         types: [python]
         pass_filenames: false

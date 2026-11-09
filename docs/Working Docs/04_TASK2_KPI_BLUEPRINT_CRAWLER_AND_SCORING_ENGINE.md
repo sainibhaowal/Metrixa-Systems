@@ -22,7 +22,7 @@ flowchart TD
         P5["Pillar 5: Decision-Maker Reachability (Bonus)\n• Named Geschäftsführer / Prokurist (from Impressum)\n• Verified Personal Email (non-info@)\n• Personal LinkedIn Profile URL"]
     end
 
-    SCORE["Heidi Deterministic Lead Score (0–100)\n+ Lead Tier (Tier A / Tier B / Tier C)"]
+    SCORE["Metrixa Deterministic Lead Score (0–100)\n+ Lead Tier (Tier A / Tier B / Tier C)"]
     P1 & P2 & P3 & P4 & P5 --> SCORE
 ```
 
@@ -49,12 +49,12 @@ flowchart TD
 | **5. Contact** | `personal_email` | `String \| Null` | Direct decision-maker email (strictly excluding `info@`, `kontakt@`, `service@`). | `/team`, `/impressum`, SearXNG/Tavily, or MX-verified pattern |
 | **5. Contact** | `email_status` | `Enum` | `VERIFIED_PUBLIC_DIRECT` (found on web), `PATTERN_INFERRED_MX_VALID` (derived from name + verified MX), or `GENERIC_ONLY` (only `info@` found). | Email Verification Engine |
 | **5. Contact** | `linkedin_url` | `URL \| Null` | Direct LinkedIn profile of the decision-maker or company page. | Website social links + SearXNG / Tavily LinkedIn search |
-| **6. Score** | `heidi_lead_score` | `Integer (0–100)` | Final weighted qualification score ranking every company from `0` to `100`. | Scoring Engine (`scorer.py`) |
+| **6. Score** | `metrixa_lead_score` | `Integer (0–100)` | Final weighted qualification score ranking every company from `0` to `100`. | Scoring Engine (`scorer.py`) |
 | **6. Score** | `lead_tier` | `Enum` (`Tier A`, `Tier B`, `Tier C`) | Actionable sales bucket (`Tier A`: ≥70 Immediate Outreach, `Tier B`: 45–69 Nurture, `Tier C`: <45 Low Priority). | Scoring Engine (`scorer.py`) |
 
 ---
 
-## 2. Stage 3 Design: Async Website & German *Impressum* Crawler (`src/heidi_engine/crawler/`)
+## 2. Stage 3 Design: Async Website & German *Impressum* Crawler (`src/metrixa_engine/crawler/`)
 
 ### 2.1 Why Crawling the *Impressum* is a Superpower in Germany
 Under **§ 5 Digitale-Dienste-Gesetz (DDG)** (formerly § 5 TMG), **every commercial website in Germany is legally required** to publish an easily accessible **Impressum** (Legal Notice) containing:
@@ -103,7 +103,7 @@ Why this is awesome: Even if an LLM misses a hidden login button linking to `htt
 
 ---
 
-## 3. Stage 4 Design: Multi-Provider LLM Structured Extraction (`src/heidi_engine/llm/`)
+## 3. Stage 4 Design: Multi-Provider LLM Structured Extraction (`src/metrixa_engine/llm/`)
 
 Once the homepage and up to 5 subpages are converted into compact Markdown (capped at ~12,000 characters with `/impressum` and `/team` prioritized first), the combined document is sent to `LLMRouter` (`llama.cpp` / `LM Studio` / `NVIDIA NIM` / `DeepSeek` / `Gemini`).
 
@@ -146,7 +146,7 @@ After the LLM returns `CompanyKPIExtraction`:
 
 ---
 
-## 4. Stage 5 Design: Bonus Task — Decision-Maker LinkedIn & Personal Email Enrichment (`src/heidi_engine/enrichment/`)
+## 4. Stage 5 Design: Bonus Task — Decision-Maker LinkedIn & Personal Email Enrichment (`src/metrixa_engine/enrichment/`)
 
 The Bonus prompt asks: *"Find the right contact person including their email address, meaning not an info@ address but a personal and relevant one. LinkedIn profiles or similar are also very welcome."*
 
@@ -178,7 +178,7 @@ We maintain **two separate columns** in the database and final Excel/Google Shee
 
 To make the spreadsheet immediately actionable for Metrixa Systems' sales team, every company is scored from **`0` to `100` points** using a transparent, deterministic formula across our 5 pillars:
 
-$$\text{HeidiLeadScore} = S_{\text{scale}} (35) + S_{\text{focus}} (25) + S_{\text{digital}} (20) + S_{\text{trust}} (10) + S_{\text{contact}} (10)$$
+$$\text{MetrixaLeadScore} = S_{\text{scale}} (35) + S_{\text{focus}} (25) + S_{\text{digital}} (20) + S_{\text{trust}} (10) + S_{\text{contact}} (10)$$
 
 ### 5.1 Point Breakdown Table (`Max = 100 Points`)
 

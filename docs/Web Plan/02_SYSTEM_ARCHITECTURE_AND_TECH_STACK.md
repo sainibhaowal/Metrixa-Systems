@@ -10,7 +10,7 @@
 
 Metrixa Cockpit utilizes a **Decoupled Modern Full-Stack Architecture**:
 - **Frontend Layer:** **Next.js 14+ (App Router)** with **TypeScript**, **Tailwind CSS**, and **shadcn/ui** components. Designed for maximum responsiveness, visual elegance, and accessibility.
-- **Backend API Gateway & Process Bridge:** High-performance **FastAPI (Python 3.12)** service that exposes REST endpoints and a **Server-Sent Events (SSE)** event bus. This bridge directly imports and orchestrates the existing `heidi_engine` modules without subprocess overhead.
+- **Backend API Gateway & Process Bridge:** High-performance **FastAPI (Python 3.12)** service that exposes REST endpoints and a **Server-Sent Events (SSE)** event bus. This bridge directly imports and orchestrates the existing `metrixa_engine` modules without subprocess overhead.
 - **Data Persistence:** Shared **SQLite 3 (WAL Mode)** database (`data/metrixa_leads.db`), ensuring atomic concurrent reads and writes between the web API and pipeline workers.
 
 ```mermaid
@@ -25,7 +25,7 @@ flowchart TB
     subgraph API_Bridge["Backend API Gateway (FastAPI Python Bridge)"]
         REST["REST API Controllers (/api/leads, /api/metrics, /api/tools, /api/settings)"]
         SSE["SSE Event Bus (/api/pipeline/stream)\nStreaming Stage Progress, Logs & Telemetry"]
-        ORCH["Pipeline Orchestrator\n(Threadpool / Async Workers for heidi_engine)"]
+        ORCH["Pipeline Orchestrator\n(Threadpool / Async Workers for metrixa_engine)"]
     end
 
     subgraph Core_Engine["Metrixa Engine Backend (Existing Core Modules)"]
@@ -80,12 +80,12 @@ flowchart TB
 
 ## 3. Web Application Directory Structure
 
-The web application is structured cleanly inside `web/` alongside the existing `src/heidi_engine/`:
+The web application is structured cleanly inside `web/` alongside the existing `src/metrixa_engine/`:
 
 ```text
 Metrixa Systems/
 ├── src/
-│   └── heidi_engine/                          # Existing Python Core Engine
+│   └── metrixa_engine/                          # Existing Python Core Engine
 │       ├── scrapers/                          # Stage 1 Scrapers
 │       ├── entity_resolution/                 # Stage 2 Deduplicator
 │       ├── crawler/                           # Stage 3 Async Crawler & Tech Detector
@@ -109,7 +109,7 @@ Metrixa Systems/
 │   ├── next.config.mjs
 │   │
 │   ├── public/                                # Static Brand Assets (Logos, SVGs, Favicons)
-│   │   ├── heidi-logo.svg
+│   │   ├── metrixa-logo.svg
 │   │   └── favicon.ico
 │   │
 │   ├── src/

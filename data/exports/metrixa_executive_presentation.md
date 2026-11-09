@@ -6,7 +6,7 @@
 1. **Master Excel / Google Sheets Workbook:** [`data/exports/metrixa_berlin_hausverwaltungen.xlsx`](../data/exports/metrixa_berlin_hausverwaltungen.xlsx) *(4 Tabs: `Qualified_Berlin_Leads`, `All_Decision_Makers_Contacts`, `Evidence_And_Audit_Trail`, `KPI_Methodology_And_Summary`)*
 2. **Master CSV Export:** [`data/exports/metrixa_berlin_leads_master.csv`](../data/exports/metrixa_berlin_leads_master.csv)
 3. **Quantitative Evaluation & Ablation Report:** [`data/exports/evaluation_ablation_report.md`](../data/exports/evaluation_ablation_report.md)
-4. **Production Software Repository:** `heidi-engine` (`src/heidi_engine/` + `docs/01`–`07` + `tests/`)
+4. **Production Software Repository:** `metrixa-engine` (`src/metrixa_engine/` + `docs/01`–`07` + `tests/`)
 
 ---
 

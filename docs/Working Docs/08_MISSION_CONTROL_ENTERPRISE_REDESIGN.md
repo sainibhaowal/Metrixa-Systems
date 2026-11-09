@@ -2,7 +2,7 @@
 
 **Document Reference:** `docs/Working Docs/08_MISSION_CONTROL_ENTERPRISE_REDESIGN.md`
 **Parent Specification:** `docs/Web Plan/08_MISSION_CONTROL_3PANEL_ENTERPRISE_SPEC.md`
-**Project:** Metrixa Engine / Heidi Systems Intelligence Cockpit
+**Project:** Metrixa Engine / Metrixa Systems Intelligence Cockpit
 **Status:** Approved for Implementation
 
 ---

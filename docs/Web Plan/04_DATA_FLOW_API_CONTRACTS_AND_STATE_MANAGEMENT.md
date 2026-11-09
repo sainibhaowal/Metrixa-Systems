@@ -14,7 +14,7 @@ sequenceDiagram
     participant UI as React / Next.js Client
     participant Store as Zustand (Global State)
     participant API as FastAPI Server (:8000)
-    participant Engine as Heidi Pipeline Engine
+    participant Engine as Metrixa Pipeline Engine
     participant DB as SQLite WAL (metrixa_leads.db)
 
     Note over UI,API: App Initialization
@@ -101,7 +101,7 @@ All endpoints are hosted at `http://127.0.0.1:8000` with CORS enabled for `http:
     - `is_vdiv`: boolean
     - `page`: integer (default: 1)
     - `limit`: integer (default: 50, max: 200)
-    - `sort_by`: string (`heidi_lead_score`, `exact_units_managed`, `display_name`)
+    - `sort_by`: string (`metrixa_lead_score`, `exact_units_managed`, `display_name`)
     - `sort_dir`: string (`asc`, `desc`)
   - **Response:**
     ```json
@@ -109,14 +109,14 @@ All endpoints are hosted at `http://127.0.0.1:8000` with CORS enabled for `http:
       "items": [
         {
           "company_id": 1,
-          "lead_id": "HEIDI-BER-0001",
+          "lead_id": "METRIXA-BER-0001",
           "display_name": "BVBI Berliner Vereinigung für Immobilienmanagement GmbH",
           "legal_form": "GmbH",
           "district": "Charlottenburg-Wilmersdorf",
           "postal_code": "10719",
           "street_address": "Uhlandstraße 165",
           "website_url": "https://www.bvbi.de",
-          "heidi_lead_score": 88,
+          "metrixa_lead_score": 88,
           "lead_tier": "Tier A (High Priority)",
           "exact_units_managed": 4500,
           "estimated_units_tier": "1,000-5,000",
@@ -240,7 +240,7 @@ export interface LeadItem {
   postal_code: string | null;
   street_address: string | null;
   website_url: string | null;
-  heidi_lead_score: number;
+  metrixa_lead_score: number;
   lead_tier: LeadTier;
   exact_units_managed: number | null;
   estimated_units_tier: string;

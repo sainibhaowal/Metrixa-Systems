@@ -94,7 +94,7 @@ flowchart LR
     S_SEARX -- "0 results or rate-limited" --> S_TAVILY
 ```
 
-### 2.1 How the Unified LLM Router Works (`src/heidi_engine/llm/router.py`)
+### 2.1 How the Unified LLM Router Works (`src/metrixa_engine/llm/router.py`)
 Because `llama.cpp`, `LM Studio`, `NVIDIA NIM`, and `DeepSeek` all support the **OpenAI-compatible `/v1/chat/completions` specification**, and `Gemini` also provides an OpenAI-compatible endpoint alongside `google-genai`, our `LLMRouter` wraps all 5 providers behind a single async interface:
 
 | Provider | Base URL / Endpoint | Recommended Model | Best Use Case in Pipeline |
@@ -184,9 +184,9 @@ Metrixa Systems/
 │       └── evaluation_ablation_report.md      # Auto-generated Task 3 metrics & ablation tables
 │
 ├── src/
-│   └── heidi_engine/
+│   └── metrixa_engine/
 │       ├── __init__.py
-│       ├── cli.py                             # Typer + Rich CLI entrypoint (`python -m heidi_engine ...`)
+│       ├── cli.py                             # Typer + Rich CLI entrypoint (`python -m metrixa_engine ...`)
 │       ├── config.py                          # Settings loader (.env, LLM endpoints, concurrency limits)
 │       ├── models.py                          # All Pydantic v2 schemas (RawListing, GoldenCompany, KPIExtraction, Contact)
 │       ├── db.py                              # SQLite WAL connection manager, schema init & state queries
@@ -238,11 +238,11 @@ Because there is no web frontend to maintain, the entire system is operated via 
 
 | Step | CLI Command | What Happens Under the Hood |
 | :--- | :--- | :--- |
-| **1. Initialize DB** | `python -m heidi_engine init` | Creates `data/metrixa_leads.db` with all SQLite tables and indexes. |
-| **2. Scrape Berlin** | `python -m heidi_engine ingest --all` | Runs `Gelbe Seiten`, `11880`, `VDIV`, `OSM Overpass`, and `SearXNG` discovery in Berlin; saves to `raw_listings`. |
-| **3. Deduplicate** | `python -m heidi_engine deduplicate` | Normalizes names/domains/phones, filters out non-Berlin or non-Hausverwaltung noise, clusters duplicates into `companies_golden`. |
-| **4. Crawl Websites** | `python -m heidi_engine crawl` | Resolves missing URLs via SearXNG, crawls homepage + `/impressum` + `/team` + `/leistungen`, detects ERP/portal signatures (`Casavi`, `Domus`, etc.). |
-| **5. Extract KPIs** | `python -m heidi_engine extract --provider deepseek` *(or `local`, `nim`, `gemini`)* | Runs the LLM extraction harness over crawled pages to populate portfolio units, WEG/Miet focus, and *Geschäftsführer* names with evidence quotes. |
-| **6. Enrich Contacts** | `python -m heidi_engine enrich-contacts` | Searches SearXNG/Tavily for decision-maker LinkedIn URLs and personal emails; verifies DNS `MX` records. |
-| **7. Score & Export** | `python -m heidi_engine export` | Computes the `0–100` Metrixa Lead Score, assigns Tiers (`A`, `B`, `C`), and generates `data/exports/metrixa_berlin_hausverwaltungen.xlsx`. |
-| **8. Evaluate (Task 3)** | `python -m heidi_engine evaluate` | Runs precision/recall evaluation and stage ablation metrics, writing `data/exports/evaluation_ablation_report.md`. |
+| **1. Initialize DB** | `python -m metrixa_engine init` | Creates `data/metrixa_leads.db` with all SQLite tables and indexes. |
+| **2. Scrape Berlin** | `python -m metrixa_engine ingest --all` | Runs `Gelbe Seiten`, `11880`, `VDIV`, `OSM Overpass`, and `SearXNG` discovery in Berlin; saves to `raw_listings`. |
+| **3. Deduplicate** | `python -m metrixa_engine deduplicate` | Normalizes names/domains/phones, filters out non-Berlin or non-Hausverwaltung noise, clusters duplicates into `companies_golden`. |
+| **4. Crawl Websites** | `python -m metrixa_engine crawl` | Resolves missing URLs via SearXNG, crawls homepage + `/impressum` + `/team` + `/leistungen`, detects ERP/portal signatures (`Casavi`, `Domus`, etc.). |
+| **5. Extract KPIs** | `python -m metrixa_engine extract --provider deepseek` *(or `local`, `nim`, `gemini`)* | Runs the LLM extraction harness over crawled pages to populate portfolio units, WEG/Miet focus, and *Geschäftsführer* names with evidence quotes. |
+| **6. Enrich Contacts** | `python -m metrixa_engine enrich-contacts` | Searches SearXNG/Tavily for decision-maker LinkedIn URLs and personal emails; verifies DNS `MX` records. |
+| **7. Score & Export** | `python -m metrixa_engine export` | Computes the `0–100` Metrixa Lead Score, assigns Tiers (`A`, `B`, `C`), and generates `data/exports/metrixa_berlin_hausverwaltungen.xlsx`. |
+| **8. Evaluate (Task 3)** | `python -m metrixa_engine evaluate` | Runs precision/recall evaluation and stage ablation metrics, writing `data/exports/evaluation_ablation_report.md`. |

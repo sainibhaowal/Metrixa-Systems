@@ -1,6 +1,6 @@
 # 01 — Mission, Vision & Enterprise Scale-Up Product Requirements Document (PRD)
 
-**Project Name:** Metrixa Engine (Heidi Systems B2B PropTech & Submetering Intelligence Platform)
+**Project Name:** Metrixa Engine (Metrixa Systems B2B PropTech & Submetering Intelligence Platform)
 **Document Scope:** Phase 2 Enterprise Scale-Up — Multi-City German Expansion & 6 Production-Grade Business Capabilities
 **Target Markets:** Berlin, Munich (*München*), Hamburg, Frankfurt am Main, and Cologne (*Köln*)
 **Document Order:** `01 of 07` (Start Here)
@@ -10,7 +10,7 @@
 ## 1. Mission, Vision & Continuity from Phase 1 (Berlin Case Study Baseline)
 
 ### 1.1 Our Core Mission
-Our mission is to provide **Heidi Systems / Metrixa Systems** with the most accurate, 100% evidence-backed, zero-hallucination B2B revenue intelligence engine for the German property management (*Hausverwaltungen*) market. Under the German **Heating Costs Ordinance (*Heizkostenverordnung — HeizkV*)** and the **EU Energy Efficiency Directive (EED)**, property managers are legally required to deploy remotely readable submetering infrastructure and deliver transparent monthly consumption telemetry.
+Our mission is to provide **Metrixa Systems / Metrixa Systems** with the most accurate, 100% evidence-backed, zero-hallucination B2B revenue intelligence engine for the German property management (*Hausverwaltungen*) market. Under the German **Heating Costs Ordinance (*Heizkostenverordnung — HeizkV*)** and the **EU Energy Efficiency Directive (EED)**, property managers are legally required to deploy remotely readable submetering infrastructure and deliver transparent monthly consumption telemetry.
 
 Because a single *Hausverwaltung* controls between **250 and 50,000+ residential and commercial units (*Wohneinheiten & Gewerbeeinheiten*)**, winning one property management firm unlocks recurring multi-year hardware and billing contracts across dozens or hundreds of buildings.
 

@@ -1,6 +1,6 @@
 # 05 — Logging, Debugging, Observability & End-to-End Diagnostics Architecture
 
-**Project Name:** Metrixa Engine (Heidi Systems B2B PropTech & Submetering Intelligence Platform)
+**Project Name:** Metrixa Engine (Metrixa Systems B2B PropTech & Submetering Intelligence Platform)
 **Document Scope:** Enterprise Structured Logging, Correlation Trace IDs, Rotating File Logs, SQLite Audit Trail & Live Debug Inspector
 **Document Order:** `05 of 07`
 
@@ -15,7 +15,7 @@ In a real B2B production environment processing thousands of companies across 5 
 
 ---
 
-## 2. Unified Telemetry & Logging Architecture (`src/heidi_engine/telemetry/logger.py`)
+## 2. Unified Telemetry & Logging Architecture (`src/metrixa_engine/telemetry/logger.py`)
 
 ```mermaid
 flowchart LR
@@ -59,7 +59,7 @@ Every API request, CLI execution, or pipeline stage run generates or inherits a 
 
 ---
 
-## 3. Live Debugging & Self-Diagnostics Endpoints (`src/heidi_engine/api/server.py`)
+## 3. Live Debugging & Self-Diagnostics Endpoints (`src/metrixa_engine/api/server.py`)
 
 ### 3.1 `GET /api/diagnostics/health`
 Performs a deep, real-time subsystem health audit across all components and returns:

@@ -39,7 +39,7 @@ flowchart LR
     L1 --> L2 --> L3 --> L4
 ```
 
-### 1.1 Detailed Validation Rules (`src/heidi_engine/telemetry/evaluator.py`)
+### 1.1 Detailed Validation Rules (`src/metrixa_engine/telemetry/evaluator.py`)
 
 | Validation Layer | What Could Go Wrong Without It | Exact Validation Rule Implemented in Code |
 | :--- | :--- | :--- |
@@ -72,17 +72,17 @@ Our evaluation report (`data/exports/evaluation_ablation_report.md`) automatical
 | **Stage 4:** + Multi-LLM Structured *Impressum* & KPI Extractor (*With Evidence Gate*) | ~950+ | ~84% | **~88%** | **~86%** | ~48% |
 | **Stage 5 (Full Metrixa Engine):** + SearXNG / Tavily LinkedIn & Contact Agent + DNS MX Pattern Verifier | **~950+ Verified** | **~91%** | **~92%** | **~91%** | **~82% Verified / MX-Valid** |
 
-*(Note: The exact numbers in this table are dynamically computed from `metrixa_leads.db` when `python -m heidi_engine evaluate` runs!)*
+*(Note: The exact numbers in this table are dynamically computed from `metrixa_leads.db` when `python -m metrixa_engine evaluate` runs!)*
 
 ### 2.3 Multi-Provider LLM Benchmark Table (Optional 30-Lead Comparison)
-Because our `LLMRouter` supports local models (`llama.cpp` / `LM Studio`), `NVIDIA NIM`, `DeepSeek API`, and `Gemini API`, running `python -m heidi_engine benchmark-llms` on the 30-company Gold Set generates a real engineering comparison table of **JSON Schema Pass Rate, Extraction F1, Latency (ms/company), and Cost per 1,000 Leads**.
+Because our `LLMRouter` supports local models (`llama.cpp` / `LM Studio`), `NVIDIA NIM`, `DeepSeek API`, and `Gemini API`, running `python -m metrixa_engine benchmark-llms` on the 30-company Gold Set generates a real engineering comparison table of **JSON Schema Pass Rate, Extraction F1, Latency (ms/company), and Cost per 1,000 Leads**.
 
 ---
 
 ## 3. Native Environment Setup (Local SearXNG without Docker + Local/Cloud LLMs)
 
 ### 3.1 How Local SearXNG Works Without Docker ( plus Built-In Zero-Config Meta-Search Fallback)
-Running SearXNG natively on Windows without Docker or WSL can sometimes hit POSIX-only dependency issues (`pyyaml`/`uwsgi`/`babel`). Therefore, our `SearchRouter` (`src/heidi_engine/enrichment/search_router.py`) is engineered with **3 automatic search tiers** so you are **never blocked**:
+Running SearXNG natively on Windows without Docker or WSL can sometimes hit POSIX-only dependency issues (`pyyaml`/`uwsgi`/`babel`). Therefore, our `SearchRouter` (`src/metrixa_engine/enrichment/search_router.py`) is engineered with **3 automatic search tiers** so you are **never blocked**:
 
 1. **Tier 1 — Native Local SearXNG (`http://127.0.0.1:8888/search?format=json`):**
    * Can be launched natively in a lightweight Python virtual environment (`git clone https://github.com/searxng/searxng`, `pip install -e .`, set `settings.yml` `formats: [html, json]`, and run `python searx/webapp.py`).
@@ -126,7 +126,7 @@ TAVILY_MAX_CALLS_PER_RUN=400
 
 ## 4. Blueprint for the Task 3 Presentation / Document Deliverable
 
-When submitting to Metrixa Systems, we will generate a polished, executive-ready **Methodology & Architecture Document / Presentation (`docs/Task3_Heidi_Systems_Case_Study_Presentation.md` + PDF/HTML export)** structured into **7 crisp sections**:
+When submitting to Metrixa Systems, we will generate a polished, executive-ready **Methodology & Architecture Document / Presentation (`docs/Case Study/Case Study.md` + PDF/HTML export)** structured into **7 crisp sections**:
 
 1. **Slide 1 — Executive Summary & Results at a Glance:**
    * Total Berlin *Hausverwaltungen* discovered, deduplicated count, number of `Tier A` priority leads, decision-makers identified, and link to the Google Sheet + GitHub Repository.

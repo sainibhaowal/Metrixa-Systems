@@ -23,7 +23,7 @@
 
 ## 📦 Generated Deliverables (Ready to Submit)
 
-1. **Academic Research Paper & Whitepaper PDF:** 👉 [`docs/Case Study/Case_Study_Heidi_Systems.pdf`](./docs/Case%20Study/Case_Study_Heidi_Systems.pdf)
+1. **Academic Research Paper & Whitepaper PDF:** 👉 [`docs/Case Study/Case_Study_Metrixa_Systems.pdf`](./docs/Case%20Study/Case_Study_Metrixa_Systems.pdf)
 2. **Multi-Tab Excel Workbook (`.xlsx` for Google Sheets / Attachment):** 👉 [`data/exports/metrixa_berlin_hausverwaltungen.xlsx`](./data/exports/metrixa_berlin_hausverwaltungen.xlsx)
    * **Tab 1 (`Qualified_Berlin_Leads`):** All **1,200** Berlin property management companies ranked by `Metrixa Lead Score (0 to 100)` across 31 KPI & contact columns.
    * **Tab 2 (`All_Decision_Makers_Contacts`):** All **121** extracted *Geschäftsführer* / decision-makers with personal emails, DNS `MX` server verification, and verbatim evidence quotes.

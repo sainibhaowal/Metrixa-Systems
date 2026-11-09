@@ -1,12 +1,12 @@
 # 04 — Database Schema Evolution, API Contracts & Cockpit UI Integration
 
-**Project Name:** Metrixa Engine (Heidi Systems B2B PropTech & Submetering Intelligence Platform)
+**Project Name:** Metrixa Engine (Metrixa Systems B2B PropTech & Submetering Intelligence Platform)
 **Document Scope:** Non-Destructive SQLite WAL Migrations, New FastAPI Endpoints, and Next.js Cockpit UI Enhancements
 **Document Order:** `04 of 07`
 
 ---
 
-## 1. Non-Destructive SQLite Schema Evolution (`src/heidi_engine/db.py`)
+## 1. Non-Destructive SQLite Schema Evolution (`src/metrixa_engine/db.py`)
 
 To guarantee **zero data loss** on the existing `data/metrixa_leads.db` (`1,199` Berlin companies), all schema additions use idempotent `CREATE TABLE IF NOT EXISTS` and safe column inspection (`PRAGMA table_info(...)` + `ALTER TABLE ... ADD COLUMN`).
 
@@ -83,7 +83,7 @@ CREATE TABLE IF NOT EXISTS system_diagnostic_logs (
 
 ---
 
-## 2. New & Enhanced FastAPI REST Endpoints (`src/heidi_engine/api/server.py`)
+## 2. New & Enhanced FastAPI REST Endpoints (`src/metrixa_engine/api/server.py`)
 
 | Method & Endpoint | Purpose | Request / Query Params | Response Highlights |
 | :--- | :--- | :--- | :--- |

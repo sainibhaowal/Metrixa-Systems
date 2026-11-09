@@ -55,7 +55,7 @@ def generate_district_chart_svg() -> str:
 def generate_score_histogram_svg() -> str:
     conn = sqlite3.connect("data/metrixa_leads.db")
     cur = conn.cursor()
-    cur.execute("SELECT (heidi_lead_score/10)*10, count(*) FROM companies_golden GROUP BY 1 ORDER BY 1 ASC")
+    cur.execute("SELECT (metrixa_lead_score/10)*10, count(*) FROM companies_golden GROUP BY 1 ORDER BY 1 ASC")
     buckets = cur.fetchall()
     conn.close()
 

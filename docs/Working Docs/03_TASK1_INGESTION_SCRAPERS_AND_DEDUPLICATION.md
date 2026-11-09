@@ -46,10 +46,10 @@ flowchart TD
 
 ---
 
-## 2. Detailed Specification of Each Scraper (`src/heidi_engine/scrapers/`)
+## 2. Detailed Specification of Each Scraper (`src/metrixa_engine/scrapers/`)
 
 ### 2.1 Scraper 1: Gelbe Seiten (`gelbeseiten.de`)
-* **File:** `src/heidi_engine/scrapers/gelbe_seiten.py`
+* **File:** `src/metrixa_engine/scrapers/gelbe_seiten.py`
 * **Why we include it:** Gelbe Seiten is Germany's largest commercial directory (~700–1,000+ Berlin property management entries) with high website URL and phone number completeness.
 * **How it works:**
   1. Queries `/suche/{keyword}/berlin` across our 5 core keywords (`hausverwaltung`, `immobilienverwaltung`, `weg-verwaltung`, `mietverwaltung`, `grundstuecksverwaltung`) and optionally per Berlin district.
@@ -63,7 +63,7 @@ flowchart TD
      * `detail_page_url` & `rating` / `review_count`
 
 ### 2.2 Scraper 2: 11880.com (`11880.com`)
-* **File:** `src/heidi_engine/scrapers/dir_11880.py`
+* **File:** `src/metrixa_engine/scrapers/dir_11880.py`
 * **Why we include it:** 11880.com indexes thousands of German SMBs and often contains direct email addresses (`mailto:`) and secondary websites not listed in Gelbe Seiten.
 * **How it works:**
   1. Queries `https://www.11880.com/suche/{keyword}/berlin?page={n}` until pagination terminates.
@@ -71,7 +71,7 @@ flowchart TD
   3. Captures `name`, `streetAddress`, `postalCode`, `addressLocality`, `telephone`, `url`, and summary description.
 
 ### 2.3 Scraper 3: VDIV Berlin-Brandenburg (`vdiv.de` / Regional Member Directory)
-* **File:** `src/heidi_engine/scrapers/vdiv.py`
+* **File:** `src/metrixa_engine/scrapers/vdiv.py`
 * **Why we include it:** The *Verband der Immobilienverwalter (VDIV)* is the premier German industry association for professional property managers. VDIV members are **Tier-A targets** for Metrixa Systems because membership requires professional certification, insurance, and typically indicates an established portfolio (`500–20,000+` units).
 * **How it works:**
   1. Queries the VDIV / VDIV Berlin-Brandenburg member directory (`verwaltersuche` filtered to `Berlin` / PLZ `10...–14...`).
@@ -79,7 +79,7 @@ flowchart TD
   3. Sets a boolean flag `is_vdiv_member = True` on all matched records (which boosts their Lead Qualification Score in Task 2).
 
 ### 2.4 Scraper 4: OpenStreetMap Overpass API (`osm_overpass.py`)
-* **File:** `src/heidi_engine/scrapers/osm_overpass.py`
+* **File:** `src/metrixa_engine/scrapers/osm_overpass.py`
 * **Why we include it:** OpenStreetMap contains community-verified geospatial nodes for offices in Berlin with tags `office=property_management`, `office=estate_agent` (filtered by `"Hausverwaltung"` in name/description). It costs 0 API credits and finishes in 3 seconds.
 * **How it works:**
   Executes a single Overpass QL query against `https://overpass-api.de/api/interpreter` covering the administrative boundary of Berlin (`ISO3166-2 = DE-BE`):
@@ -97,7 +97,7 @@ flowchart TD
   Extracts `name`, `addr:street`, `addr:housenumber`, `addr:postcode`, `contact:website` / `website`, `contact:phone` / `phone`, `contact:email` / `email`, and exact `lat`/`lon` coordinates.
 
 ### 2.5 Scraper 5: Search Discovery via Local SearXNG & Tavily (`search_discovery.py`)
-* **File:** `src/heidi_engine/scrapers/search_discovery.py`
+* **File:** `src/metrixa_engine/scrapers/search_discovery.py`
 * **Why we include it:** Modern digital-first property managers (launched in the last 3–5 years) may not pay for yellow-page directory listings, but rank on Google/Bing/DuckDuckGo for queries like `"WEG Verwaltung Berlin GmbH Impressum"`.
 * **How it works:**
   Runs systematic search dorks across Berlin districts using our **Local SearXNG** instance (`http://127.0.0.1:8888/search?format=json`) with **Tavily API** fallback:

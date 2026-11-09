@@ -1,5 +1,5 @@
 """
-Integration Test Suite for FastAPI Backend Gateway (`heidi_engine.api.server`).
+Integration Test Suite for FastAPI Backend Gateway (`metrixa_engine.api.server`).
 Verifies /api/metrics, /api/leads, /api/leads/{id}/evidence, /api/tools, /api/settings,
 and Artifact downloads.
 """
@@ -9,7 +9,7 @@ from __future__ import annotations
 import pytest
 from fastapi.testclient import TestClient
 
-from heidi_engine.api.server import app
+from metrixa_engine.api.server import app
 
 
 @pytest.fixture
@@ -35,7 +35,7 @@ def test_api_leads_search_and_filters(client: TestClient) -> None:
     assert len(data["items"]) > 0
     for lead in data["items"]:
         assert "Tier A" in lead["lead_tier"]
-        assert lead["heidi_lead_score"] >= 70
+        assert lead["metrixa_lead_score"] >= 70
 
     # 2. Test search query
     resp_q = client.get("/api/leads?q=BVBI")

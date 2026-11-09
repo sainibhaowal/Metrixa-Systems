@@ -1,6 +1,6 @@
 """
 Generates publication-quality PDF for the Case Study Whitepaper using ReportLab.
-Compiles directly to docs/Case Study/Case_Study_Heidi_Systems.pdf
+Compiles directly to docs/Case Study/Case_Study_Metrixa_Systems.pdf
 and copies to data/exports/ for the web cockpit deliverables vault.
 """
 
@@ -64,7 +64,7 @@ class NumberedCanvas(canvas.Canvas):
         self.drawString(
             54,
             36,
-            "Confidential / Executive Review — Technical Assessment for Heidi Systems",
+            "Confidential / Executive Review — Technical Assessment for Metrixa Systems",
         )
         page_str = f"Page {self._pageNumber} of {total_pages}"
         self.drawRightString(A4[0] - 54, 36, page_str)
@@ -187,7 +187,7 @@ def build_pdf(output_path: Path):
     # Title & Metadata Header
     story.append(Paragraph("Autonomous B2B Lead Intelligence & Statutory Verification", title_style))
     story.append(Paragraph("Market Saturation, Deterministic Qualification & Decision-Maker Extraction for the German Property Management Ecosystem", subtitle_style))
-    story.append(Paragraph("<b>Author:</b> Metrixa Systems GmbH — Autonomous LeadOps Engineering &nbsp;|&nbsp; <b>Date:</b> November 8, 2026 &nbsp;|&nbsp; <b>Scope:</b> Technical Assessment for Heidi Systems", meta_style))
+    story.append(Paragraph("<b>Author:</b> Metrixa Systems GmbH — Autonomous LeadOps Engineering &nbsp;|&nbsp; <b>Date:</b> November 8, 2026 &nbsp;|&nbsp; <b>Scope:</b> Technical Assessment for Metrixa Systems", meta_style))
     story.append(HRFlowable(width="100%", thickness=1.5, color=C_PRIMARY, spaceBefore=0, spaceAfter=12))
 
     # Executive Abstract Callout Box
@@ -227,7 +227,7 @@ def build_pdf(output_path: Path):
         body_style,
     ))
     story.append(Paragraph(
-        "For submetering technology providers like Heidi Systems, property management companies are the primary institutional buyer. "
+        "For submetering technology providers like Metrixa Systems, property management companies are the primary institutional buyer. "
         "However, commercial sales intelligence platforms (Apollo, ZoomInfo, Clay) fail in this market due to three structural factors: "
         "(1) <b>Extreme SME Fragmentation</b> (private GmbH/UG entities managing 300 to 5,000 units); (2) <b>LinkedIn Invisibility</b> "
         "(<18% of German property executives maintain detailed profiles); and (3) <b>Data Stagnation</b> (outdated listings with dead generic "
@@ -298,7 +298,7 @@ def build_pdf(output_path: Path):
     # SECTION 4: 5-Pillar Scorecard
     story.append(Paragraph("4. Mathematical Qualification & Scoring Methodology (Task 2)", h1_style))
     story.append(Paragraph(
-        "Heidi’s revenue model scales per meter and per apartment. We formalized a <b>5-Pillar Scorecard</b> computing a deterministic "
+        "Metrixa's revenue model scales per meter and per apartment. We formalized a <b>5-Pillar Scorecard</b> computing a deterministic "
         "qualification score S &isin; [0, 100] for every single company in the database:",
         body_style,
     ))
@@ -426,12 +426,12 @@ def build_pdf(output_path: Path):
 if __name__ == "__main__":
     out_dir = Path("docs/Case Study")
     out_dir.mkdir(parents=True, exist_ok=True)
-    pdf_path = out_dir / "Case_Study_Heidi_Systems.pdf"
+    pdf_path = out_dir / "Case_Study_Metrixa_Systems.pdf"
     build_pdf(pdf_path)
 
     # Also copy to data/exports/ so it appears in the Web Cockpit Artifacts Vault
     exports_dir = Path("data/exports")
     if exports_dir.exists():
         import shutil
-        shutil.copy2(pdf_path, exports_dir / "Case_Study_Heidi_Systems.pdf")
-        print(f"Copied PDF to: {exports_dir / 'Case_Study_Heidi_Systems.pdf'}")
+        shutil.copy2(pdf_path, exports_dir / "Case_Study_Metrixa_Systems.pdf")
+        print(f"Copied PDF to: {exports_dir / 'Case_Study_Metrixa_Systems.pdf'}")

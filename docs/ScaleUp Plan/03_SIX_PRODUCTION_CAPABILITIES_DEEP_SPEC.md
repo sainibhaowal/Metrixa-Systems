@@ -1,6 +1,6 @@
 # 03 — Deep Engineering Specification: The 6 Enterprise Production Capabilities
 
-**Project Name:** Metrixa Engine (Heidi Systems B2B PropTech & Submetering Intelligence Platform)
+**Project Name:** Metrixa Engine (Metrixa Systems B2B PropTech & Submetering Intelligence Platform)
 **Document Scope:** Detailed Technical Architecture, Algorithms, State Machines & Fallback Guarantees for Capabilities 1–6
 **Document Order:** `03 of 07`
 
@@ -10,12 +10,12 @@
 
 | # | Capability Name | Target Module Path | Pipeline Stage | Zero-Dependency / Offline Fallback Guarantee |
 | :--- | :--- | :--- | :--- | :--- |
-| **1** | **Headless Browser Rendering (JS/SPA Sites)** | `src/heidi_engine/crawler/headless_renderer.py` | Stage 3 (Crawler) | Uses `httpx` HTTP/2 first; triggers Playwright Chromium only on SPA shells; gracefully degrades if Chromium binary is unavailable. |
-| **2** | **Official *Handelsregister* / NorthData Cross-Check** | `src/heidi_engine/enrichment/handelsregister.py` | Stage 4 (Enrichment) | Deterministic German *Amtsgericht* + `HRB/HRA` validator + live OpenRegister/Handelsregister probe when online. |
-| **3** | **Multi-Tier Email Verification (MX + SPF/DMARC + SMTP Catch-All)** | `src/heidi_engine/enrichment/email_verifier.py` | Stage 5 (Verification) | DNS `MX` + `SPF`/`DMARC` TXT inspection + optional non-intrusive SMTP `RCPT TO` & pluggable ZeroBounce/MillionVerifier API. |
-| **4** | **Automated CRM Two-Way Sync** | `src/heidi_engine/telemetry/crm_sync.py` | Stage 6 (CRM & Export) | Local SQLite `crm_sync_ledger` + live HubSpot / Pipedrive / Salesforce / Custom Webhook bi-directional sync. |
-| **5** | **Proxy Rotation & Rate-Limit Resilience** | `src/heidi_engine/crawler/resilience.py` | Stages 1 & 3 (Network) | Per-domain token bucket, exponential backoff + jitter, circuit breaker, and optional rotating proxy pool. |
-| **6** | **Scheduled Delta Monitoring (Change Alerts)** | `src/heidi_engine/telemetry/delta_monitor.py` | Post-Stage 4/5/6 | Diffs historical SQLite state to emit high-intent B2B trigger events (`NEW_DECISION_MAKER`, `ERP_SWITCH`, `UNITS_GROWTH`). |
+| **1** | **Headless Browser Rendering (JS/SPA Sites)** | `src/metrixa_engine/crawler/headless_renderer.py` | Stage 3 (Crawler) | Uses `httpx` HTTP/2 first; triggers Playwright Chromium only on SPA shells; gracefully degrades if Chromium binary is unavailable. |
+| **2** | **Official *Handelsregister* / NorthData Cross-Check** | `src/metrixa_engine/enrichment/handelsregister.py` | Stage 4 (Enrichment) | Deterministic German *Amtsgericht* + `HRB/HRA` validator + live OpenRegister/Handelsregister probe when online. |
+| **3** | **Multi-Tier Email Verification (MX + SPF/DMARC + SMTP Catch-All)** | `src/metrixa_engine/enrichment/email_verifier.py` | Stage 5 (Verification) | DNS `MX` + `SPF`/`DMARC` TXT inspection + optional non-intrusive SMTP `RCPT TO` & pluggable ZeroBounce/MillionVerifier API. |
+| **4** | **Automated CRM Two-Way Sync** | `src/metrixa_engine/telemetry/crm_sync.py` | Stage 6 (CRM & Export) | Local SQLite `crm_sync_ledger` + live HubSpot / Pipedrive / Salesforce / Custom Webhook bi-directional sync. |
+| **5** | **Proxy Rotation & Rate-Limit Resilience** | `src/metrixa_engine/crawler/resilience.py` | Stages 1 & 3 (Network) | Per-domain token bucket, exponential backoff + jitter, circuit breaker, and optional rotating proxy pool. |
+| **6** | **Scheduled Delta Monitoring (Change Alerts)** | `src/metrixa_engine/telemetry/delta_monitor.py` | Post-Stage 4/5/6 | Diffs historical SQLite state to emit high-intent B2B trigger events (`NEW_DECISION_MAKER`, `ERP_SWITCH`, `UNITS_GROWTH`). |
 
 ---
 
@@ -126,7 +126,7 @@ sequenceDiagram
 ### 5.1 Engineering Problem
 Scaling from 1,200 Berlin companies to 25,000+ property managers across Berlin, Munich, Hamburg, Frankfurt, and Cologne requires tens of thousands of HTTP requests across directory sites (*Gelbe Seiten*, *11880*) and company websites. Without adaptive rate limiting, circuit breaking, and proxy rotation, directory firewalls (Cloudflare / Akamai) will rate-limit (`HTTP 429`) or block the crawler.
 
-### 5.2 `ResilienceManager` Components (`src/heidi_engine/crawler/resilience.py`)
+### 5.2 `ResilienceManager` Components (`src/metrixa_engine/crawler/resilience.py`)
 1. **Per-Domain Token-Bucket Rate Limiter**:
    - Enforces polite request rates per target host (e.g., max 2 req/sec per directory host, max 3 concurrent requests per individual company domain).
 2. **Exponential Backoff with Full Jitter**:

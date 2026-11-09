@@ -1,7 +1,7 @@
 @echo off
 echo Starting Metrixa Cockpit (FastAPI Backend + Next.js WebUI)...
 
-start "Metrixa FastAPI Backend (:8000)" /D "%~dp0" cmd /k ".\.venv\Scripts\uvicorn.exe heidi_engine.api.server:app --host 127.0.0.1 --port 8000 --reload"
+start "Metrixa FastAPI Backend (:8000)" /D "%~dp0" cmd /k ".\.venv\Scripts\uvicorn.exe metrixa_engine.api.server:app --host 127.0.0.1 --port 8000 --reload"
 
 timeout /t 2 /nobreak >nul
 

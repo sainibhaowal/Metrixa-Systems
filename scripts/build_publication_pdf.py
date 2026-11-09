@@ -15,8 +15,8 @@ import sqlite3
 import subprocess
 
 HTML_PATH = Path("docs/Case Study/paper_academic.html")
-PDF_OUT = Path("docs/Case Study/Case_Study_Heidi_Systems.pdf")
-EXPORT_OUT = Path("data/exports/Case_Study_Heidi_Systems.pdf")
+PDF_OUT = Path("docs/Case Study/Case_Study_Metrixa_Systems.pdf")
+EXPORT_OUT = Path("data/exports/Case_Study_Metrixa_Systems.pdf")
 
 
 def get_db_stats():
@@ -43,7 +43,7 @@ def get_db_stats():
     erps = cur.fetchall()
 
     # Scores
-    cur.execute("SELECT (heidi_lead_score/10)*10, count(*) FROM companies_golden GROUP BY 1 ORDER BY 1 ASC")
+    cur.execute("SELECT (metrixa_lead_score/10)*10, count(*) FROM companies_golden GROUP BY 1 ORDER BY 1 ASC")
     score_buckets = cur.fetchall()
 
     conn.close()

@@ -1,6 +1,6 @@
 # 02 — Multi-City German Expansion Architecture (Berlin, Munich, Hamburg, Frankfurt, Cologne)
 
-**Project Name:** Metrixa Engine (Heidi Systems B2B PropTech & Submetering Intelligence Platform)
+**Project Name:** Metrixa Engine (Metrixa Systems B2B PropTech & Submetering Intelligence Platform)
 **Document Scope:** Deterministic Postal Code (*PLZ*), Official District (*Bezirk*), Register Court (*Amtsgericht*), and Multi-Source Discovery Architecture Across Germany's Top 5 Property Markets
 **Document Order:** `02 of 07`
 
@@ -15,13 +15,13 @@ In Germany, multi-family residential (*WEG-Verwaltung* & *Mietverwaltung*) and c
 4. **Frankfurt am Main** (~430k apartments + Rhine-Main commercial & high-rise residential towers)
 5. **Cologne (*Köln*)** (~570k apartments, largest property market in North Rhine-Westphalia)
 
-Together, these 5 cities represent the highest-value B2B target universe for **Heidi Systems / Metrixa Systems**.
+Together, these 5 cities represent the highest-value B2B target universe for **Metrixa Systems / Metrixa Systems**.
 
 ---
 
 ## 2. Deterministic City Registry & Postal Code (*PLZ*) Architecture
 
-Every German postal code (*Postleitzahl — PLZ*) is a 5-digit string. A production system must **never** rely on loose substring matching (which accidentally ingests neighboring towns or unrelated streets). Instead, we define a strict, deterministic `CITY_REGISTRY` in `src/heidi_engine/config.py`:
+Every German postal code (*Postleitzahl — PLZ*) is a 5-digit string. A production system must **never** rely on loose substring matching (which accidentally ingests neighboring towns or unrelated streets). Instead, we define a strict, deterministic `CITY_REGISTRY` in `src/metrixa_engine/config.py`:
 
 ### 2.1 Master City Specification Table
 
@@ -38,7 +38,7 @@ Every German postal code (*Postleitzahl — PLZ*) is a 5-digit string. A product
 ## 3. Exact `PLZ`-to-District Deterministic Mapping Rules
 
 ### 3.1 Berlin (`10115` – `14199`)
-- Preserves the exact 190+ `PLZ`-to-*Bezirk* lookup dictionary already validated in `src/heidi_engine/config.py` (`BERLIN_PLZ_TO_DISTRICT`).
+- Preserves the exact 190+ `PLZ`-to-*Bezirk* lookup dictionary already validated in `src/metrixa_engine/config.py` (`BERLIN_PLZ_TO_DISTRICT`).
 
 ### 3.2 Munich / *München* (`80331` – `81929`)
 - `80331–80539`: Altstadt-Lehel

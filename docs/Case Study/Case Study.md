@@ -3,8 +3,8 @@
 **Author:** Ravin Saini
 **Affiliation:** Data Engineering & Distributed Systems Architecture
 **Primary Dataset:** Canonical Golden Record Ledger ($N = 1,200$)
-**Deliverable PDF:** `docs/Case Study/Case_Study_Heidi_Systems.pdf`
-**Deliverable PDF:** `docs/Case Study/Case_Study_Heidi_Systems.pdf`
+**Deliverable PDF:** `docs/Case Study/Case_Study_Metrixa_Systems.pdf`
+**Deliverable PDF:** `docs/Case Study/Case_Study_Metrixa_Systems.pdf`
 
 ---
 

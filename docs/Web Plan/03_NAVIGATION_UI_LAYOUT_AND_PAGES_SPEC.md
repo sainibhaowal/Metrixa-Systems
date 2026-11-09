@@ -12,7 +12,7 @@ Metrixa Cockpit uses a modern **Fixed Sidebar + Sticky Topbar + Dynamic Viewport
 
 ```text
 +----------------------------------------------------------------------------------------------------+
-|  [LOGO] HEIDI COCKPIT | B2B Berlin Hausverwaltungen    [Global Live Status: READY]  [DB: 1,199 Leads]  |
+|  [LOGO] METRIXA COCKPIT | B2B Berlin Hausverwaltungen    [Global Live Status: READY]  [DB: 1,199 Leads]  |
 +-------------------+--------------------------------------------------------------------------------+
 |  SIDEBAR NAV      |  PAGE HEADER: Breadcrumbs & Primary Actions (e.g., [Run Stage] [Export XLSX])   |
 |                   +--------------------------------------------------------------------------------+

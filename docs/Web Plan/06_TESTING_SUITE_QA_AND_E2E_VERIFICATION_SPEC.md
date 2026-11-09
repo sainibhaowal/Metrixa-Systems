@@ -38,7 +38,7 @@ Run using pytest in the Python environment: `.\.venv\Scripts\pytest.exe tests/te
 
 2. **`test_api_leads_search_and_filter`:**
    - Query `GET /api/leads?tier=Tier+A+(High+Priority)&limit=10`.
-   - Assert all returned records have `lead_tier == "Tier A (High Priority)"` and `heidi_lead_score >= 70`.
+   - Assert all returned records have `lead_tier == "Tier A (High Priority)"` and `metrixa_lead_score >= 70`.
    - Search `GET /api/leads?q=BVBI`.
    - Assert result contains `"BVBI Berliner Vereinigung für Immobilienmanagement GmbH"`.
 

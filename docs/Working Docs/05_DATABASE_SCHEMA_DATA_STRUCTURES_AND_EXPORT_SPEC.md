@@ -53,7 +53,7 @@ erDiagram
         int source_count
         string sources_csv "gelbe_seiten,11880,vdiv"
         string pipeline_stage "DEDUPED | CRAWLED | EXTRACTED | ENRICHED | SCORED | DISQUALIFIED"
-        int heidi_lead_score "0-100"
+        int metrixa_lead_score "0-100"
         string lead_tier "Tier A | Tier B | Tier C | Disqualified"
         datetime updated_at
     }
@@ -153,14 +153,14 @@ stateDiagram-v2
 
 Since we have no web frontend, the **Excel / Google Sheet workbook (`data/exports/metrixa_berlin_hausverwaltungen.xlsx`)** is the centerpiece visual deliverable that Metrixa Systems will inspect.
 
-Our `ExcelExporter` (`src/heidi_engine/telemetry/excel_exporter.py`) automatically builds a **4-Tab Workbook** with corporate styling (dark navy headers `#1B365D`, frozen top row, auto-fitted column widths, color-coded `Tier A/B/C` badges, and clickable URLs):
+Our `ExcelExporter` (`src/metrixa_engine/telemetry/excel_exporter.py`) automatically builds a **4-Tab Workbook** with corporate styling (dark navy headers `#1B365D`, frozen top row, auto-fitted column widths, color-coded `Tier A/B/C` badges, and clickable URLs):
 
 ### 3.1 Tab 1: `Qualified_Berlin_Leads` (Primary Master Table)
 Sorted by `Metrixa Lead Score (0–100)` descending so the very best leads appear at the top.
 
 | Col # | Column Header in Sheet | Source / Calculation | Example Value |
 | :---: | :--- | :--- | :--- |
-| **A** | `Lead ID` | Formatted Golden ID | `HEIDI-BER-0001` |
+| **A** | `Lead ID` | Formatted Golden ID | `METRIXA-BER-0001` |
 | **B** | `Lead Tier` | Color-coded badge (`Tier A`, `Tier B`, `Tier C`) | `Tier A (High Priority)` |
 | **C** | `Metrixa Lead Score (0-100)` | Deterministic formula (`scorer.py`) | `88` |
 | **D** | `Company Name` | Official display/legal name | `BVBI Berliner Vereinigung für Immobilienmanagement GmbH` |
@@ -189,7 +189,7 @@ Sorted by `Metrixa Lead Score (0–100)` descending so the very best leads appea
 | **AA** | `Decision Maker / Company LinkedIn` | Clickable LinkedIn URL | `https://de.linkedin.com/in/...` |
 | **AB** | `General Company Email` | Fallback `info@` / `kontakt@` inbox | `info@bvbi.de` |
 | **AC** | `Company Phone` | E.164 / Formatted Berlin phone | `+49 30 8842100` |
-| **AD** | `AI Qualification Summary` | 1-sentence reason why this lead fits Heidi | `Large VDIV-certified WEG & Miet manager (4,500 units) using Casavi portal.` |
+| **AD** | `AI Qualification Summary` | 1-sentence reason why this lead fits Metrixa | `Large VDIV-certified WEG & Miet manager (4,500 units) using Casavi portal.` |
 | **AE** | `Data Sources Matched` | Provenance across scrapers | `vdiv, gelbe_seiten, 11880` |
 
 ### 3.2 Tab 2: `All_Decision_Makers_Contacts` (Bonus Task Deep-Dive)

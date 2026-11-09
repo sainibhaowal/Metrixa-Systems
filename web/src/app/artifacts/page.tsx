@@ -1293,7 +1293,7 @@ export default function ArtifactsLibraryPage() {
                                       {r.postal_code} {r.district}
                                     </td>
                                     <td className="py-1.5 px-2.5 text-emerald-400 font-bold">
-                                      {r.heidi_Confirm_score}
+                                      {r.lead_score || r.metrixa_lead_score}
                                     </td>
                                     <td className="py-1.5 px-2.5 text-zinc-300 whitespace-nowrap">
                                       {r.lead_tier}
@@ -1354,7 +1354,7 @@ export default function ArtifactsLibraryPage() {
                                       {r.postal_code} {r.district}
                                     </td>
                                     <td className="py-1.5 px-2.5 text-emerald-400 font-bold">
-                                      {r.heidi_Confirm_score}
+                                      {r.lead_score || r.metrixa_lead_score}
                                     </td>
                                     <td className="py-1.5 px-2.5 text-zinc-300 whitespace-nowrap">
                                       {r.lead_tier}

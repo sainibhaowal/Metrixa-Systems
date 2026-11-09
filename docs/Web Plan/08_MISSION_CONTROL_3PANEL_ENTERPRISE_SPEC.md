@@ -131,7 +131,7 @@ CREATE TABLE IF NOT EXISTS pipeline_runs (
 );
 ```
 
-### 4.2 New REST Endpoints in `src/heidi_engine/api/server.py`
+### 4.2 New REST Endpoints in `src/metrixa_engine/api/server.py`
 - `GET /api/pipeline/runs`: List historical runs with duration, counts, and status.
 - `GET /api/pipeline/runs/{run_id}`: Get full telemetry events, logs, and stage breakdowns for a specific run.
 - `GET /api/pipeline/runs/compare?run_a={id}&run_b={id}`: Compute exact diff of newly discovered companies, changed decision makers, and ERP switches between two runs.
