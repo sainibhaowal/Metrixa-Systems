@@ -1551,7 +1551,11 @@ export default function MissionControlPage() {
                 Pipeline Execution DAG Progression
               </span>
               <span className="text-xs font-mono text-emerald-400 font-semibold">
-                {running ? `${progress}% Active` : "100% Completed"}
+                {running
+                  ? `${progress}% Active`
+                  : runs.length > 0
+                    ? "100% Completed"
+                    : "Ready / Standby"}
               </span>
             </div>
 
@@ -1593,7 +1597,9 @@ export default function MissionControlPage() {
             <div className="w-full h-1.5 rounded-full bg-zinc-900 overflow-hidden">
               <div
                 className="h-full bg-emerald-500 rounded-full transition-all duration-300"
-                style={{ width: `${running ? progress : 100}%` }}
+                style={{
+                  width: `${running ? progress : runs.length > 0 ? 100 : 0}%`,
+                }}
               />
             </div>
           </div>
