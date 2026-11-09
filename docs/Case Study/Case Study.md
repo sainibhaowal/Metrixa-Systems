@@ -4,6 +4,7 @@
 **Affiliation:** Data Engineering & Distributed Systems Architecture
 **Primary Dataset:** Canonical Golden Record Ledger ($N = 1,200$)
 **Deliverable PDF:** `docs/Case Study/Case_Study_Heidi_Systems.pdf`
+**Deliverable PDF:** `docs/Case Study/Case_Study_Heidi_Systems.pdf`
 
 ---
 
@@ -17,11 +18,11 @@ Extracting verified go-to-market (GTM) intelligence within European small and me
 
 ## 1. Introduction and Problem Formulation
 
-Enterprise software and smart metering hardware deployments within metropolitan multi-family housing face significant sales fragmentation. In Germany, over 53% of households nationwide, and approximately 85% within the federal state of Berlin, reside in multi-family rental apartments (*Mietwohnungen*) or condominium owner associations (*Wohnungseigentümergemeinschaften*, WEG) (Statistisches Bundesamt, 2024). Under the European Energy Efficiency Directive (EED) and the German Heating Cost Ordinance (*Heizkostenverordnung*, HeizkostenV), building operators are legally mandated to deploy remotely readable submetering hardware (*Fernauslesung*) and supply monthly digital consumption data to occupants (Bundesministerium für Wirtschaft und Klimaschutz, 2021).
+Enterprise software and smart metering hardware deployments within metropolitan multi-family housing face significant sales fragmentation. In Germany, over 53% of households nationwide, and approximately 85% within the federal state of Berlin, reside in multi-family rental apartments (*Mietwohnungen*) or condominium owner associations (*Wohnungseigentümergemeinschaften*, WEG) (Bundesministerium der Justiz, 2020; Statistisches Bundesamt, 2024). Under the European Energy Efficiency Directive (European Parliament & Council of the European Union, 2018) and the German Heating Cost Ordinance (*Heizkostenverordnung*, HeizkostenV), building operators are legally mandated to deploy remotely readable submetering hardware (*Fernauslesung*) and supply monthly digital consumption data to occupants (Bundesministerium für Wirtschaft und Klimaschutz, 2021).
 
 For enterprise solution providers, professional property managers (*Hausverwaltungen*) constitute the primary institutional decision makers. Securing a single property management account brings hundreds or thousands of residential units onto a technology platform simultaneously. Nevertheless, discovering and qualifying these private commercial operators via standard B2B databases reveals three persistent market failures:
 
-1. **Severe Enterprise Fragmentation:** The sector is overwhelmingly dominated by private SME entities (GmbH, UG, GmbH & Co. KG, and e.K.) managing between 300 and 5,000 residential units. Commercial credit bureaus often lack granular, up-to-date operating attributes for such regional entities.
+1. **Severe Enterprise Fragmentation:** The sector is overwhelmingly dominated by private SME entities (GmbH, UG, GmbH & Co. KG, and e.K.) managing between 300 and 5,000 residential units. According to national property management surveys (Verband der Immobilienverwalter Deutschland e.V. [VDIV], 2024), over 80% of German property management firms operate with small local teams, and commercial credit bureaus often lack granular, up-to-date operating attributes for such regional entities.
 2. **Social Media Absence:** Empirical field analysis reveals that fewer than 18% of German property management executives maintain active professional LinkedIn profiles, rendering social-graph scrapers largely ineffective.
 3. **Administrative Gatekeeping:** Publicly visible contact listings are uniformly guarded by generic departmental addresses (such as `info@`, `kontakt@`, or `verwaltung@`), preventing direct communication with managing directors.
 
@@ -62,7 +63,7 @@ Entity deduplication is formalized as a graph connected-components problem and s
 
 $$E(r_i, r_j) = 1 \iff \left(d_i = d_j \land d_i \notin D_{\text{excl}}\right) \lor \left(p_i = p_j \land p_i \neq \emptyset\right) \lor \left(\text{Sim}_{\text{JW}}(n_i, n_j) \ge 0.88 \land \text{PLZ}_i = \text{PLZ}_j\right)$$
 
-where $d_i$ denotes the canonical corporate domain, $p_i$ is the E.164 phone number, and $\text{Sim}_{\text{JW}}(n_i, n_j)$ is the token-sort Jaro-Winkler string similarity between normalized corporate names within identical five-digit postal boundaries ($\text{PLZ}_i = \text{PLZ}_j$) (Navarro, 2001). Executing this equation across all 1,375 raw directory records consolidated **175 redundant listings**, establishing an authoritative golden ledger of **1,200 unique operating entities**.
+where $d_i$ denotes the canonical corporate domain, $p_i$ is the E.164 phone number, and $\text{Sim}_{\text{JW}}(n_i, n_j)$ is the token-sort Jaro-Winkler string similarity between normalized corporate names within identical five-digit postal boundaries ($\text{PLZ}_i = \text{PLZ}_j$), grounded in approximate string matching and edit distance principles (Levenshtein, 1966; Navarro, 2001). Executing this equation across all 1,375 raw directory records consolidated **175 redundant listings**, establishing an authoritative golden ledger of **1,200 unique operating entities**.
 
 **Table 3:** *Complete Geographic Distribution Across All 12 Berlin Administrative Districts ($N = 1,200$)*
 

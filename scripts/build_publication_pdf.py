@@ -623,13 +623,13 @@ def build_full_html():
 
     <h2 class="section-title">1. Introduction and Problem Formulation</h2>
     <p class="noindent">
-      Enterprise software and smart metering hardware deployments within metropolitan multi-family housing face significant sales fragmentation. In Germany, over 53% of households nationwide, and approximately 85% within the federal state of Berlin, reside in multi-family rental apartments (<i>Mietwohnungen</i>) or condominium owner associations (<i>Wohnungseigent&uuml;mergemeinschaften</i>, WEG) (Statistisches Bundesamt, 2024). Under the European Energy Efficiency Directive (EED) and the German Heating Cost Ordinance (<i>Heizkostenverordnung</i>, HeizkostenV), building operators are legally mandated to deploy remotely readable submetering hardware (<i>Fernauslesung</i>) and supply monthly digital consumption data to occupants (Bundesministerium f&uuml;r Wirtschaft und Klimaschutz, 2021).
+      Enterprise software and smart metering hardware deployments within metropolitan multi-family housing face significant sales fragmentation. In Germany, over 53% of households nationwide, and approximately 85% within the federal state of Berlin, reside in multi-family rental apartments (<i>Mietwohnungen</i>) or condominium owner associations (<i>Wohnungseigent&uuml;mergemeinschaften</i>, WEG) (Bundesministerium der Justiz, 2020; Statistisches Bundesamt, 2024). Under the European Energy Efficiency Directive (European Parliament &amp; Council of the European Union, 2018) and the German Heating Cost Ordinance (<i>Heizkostenverordnung</i>, HeizkostenV), building operators are legally mandated to deploy remotely readable submetering hardware (<i>Fernauslesung</i>) and supply monthly digital consumption data to occupants (Bundesministerium f&uuml;r Wirtschaft und Klimaschutz, 2021).
     </p>
     <p>
       For enterprise solution providers, professional property managers (<i>Hausverwaltungen</i>) constitute the primary institutional decision makers. Securing a single property management account brings hundreds or thousands of residential units onto a technology platform simultaneously. Nevertheless, discovering and qualifying these private commercial operators via standard B2B databases reveals three persistent market failures:
     </p>
     <ul>
-      <li><b>Severe Enterprise Fragmentation:</b> The sector is overwhelmingly dominated by private SME entities (GmbH, UG, GmbH &amp; Co. KG, and e.K.) managing between 300 and 5,000 residential units. Commercial credit bureaus often lack granular, up-to-date operating attributes for such regional entities.</li>
+      <li><b>Severe Enterprise Fragmentation:</b> The sector is overwhelmingly dominated by private SME entities (GmbH, UG, GmbH &amp; Co. KG, and e.K.) managing between 300 and 5,000 residential units. According to national property management surveys (Verband der Immobilienverwalter Deutschland e.V. [VDIV], 2024), over 80% of German property management firms operate with small local teams, and commercial credit bureaus often lack granular, up-to-date operating attributes for such regional entities.</li>
       <li><b>Social Media Absence:</b> Empirical field analysis reveals that fewer than 18% of German property management executives maintain active professional LinkedIn profiles, rendering social-graph scrapers largely ineffective.</li>
       <li><b>Administrative Gatekeeping:</b> Publicly visible contact listings are uniformly guarded by generic departmental addresses (such as <code>info@</code>, <code>kontakt@</code>, or <code>verwaltung@</code>), preventing direct communication with managing directors.</li>
     </ul>
@@ -766,7 +766,7 @@ def build_full_html():
       <div class="equation-number">(1)</div>
     </div>
     <p class="noindent">
-      where $d_i$ denotes the canonical corporate domain, $p_i$ is the E.164 phone number, and $\\text{{Sim}}_{{\\text{{JW}}}}(n_i, n_j)$ is the token-sort Jaro-Winkler string similarity between normalized corporate names within identical five-digit postal boundaries ($\\text{{PLZ}}_i = \\text{{PLZ}}_j$) (Navarro, 2001). Executing Equation (1) across all 1,375 raw directory records consolidated <b>175 redundant listings</b>, establishing an authoritative golden ledger of <b>1,200 unique operating entities</b>.
+      where $d_i$ denotes the canonical corporate domain, $p_i$ is the E.164 phone number, and $\\text{{Sim}}_{{\\text{{JW}}}}(n_i, n_j)$ is the token-sort Jaro-Winkler string similarity between normalized corporate names within identical five-digit postal boundaries ($\\text{{PLZ}}_i = \\text{{PLZ}}_j$), grounded in approximate string matching and edit distance principles (Levenshtein, 1966; Navarro, 2001). Executing Equation (1) across all 1,375 raw directory records consolidated <b>175 redundant listings</b>, establishing an authoritative golden ledger of <b>1,200 unique operating entities</b>.
     </p>
 
     <div class="figure-container">
