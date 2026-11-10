@@ -5,6 +5,7 @@ Entity Resolution & Golden Record Survivorship Engine.
 
 from __future__ import annotations
 
+import json
 from collections import defaultdict
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Set, Tuple
@@ -96,7 +97,7 @@ class EntityDeduplicator:
             return True
 
         plz_a = rec_a["clean_plz"]
-        plz_b = rec_a["clean_plz"]
+        plz_b = rec_b["clean_plz"]
         if plz_a and plz_b and plz_a == plz_b and sim >= 90:
             return True
 
@@ -110,14 +111,30 @@ class EntityDeduplicator:
         Read all raw_listings, normalize attributes, apply eligibility filter,
         cluster via Multi-Key Blocking + Union-Find, and upsert into companies_golden.
         """
-        raw_rows = self.db.get_all_raw_listings()
+        all_raw_rows = self.db.get_all_raw_listings()
+        raw_rows: List[Dict[str, Any]] = []
+        source_review_excluded = 0
+        for row in all_raw_rows:
+            try:
+                payload = json.loads(row.get("raw_json_payload") or "{}")
+            except (TypeError, json.JSONDecodeError):
+                payload = {}
+            if (
+                isinstance(payload, dict)
+                and payload.get("legacy_curated_vdiv_registry_requires_review") is True
+            ):
+                source_review_excluded += 1
+                continue
+            raw_rows.append(row)
+
         if not raw_rows:
             return {
-                "raw_total": 0,
+                "raw_total": len(all_raw_rows),
                 "eligible_count": 0,
                 "disqualified_count": 0,
                 "golden_clusters": 0,
                 "duplicates_merged": 0,
+                "source_review_excluded": source_review_excluded,
             }
 
         eligible_records: List[Dict[str, Any]] = []
@@ -338,6 +355,16 @@ class EntityDeduplicator:
                     )
                     comp_id = cur.lastrowid
 
+                conn.execute(
+                    """
+                    DELETE FROM company_sources_map
+                    WHERE company_id = ? AND raw_listing_id IN (
+                        SELECT id FROM raw_listings
+                        WHERE raw_json_payload LIKE '%legacy_curated_vdiv_registry_requires_review%'
+                    )
+                    """,
+                    (comp_id,),
+                )
                 for m in cluster_members:
                     conn.execute(
                         "INSERT OR IGNORE INTO company_sources_map (company_id, raw_listing_id) VALUES (?, ?)",
@@ -347,9 +374,10 @@ class EntityDeduplicator:
 
         duplicates_merged = max(0, len(eligible_records) - len(clusters))
         return {
-            "raw_total": len(raw_rows),
+            "raw_total": len(all_raw_rows),
             "eligible_count": len(eligible_records),
             "disqualified_count": len(disqualified_records),
             "golden_clusters": len(clusters),
             "duplicates_merged": duplicates_merged,
+            "source_review_excluded": source_review_excluded,
         }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Search,
   Filter,
@@ -17,7 +17,7 @@ import {
   Download,
   MapPin,
 } from "lucide-react";
-import { fetchLeads } from "@/lib/api";
+import { apiUrl, fetchLeads } from "@/lib/api";
 import { getTierColorClasses, formatNumber } from "@/lib/utils";
 import { EvidenceDrawer } from "@/components/leads/EvidenceDrawer";
 import { RoundedSelect, SelectOption } from "@/components/ui/RoundedSelect";
@@ -74,7 +74,7 @@ export default function LeadsExplorerPage() {
   );
   const [copiedId, setCopiedId] = useState<number | null>(null);
 
-  const loadLeads = () => {
+  const loadLeads = useCallback(() => {
     setLoading(true);
     fetchLeads({
       q: search || undefined,
@@ -93,12 +93,12 @@ export default function LeadsExplorerPage() {
       })
       .catch(console.error)
       .finally(() => setLoading(false));
-  };
+  }, [search, tier, district, hasDm, hasEmail, hasErp, page]);
 
   useEffect(() => {
     const timer = setTimeout(loadLeads, 200);
     return () => clearTimeout(timer);
-  }, [search, tier, district, hasDm, hasEmail, hasErp, page]);
+  }, [loadLeads]);
 
   const copyEmail = (companyId: number, email: string) => {
     navigator.clipboard.writeText(email);
@@ -118,13 +118,13 @@ export default function LeadsExplorerPage() {
             </span>
           </h1>
           <p className="text-xs text-zinc-400 mt-1">
-            Browse, filter, and inspect verified Berlin Hausverwaltungen with
-            100% evidence-grounded decision makers.
+            Browse current records and review the stored source evidence and
+            contact status for each company.
           </p>
         </div>
 
         <a
-          href="http://127.0.0.1:8000/api/artifacts/download/excel"
+          href={apiUrl("/api/artifacts/download/excel")}
           download
           className="flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-200 text-xs font-semibold border border-zinc-800 transition-all self-start sm:self-auto"
         >
@@ -389,21 +389,27 @@ export default function LeadsExplorerPage() {
                       onClick={(e) => e.stopPropagation()}
                     >
                       {lead.personal_email ? (
-                        <button
-                          onClick={() =>
-                            copyEmail(lead.company_id, lead.personal_email)
-                          }
-                          className="flex items-center gap-1.5 px-2 py-1 rounded bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white hover:border-emerald-500 transition-all group/btn"
-                        >
-                          {copiedId === lead.company_id ? (
-                            <Check className="w-3 h-3 text-emerald-400" />
-                          ) : (
-                            <Copy className="w-3 h-3 text-zinc-500 group-hover/btn:text-emerald-400" />
-                          )}
-                          <span className="truncate max-w-[130px]">
-                            {lead.personal_email}
+                        <div className="flex flex-col items-start gap-1">
+                          <button
+                            onClick={() =>
+                              copyEmail(lead.company_id, lead.personal_email)
+                            }
+                            className="flex items-center gap-1.5 px-2 py-1 rounded bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white hover:border-emerald-500 transition-all group/btn"
+                          >
+                            {copiedId === lead.company_id ? (
+                              <Check className="w-3 h-3 text-emerald-400" />
+                            ) : (
+                              <Copy className="w-3 h-3 text-zinc-500 group-hover/btn:text-emerald-400" />
+                            )}
+                            <span className="truncate max-w-[130px]">
+                              {lead.personal_email}
+                            </span>
+                          </button>
+                          <span className="max-w-[190px] text-[9px] leading-tight text-amber-400">
+                            {lead.email_status ||
+                              "Email evidence status unknown"}
                           </span>
-                        </button>
+                        </div>
                       ) : (
                         <span className="text-zinc-600">-</span>
                       )}

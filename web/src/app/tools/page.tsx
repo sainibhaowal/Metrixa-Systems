@@ -28,7 +28,7 @@ interface ToolHealthResult {
   latency_ms: number;
   target: string;
   probe_result: string;
-  verified_records: number;
+  records_checked?: number;
   message: string;
   details?: any;
 }
@@ -50,7 +50,7 @@ export default function ToolsCatalogPage() {
   // Interactive Execution Playground State
   const [activeExecToolId, setActiveExecToolId] =
     useState<string>("tool_mx_verifier");
-  const [execInput, setExecInput] = useState<string>("degewo.de");
+  const [execInput, setExecInput] = useState<string>("");
   const [isExecuting, setIsExecuting] = useState(false);
   const [execResult, setExecResult] = useState<ToolExecResult | null>(null);
 
@@ -81,7 +81,6 @@ export default function ToolsCatalogPage() {
         latency_ms: 0,
         target: "Backend Gateway",
         probe_result: "Connection error",
-        verified_records: 0,
         message: err?.message || "Health test failed",
       });
     } finally {
@@ -114,19 +113,7 @@ export default function ToolsCatalogPage() {
   const handleSelectExecTool = (toolId: string) => {
     setActiveExecToolId(toolId);
     setExecResult(null);
-    if (toolId === "tool_mx_verifier") {
-      setExecInput("degewo.de");
-    } else if (toolId === "tool_crawler") {
-      setExecInput(
-        "Kundenportal: casavi.de aktiv. Buchhaltung Domus 4000. Messdienst Techem. Email: info@berlin-hausverwaltung.de",
-      );
-    } else if (toolId === "tool_vdiv") {
-      setExecInput("Berlin");
-    } else if (toolId === "tool_osm") {
-      setExecInput("Mitte");
-    } else {
-      setExecInput("Charlottenburg");
-    }
+    setExecInput("");
   };
 
   const getToolIcon = (id: string) => {
@@ -156,13 +143,13 @@ export default function ToolsCatalogPage() {
           <h1 className="text-2xl font-bold tracking-tight text-zinc-100 flex items-center gap-2.5">
             <span>Agentic Tools Catalog</span>
             <span className="text-xs px-2.5 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono">
-              {tools.length} Operational Python Modules
+              {tools.length} Registered Modules
             </span>
           </h1>
           <p className="text-xs text-zinc-400 mt-1">
-            Production-grade scrapers, HTTP/2 subpage crawlers, regex DOM
-            analyzers, and RFC-5321 DNS MX resolvers powering the Berlin
-            property management intelligence pipeline.
+            Registered scrapers, HTTP/2 subpage crawlers, DOM analyzers, and DNS
+            MX resolvers for the Berlin property management workflow. Use each
+            Health action to probe live availability.
           </p>
         </div>
 
@@ -203,9 +190,9 @@ export default function ToolsCatalogPage() {
                       {t.category}
                     </span>
                   </div>
-                  <span className="flex items-center gap-1 text-[11px] font-mono text-emerald-400 font-semibold">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    ONLINE
+                  <span className="flex items-center gap-1 text-[11px] font-mono text-zinc-400 font-semibold">
+                    <Wrench className="w-3.5 h-3.5" />
+                    REGISTERED
                   </span>
                 </div>
 
@@ -269,24 +256,57 @@ export default function ToolsCatalogPage() {
 
       {/* Live Health Test Results Banner */}
       {testResult && (
-        <div className="p-4 rounded-2xl bg-[#111114] border border-emerald-500/40 shadow-matte space-y-2 font-mono text-xs animate-in fade-in">
+        <div
+          className={`p-4 rounded-2xl bg-[#111114] shadow-matte space-y-2 font-mono text-xs animate-in fade-in ${
+            testResult.status === "OK"
+              ? "border border-emerald-500/40"
+              : testResult.status === "DEGRADED"
+                ? "border border-amber-500/40"
+                : "border border-rose-500/40"
+          }`}
+        >
           <div className="flex items-center justify-between gap-2 border-b border-zinc-800/80 pb-2">
-            <div className="flex items-center gap-2 text-emerald-400 font-bold">
-              <CheckCircle2 className="w-4 h-4" />
-              <span>Live Health Check Passed: {testResult.tool_id}</span>
+            <div
+              className={`flex items-center gap-2 font-bold ${
+                testResult.status === "OK"
+                  ? "text-emerald-400"
+                  : testResult.status === "DEGRADED"
+                    ? "text-amber-400"
+                    : "text-rose-400"
+              }`}
+            >
+              {testResult.status === "OK" ? (
+                <CheckCircle2 className="w-4 h-4" />
+              ) : (
+                <Activity className="w-4 h-4" />
+              )}
+              <span>
+                {testResult.status === "OK"
+                  ? "Health Check Passed"
+                  : testResult.status === "DEGRADED"
+                    ? "Health Check Degraded"
+                    : "Health Check Failed"}
+                : {testResult.tool_id}
+              </span>
             </div>
             <div className="flex items-center gap-2 text-[11px] text-zinc-400">
               <span>
                 Latency:{" "}
-                <strong className="text-emerald-400">
+                <strong
+                  className={
+                    testResult.status === "OK"
+                      ? "text-emerald-400"
+                      : "text-zinc-200"
+                  }
+                >
                   {testResult.latency_ms}ms
                 </strong>
               </span>
               <span>•</span>
               <span>
-                Verified Records:{" "}
+                Real records checked:{" "}
                 <strong className="text-zinc-200">
-                  {testResult.verified_records}
+                  {testResult.records_checked ?? "—"}
                 </strong>
               </span>
             </div>
@@ -299,7 +319,15 @@ export default function ToolsCatalogPage() {
             </div>
             <div>
               <span className="text-zinc-500">Live Probe: </span>
-              <span className="text-emerald-300 font-semibold">
+              <span
+                className={`font-semibold ${
+                  testResult.status === "OK"
+                    ? "text-emerald-300"
+                    : testResult.status === "DEGRADED"
+                      ? "text-amber-300"
+                      : "text-rose-300"
+                }`}
+              >
                 {testResult.probe_result}
               </span>
             </div>
@@ -360,70 +388,10 @@ export default function ToolsCatalogPage() {
               </span>
             </label>
 
-            {/* Quick Sample Presets */}
-            <div className="flex items-center gap-1.5 text-[10px] font-mono">
-              <span className="text-zinc-500 hidden sm:inline">Presets:</span>
-              {activeExecToolId === "tool_mx_verifier" ? (
-                <>
-                  {["degewo.de", "gewobag.de", "casavi.de", "haufe.de"].map(
-                    (preset) => (
-                      <button
-                        key={preset}
-                        onClick={() => {
-                          setExecInput(preset);
-                          handleExecuteTool(preset);
-                        }}
-                        className="px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-emerald-400 transition-colors"
-                      >
-                        {preset}
-                      </button>
-                    ),
-                  )}
-                </>
-              ) : activeExecToolId === "tool_crawler" ? (
-                <>
-                  <button
-                    onClick={() => {
-                      const snippet =
-                        "Kundenportal: casavi.de aktiv. Buchhaltung Domus 4000. Messdienst Techem. Email: kontakt@berlin-wohnen.de";
-                      setExecInput(snippet);
-                      handleExecuteTool(snippet);
-                    }}
-                    className="px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-emerald-400 transition-colors"
-                  >
-                    Casavi + Domus
-                  </button>
-                  <button
-                    onClick={() => {
-                      const snippet =
-                        "Portal: etg24.de. ERP: Haufe PowerHaus. Messdienst: Brunata-Metrona. Email: gf [at] weg-hausverwaltung.de";
-                      setExecInput(snippet);
-                      handleExecuteTool(snippet);
-                    }}
-                    className="px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-emerald-400 transition-colors"
-                  >
-                    etg24 + Haufe
-                  </button>
-                </>
-              ) : (
-                <>
-                  {["Mitte", "Charlottenburg", "Pankow", "Immobilien"].map(
-                    (preset) => (
-                      <button
-                        key={preset}
-                        onClick={() => {
-                          setExecInput(preset);
-                          handleExecuteTool(preset);
-                        }}
-                        className="px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-emerald-400 transition-colors"
-                      >
-                        {preset}
-                      </button>
-                    ),
-                  )}
-                </>
-              )}
-            </div>
+            <p className="text-[10px] text-zinc-500 font-mono">
+              Enter a real domain, text, or filter value. The tool will not
+              insert sample input for you.
+            </p>
           </div>
 
           <div className="flex gap-2">
@@ -434,10 +402,10 @@ export default function ToolsCatalogPage() {
               onKeyDown={(e) => e.key === "Enter" && handleExecuteTool()}
               placeholder={
                 activeExecToolId === "tool_mx_verifier"
-                  ? "e.g. degewo.de or contact@casavi.de"
+                  ? "Enter a company domain or email address"
                   : activeExecToolId === "tool_crawler"
-                    ? "e.g. Paste HTML or text snippet..."
-                    : "e.g. Filter by company name or district..."
+                    ? "Paste real website HTML or text to inspect"
+                    : "Enter a company name or district from your data"
               }
               className="flex-1 px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-mono text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-emerald-500 transition-all"
             />

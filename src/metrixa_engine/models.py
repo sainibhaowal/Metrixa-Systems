@@ -30,10 +30,29 @@ class LeadTier(str, Enum):
 
 
 class EmailVerificationStatus(str, Enum):
-    PUBLIC_DIRECT_VERIFIED = "PUBLIC_DIRECT_VERIFIED"
-    PATTERN_MX_VERIFIED = "PATTERN_MX_VERIFIED"
+    PUBLIC_LISTED = "PUBLIC_LISTED"
+    PATTERN_CANDIDATE_MX = "PATTERN_CANDIDATE_MX"
     GENERIC_ONLY = "GENERIC_ONLY"
     NONE = "NONE"
+
+
+def normalize_email_status(value: Optional[str]) -> str:
+    """Translate legacy status codes without claiming mailbox verification."""
+    status = (value or EmailVerificationStatus.NONE.value).strip().upper()
+    return {
+        "PUBLIC_DIRECT_VERIFIED": EmailVerificationStatus.PUBLIC_LISTED.value,
+        "PATTERN_MX_VERIFIED": EmailVerificationStatus.PATTERN_CANDIDATE_MX.value,
+    }.get(status, status)
+
+
+def email_status_label(value: Optional[str]) -> str:
+    """Human-readable email evidence level; DNS MX does not verify a mailbox."""
+    return {
+        EmailVerificationStatus.PUBLIC_LISTED.value: "Publicly listed; mailbox not tested",
+        EmailVerificationStatus.PATTERN_CANDIDATE_MX.value: "Pattern candidate; domain MX only",
+        EmailVerificationStatus.GENERIC_ONLY.value: "Generic inbox",
+        EmailVerificationStatus.NONE.value: "No email found",
+    }.get(normalize_email_status(value), "Unclassified")
 
 
 class UnitsSizeTier(str, Enum):

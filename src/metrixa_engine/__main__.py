@@ -7,13 +7,14 @@ All pipeline orchestration, leads exploration, and telemetry run 100% via the We
 from __future__ import annotations
 
 import uvicorn
+from metrixa_engine.config import settings
 
 
 def main() -> None:
     uvicorn.run(
         "metrixa_engine.api.server:app",
-        host="127.0.0.1",
-        port=8000,
+        host=settings.api_host,
+        port=settings.api_port,
         reload=False,
     )
 

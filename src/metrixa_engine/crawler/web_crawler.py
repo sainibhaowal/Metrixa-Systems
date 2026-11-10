@@ -7,8 +7,10 @@ detects DOM PropTech/ERP & Metering signatures, and extracts clean Markdown text
 from __future__ import annotations
 
 import asyncio
+import ipaddress
 import random
 import re
+import socket
 import urllib.parse
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple
@@ -88,6 +90,34 @@ class AsyncWebsiteCrawler:
         self.db = db
         self.concurrency = concurrency or settings.max_concurrent_crawls
         self.semaphore = asyncio.Semaphore(self.concurrency)
+
+    @staticmethod
+    async def _is_safe_url(url: str) -> bool:
+        """Reject non-web schemes and non-public destinations to reduce SSRF risk."""
+        try:
+            parsed = urllib.parse.urlsplit(url)
+            host = parsed.hostname
+            if (
+                parsed.scheme.lower() not in ("http", "https")
+                or not host
+                or parsed.username
+                or parsed.password
+            ):
+                return False
+            if settings.allow_private_crawler_targets:
+                return True
+
+            try:
+                addresses = {ipaddress.ip_address(host)}
+            except ValueError:
+                port = parsed.port or (443 if parsed.scheme.lower() == "https" else 80)
+                results = await asyncio.get_running_loop().getaddrinfo(
+                    host, port, type=socket.SOCK_STREAM
+                )
+                addresses = {ipaddress.ip_address(result[4][0]) for result in results}
+            return bool(addresses) and all(address.is_global for address in addresses)
+        except (OSError, ValueError):
+            return False
 
     @staticmethod
     def html_to_clean_markdown(raw_html: str, page_type: str = "homepage") -> str:
@@ -206,23 +236,35 @@ class AsyncWebsiteCrawler:
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
             "Accept-Language": "de-DE,de;q=0.9,en;q=0.8",
         }
+        current_url = url
         try:
-            resp = await client.get(
-                url,
-                headers=headers,
-                timeout=settings.http_timeout_seconds,
-                follow_redirects=True,
-            )
-            content_type = resp.headers.get("content-type", "").lower()
-            if (
-                "text/html" in content_type
-                or "application/xhtml" in content_type
-                or not content_type
-            ):
-                return resp.status_code, str(resp.url), resp.text
-            return resp.status_code, str(resp.url), ""
+            for _ in range(6):
+                if not await self._is_safe_url(current_url):
+                    return 0, current_url, ""
+                resp = await client.get(
+                    current_url,
+                    headers=headers,
+                    timeout=settings.http_timeout_seconds,
+                    follow_redirects=False,
+                )
+                if resp.status_code in (301, 302, 303, 307, 308):
+                    location = resp.headers.get("location")
+                    if not location:
+                        return resp.status_code, str(resp.url), ""
+                    current_url = urllib.parse.urljoin(current_url, location)
+                    continue
+
+                content_type = resp.headers.get("content-type", "").lower()
+                if (
+                    "text/html" in content_type
+                    or "application/xhtml" in content_type
+                    or not content_type
+                ):
+                    return resp.status_code, str(resp.url), resp.text
+                return resp.status_code, str(resp.url), ""
+            return 0, current_url, ""
         except Exception:
-            return 0, url, ""
+            return 0, current_url, ""
 
     async def crawl_single_company(
         self, client: httpx.AsyncClient, company_id: int, website_url: str
@@ -370,7 +412,7 @@ class AsyncWebsiteCrawler:
         pages_saved = 0
         completed = 0
 
-        async with httpx.AsyncClient(http2=True, verify=False) as client:  # nosec B501
+        async with httpx.AsyncClient(http2=True, trust_env=False) as client:
             # Mark companies without website as CRAWLED immediately so they proceed to extraction/scoring
             no_web_ids = [r["company_id"] for r in rows if not r["website_url"]]
             if no_web_ids:

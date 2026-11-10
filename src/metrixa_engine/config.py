@@ -9,6 +9,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 from typing import List, Optional
+from urllib.parse import urlsplit
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 
@@ -17,20 +18,56 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(PROJECT_ROOT / ".env", override=False)
 
 
+def _project_path(name: str, default: Path) -> Path:
+    """Resolve configured paths predictably, with relative values rooted at the project."""
+    value = os.getenv(name)
+    candidate = Path(value).expanduser() if value else default
+    if not candidate.is_absolute():
+        candidate = PROJECT_ROOT / candidate
+    return candidate.resolve()
+
+
+def _cors_origins() -> List[str]:
+    value = os.getenv("CORS_ORIGINS")
+    if value is None:
+        return ["http://localhost:3000", "http://127.0.0.1:3000"]
+    origins = [
+        origin.strip().rstrip("/") for origin in value.split(",") if origin.strip()
+    ]
+    for origin in origins:
+        parsed = urlsplit(origin)
+        if origin == "*":
+            raise ValueError(
+                "CORS_ORIGINS cannot contain '*' while credentialed CORS is enabled."
+            )
+        if (
+            parsed.scheme not in ("http", "https")
+            or not parsed.netloc
+            or parsed.path
+            or parsed.query
+            or parsed.fragment
+        ):
+            raise ValueError(
+                f"Invalid CORS origin {origin!r}; provide an http(s) scheme and host only."
+            )
+    return origins
+
+
 class Settings(BaseModel):
     """Central runtime configuration for Metrixa Engine."""
 
     project_root: Path = Field(default=PROJECT_ROOT)
     database_path: Path = Field(
-        default_factory=lambda: (
-            PROJECT_ROOT / "data" / "metrixa_leads.db"
-            if (PROJECT_ROOT / "data" / "metrixa_leads.db").exists()
-            else PROJECT_ROOT / os.getenv("DATABASE_PATH", "data/metrixa_leads.db")
+        default_factory=lambda: _project_path(
+            "DATABASE_PATH", Path("data") / "metrixa_leads.db"
         )
     )
     export_dir: Path = Field(
-        default_factory=lambda: PROJECT_ROOT / os.getenv("EXPORT_DIR", "data/exports")
+        default_factory=lambda: _project_path("EXPORT_DIR", Path("data") / "exports")
     )
+    cors_origins: List[str] = Field(default_factory=_cors_origins)
+    api_host: str = Field(default_factory=lambda: os.getenv("API_HOST", "127.0.0.1"))
+    api_port: int = Field(default_factory=lambda: int(os.getenv("API_PORT", "8000")))
     gold_set_path: Path = Field(
         default_factory=lambda: PROJECT_ROOT / "data" / "gold_set_berlin_30.json"
     )
@@ -166,6 +203,12 @@ class Settings(BaseModel):
     )
     enable_dns_mx_check: bool = Field(
         default_factory=lambda: os.getenv("ENABLE_DNS_MX_CHECK", "true").lower()
+        == "true"
+    )
+    allow_private_crawler_targets: bool = Field(
+        default_factory=lambda: os.getenv(
+            "ALLOW_PRIVATE_CRAWLER_TARGETS", "false"
+        ).lower()
         == "true"
     )
 

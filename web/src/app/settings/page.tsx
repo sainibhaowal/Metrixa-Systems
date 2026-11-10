@@ -166,7 +166,7 @@ const SEARCH_PROVIDERS: SearchProviderDef[] = [
     badge: "Local Default Active",
     defaultBaseUrl: "http://127.0.0.1:8888",
     requiresKey: false,
-    desc: "Private self-hosted meta-search engine aggregating Google, Bing, Qwant, and DuckDuckGo with zero query limits.",
+    desc: "Self-hosted meta-search. Upstream engines, limits, and privacy depend on this instance's configuration.",
   },
   {
     id: "tavily",
@@ -179,12 +179,12 @@ const SEARCH_PROVIDERS: SearchProviderDef[] = [
   },
   {
     id: "native_metasearch",
-    name: "Native Directory Pipeline",
+    name: "Native Public Web Search",
     category: "system",
-    badge: "Air-Gapped Scrapers",
+    badge: "Directory Scrapers",
     defaultBaseUrl: "internal://scrapers",
     requiresKey: false,
-    desc: "Direct German directory scrapers: Gelbe Seiten, 11880, and VDIV Berlin-Brandenburg with XOR decoders.",
+    desc: "Queries public DuckDuckGo and Brave web pages directly from this laptop.",
   },
   {
     id: "brave",
@@ -193,7 +193,7 @@ const SEARCH_PROVIDERS: SearchProviderDef[] = [
     badge: "Independent Index",
     defaultBaseUrl: "https://api.search.brave.com/res/v1",
     requiresKey: true,
-    desc: "Privacy-focused independent web index with 2,000 free queries per month.",
+    desc: "Search API. Availability, limits, and data handling depend on your provider plan and settings.",
   },
   {
     id: "google_cse",
@@ -202,7 +202,7 @@ const SEARCH_PROVIDERS: SearchProviderDef[] = [
     badge: "Google Cloud",
     defaultBaseUrl: "https://www.googleapis.com/customsearch/v1",
     requiresKey: true,
-    desc: "Official Google Search JSON API for high-precision Berlin company domain discovery.",
+    desc: "Google Custom Search API. Requires an API key and a configured Search Engine ID.",
   },
 ];
 
@@ -292,8 +292,9 @@ export default function SettingsHubPage() {
   // Form states for Search
   const [searchBaseUrl, setSearchBaseUrl] = useState<string>("");
   const [searchApiKey, setSearchApiKey] = useState<string>("");
+  const [searchEngineId, setSearchEngineId] = useState<string>("");
   const [showSearchKey, setShowSearchKey] = useState<boolean>(false);
-  const [testQuery, setTestQuery] = useState<string>("Hausverwaltung Berlin");
+  const [testQuery, setTestQuery] = useState<string>("");
 
   // Ping and apply states
   const [pinging, setPinging] = useState<boolean>(false);
@@ -397,6 +398,7 @@ export default function SettingsHubPage() {
     if (!cfg) {
       setSearchBaseUrl(selectedSearchDef.defaultBaseUrl);
       setSearchApiKey("");
+      setSearchEngineId("");
       return;
     }
 
@@ -405,9 +407,15 @@ export default function SettingsHubPage() {
         cfg.searxng_base_url || selectedSearchDef.defaultBaseUrl,
       );
       setSearchApiKey("");
+      setSearchEngineId("");
+    } else if (selectedSearchId === "google_cse") {
+      setSearchBaseUrl(selectedSearchDef.defaultBaseUrl);
+      setSearchApiKey("");
+      setSearchEngineId(cfg.google_cse_id || "");
     } else {
       setSearchBaseUrl(selectedSearchDef.defaultBaseUrl);
       setSearchApiKey("");
+      setSearchEngineId("");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSearchId, cfg]);
@@ -483,11 +491,20 @@ export default function SettingsHubPage() {
         });
         setPingResult(res);
       } else {
+        if (!testQuery.trim()) {
+          setPingResult({
+            status: "error",
+            latency_ms: 0,
+            error: "Enter a real search query before testing this provider.",
+          });
+          return;
+        }
         const res = await pingSearchProvider({
           provider: selectedSearchId,
           base_url: searchBaseUrl || undefined,
           api_key: searchApiKey || undefined,
-          query: testQuery || "Hausverwaltung Berlin",
+          google_cse_id: searchEngineId || undefined,
+          query: testQuery.trim(),
         });
         setPingResult(res);
       }
@@ -548,6 +565,8 @@ export default function SettingsHubPage() {
           if (searchApiKey) payload.brave_search_api_key = searchApiKey;
         } else if (selectedSearchId === "google_cse") {
           if (searchApiKey) payload.google_cse_api_key = searchApiKey;
+          if (searchEngineId.trim())
+            payload.google_cse_id = searchEngineId.trim();
         }
         await saveSettings(payload);
         setActiveSearch(selectedSearchId);
@@ -577,7 +596,8 @@ export default function SettingsHubPage() {
   const isSearchConfigured = (id: string): boolean => {
     if (!cfg) return false;
     if (id === "tavily") return cfg.tavily_configured;
-    if (id === "google_cse") return cfg.google_cse_configured;
+    if (id === "google_cse")
+      return cfg.google_cse_configured && Boolean(cfg.google_cse_id);
     if (id === "brave") return cfg.brave_configured;
     return true;
   };
@@ -1443,7 +1463,7 @@ export default function SettingsHubPage() {
                         <Globe className="w-3 h-3 text-zinc-400" />
                       )}
                       {selectedSearchDef.id === "searxng"
-                        ? "100% Local Guard: Queries stay strictly on your machine"
+                        ? "Requests go to the configured SearXNG instance; upstream behavior depends on its configuration."
                         : "Cloud Search Provider"}
                     </span>
                     <span>•</span>
@@ -1463,7 +1483,7 @@ export default function SettingsHubPage() {
                     type="text"
                     value={testQuery}
                     onChange={(e) => setTestQuery(e.target.value)}
-                    placeholder="Hausverwaltung Berlin"
+                    placeholder="Enter a real search query"
                     className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-mono text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-emerald-500 transition-all"
                   />
                 </div>
@@ -1503,6 +1523,26 @@ export default function SettingsHubPage() {
                         )}
                       </button>
                     </div>
+                  </div>
+                )}
+
+                {selectedSearchId === "google_cse" && (
+                  <div>
+                    <label className="text-xs font-semibold text-zinc-300 block mb-1.5 flex items-center justify-between">
+                      <span>Google Search Engine ID</span>
+                      <span className="text-[10px] font-mono text-zinc-500">
+                        {searchEngineId ? "Configured" : "Required"}
+                      </span>
+                    </label>
+                    <input
+                      type="text"
+                      value={searchEngineId}
+                      onChange={(event) =>
+                        setSearchEngineId(event.target.value)
+                      }
+                      placeholder="Enter your Google Programmable Search Engine ID"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-mono text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-emerald-500 transition-all"
+                    />
                   </div>
                 )}
               </div>
@@ -1550,7 +1590,9 @@ export default function SettingsHubPage() {
               className={`p-4 rounded-xl font-mono text-xs space-y-2 border animate-in fade-in transition-all ${
                 pingResult.status === "ok"
                   ? "bg-zinc-950 border-emerald-500/40 text-emerald-400"
-                  : "bg-zinc-950 border-rose-500/40 text-rose-400"
+                  : pingResult.status === "degraded"
+                    ? "bg-zinc-950 border-amber-500/40 text-amber-400"
+                    : "bg-zinc-950 border-rose-500/40 text-rose-400"
               }`}
             >
               <div className="flex items-center justify-between">
@@ -1560,14 +1602,19 @@ export default function SettingsHubPage() {
                       <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                       <span>
                         {activeTab === "search"
-                          ? "Search Connection: VERIFIED (200 OK)"
-                          : "Engine Verification: SUCCESS (200 OK)"}
+                          ? "Search test succeeded"
+                          : "Provider test succeeded"}
                       </span>
+                    </>
+                  ) : pingResult.status === "degraded" ? (
+                    <>
+                      <AlertCircle className="w-4 h-4 text-amber-400" />
+                      <span>Provider is available with limited results</span>
                     </>
                   ) : (
                     <>
                       <AlertCircle className="w-4 h-4 text-rose-400" />
-                      <span>Connection Error</span>
+                      <span>Provider test failed</span>
                     </>
                   )}
                 </div>
@@ -1580,18 +1627,19 @@ export default function SettingsHubPage() {
                 </span>
               </div>
 
-              {pingResult.status === "ok" ? (
+              {pingResult.status === "ok" ||
+              pingResult.status === "degraded" ? (
                 <div className="p-2.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 space-y-1">
                   <div className="flex justify-between text-[11px] text-zinc-400">
                     <span>
                       {activeTab === "search"
-                        ? `Engines Active: ${pingResult.engines_active || 4}`
+                        ? `Engines reported: ${pingResult.engines_active ?? "Not reported"}`
                         : `Engine: ${pingResult.model}`}
                     </span>
                     <span>
                       {activeTab === "search"
-                        ? `Privacy: ${pingResult.privacy || "100% Private"}`
-                        : `Tokens: ${pingResult.tokens || 10}`}
+                        ? `Routing: ${pingResult.privacy || "Not reported"}`
+                        : `Tokens: ${pingResult.tokens ?? "Not reported by provider"}`}
                     </span>
                   </div>
                   <p className="text-[11px] font-mono text-zinc-100">

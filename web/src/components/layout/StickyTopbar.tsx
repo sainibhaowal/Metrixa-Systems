@@ -8,7 +8,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
-import { fetchMetrics } from "@/lib/api";
+import { apiUrl, fetchMetrics } from "@/lib/api";
 import { useSidebar } from "./SidebarContext";
 
 export function StickyTopbar() {
@@ -92,7 +92,7 @@ export function StickyTopbar() {
         </button>
 
         <a
-          href="http://127.0.0.1:8000/api/artifacts/download/excel"
+          href={apiUrl("/api/artifacts/download/excel")}
           download
           className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-semibold text-xs shadow-glowEmerald hover:shadow-lg transition-all"
         >

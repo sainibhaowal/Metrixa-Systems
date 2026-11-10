@@ -9,7 +9,10 @@ from __future__ import annotations
 import asyncio
 import csv
 import json
-import shutil
+import os
+import re
+import tempfile
+import threading
 import time
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
@@ -20,8 +23,9 @@ from typing import Any
 import httpx
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, PlainTextResponse
+from fastapi.responses import FileResponse, PlainTextResponse, RedirectResponse
 from pydantic import BaseModel, Field
+from typing import Literal
 from sse_starlette.sse import EventSourceResponse
 
 from metrixa_engine.config import settings
@@ -31,6 +35,7 @@ from metrixa_engine.enrichment.contact_finder import ContactEnricher
 from metrixa_engine.enrichment.scorer import LeadScorer
 from metrixa_engine.entity_resolution.deduplicator import EntityDeduplicator
 from metrixa_engine.llm.extractor import KPIExtractionPipeline
+from metrixa_engine.models import email_status_label, normalize_email_status
 from metrixa_engine.scrapers.dir_11880 import Dir11880Scraper
 from metrixa_engine.scrapers.gelbe_seiten import GelbeSeitenScraper
 from metrixa_engine.scrapers.osm_overpass import OSMOverpassScraper
@@ -41,6 +46,7 @@ from metrixa_engine.telemetry.excel_exporter import ExcelExporter
 from metrixa_engine.telemetry.google_sheets_sync import GoogleSheetsSync
 
 db = Database()
+_settings_persist_lock = threading.Lock()
 
 
 class PipelineEventBus:
@@ -91,10 +97,10 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 
@@ -164,6 +170,10 @@ async def get_metrics():
             "with_erp_stack": tel["with_erp_stack"],
             "with_decision_maker": tel["companies_with_decision_maker"],
             "with_personal_email": tel["companies_with_personal_email"],
+            "with_public_personal_email": tel["companies_with_public_personal_email"],
+            "with_pattern_email_candidate": tel[
+                "companies_with_pattern_email_candidate"
+            ],
             "with_linkedin": tel["companies_with_linkedin"],
             "crawled_pages": tel["crawled_pages_cnt"],
         },
@@ -294,6 +304,11 @@ async def get_leads(
             dict(r) for r in conn.execute(data_sql, params + [limit, offset]).fetchall()
         ]
 
+    for row in rows:
+        raw_status = row.get("email_status")
+        row["email_status_code"] = normalize_email_status(raw_status)
+        row["email_status"] = email_status_label(raw_status)
+
         # Attach formatted Lead ID (e.g. METRIXA-BER-0001)
         for idx, r in enumerate(rows, start=offset + 1):
             r["lead_id"] = f"METRIXA-BER-{r['company_id']:04d}"
@@ -387,7 +402,15 @@ async def get_lead_evidence(company_id: int):
         )
         s_contact = (
             (4 if dms else 0)
-            + (4 if any(d.get("personal_email") for d in dms) else 0)
+            + (
+                4
+                if any(
+                    d.get("personal_email")
+                    and normalize_email_status(d.get("email_status")) == "PUBLIC_LISTED"
+                    for d in dms
+                )
+                else 0
+            )
             + 2
         )
 
@@ -405,7 +428,14 @@ async def get_lead_evidence(company_id: int):
         "company": comp_d,
         "kpi": kpi_d,
         "scorecard": scorecard,
-        "decision_makers": dms,
+        "decision_makers": [
+            {
+                **dm,
+                "email_status_code": normalize_email_status(dm.get("email_status")),
+                "email_status": email_status_label(dm.get("email_status")),
+            }
+            for dm in dms
+        ],
         "crawled_pages": pages,
     }
 
@@ -526,507 +556,8 @@ async def record_and_emit_event(
 def _synthesize_and_save_events_for_run(
     run_dict: dict[str, Any],
 ) -> list[dict[str, Any]]:
-    """Synthesize high-fidelity end-to-end telemetry traces for historical runs and cache to SQLite."""
-    run_id = run_dict["run_id"]
-    target_city = run_dict.get("target_city") or "Berlin"
-    active_stage = (run_dict.get("active_stage") or "full").lower()
-    total_out = run_dict.get("total_companies_out") or 1200
-
-    all_steps = [
-        # Stage 1: Ingestion
-        {
-            "stage": "INGEST",
-            "step_name": "BoundaryInit",
-            "event_type": "GEO_INIT",
-            "level": "INFO",
-            "duration_ms": 48,
-            "message": f"Initialized {target_city} geographic bounding box [52.3382, 13.0883, 52.6755, 13.7611] across 12 Bezirke (PLZ 10115 to 14199).",
-            "details": {
-                "territory": target_city,
-                "bezirke_count": 12,
-                "plz_range": "10115-14199",
-                "sharding_strategy": "5-source orthogonal matrix",
-            },
-        },
-        {
-            "stage": "INGEST",
-            "step_name": "VDIVScraper",
-            "event_type": "SCRAPER_EXEC",
-            "level": "TOOL",
-            "duration_ms": 1240,
-            "message": "Harvested 30 certified Berlin-Brandenburg association Hausverwaltungen (Tier-A high-trust portfolio signal).",
-            "details": {
-                "source": "VDIV Association",
-                "records_count": 30,
-                "status": "200 OK",
-                "is_vdiv_member": True,
-                "sample": ["degewo AG", "GEWOBAG", "HOWOGE", "BUWOG"],
-            },
-        },
-        {
-            "stage": "INGEST",
-            "step_name": "OSMOverpass",
-            "event_type": "GEO_QUERY",
-            "level": "TOOL",
-            "duration_ms": 2150,
-            "message": "Queried OpenStreetMap Overpass API (BBox DE-BE): extracted 100 spatial office nodes with WGS84 GPS coordinates.",
-            "details": {
-                "source": "OpenStreetMap",
-                "query_type": "Overpass QL BBox",
-                "nodes_extracted": 100,
-                "has_lat_lon": True,
-                "api_cost_usd": 0.0,
-            },
-        },
-        {
-            "stage": "INGEST",
-            "step_name": "GelbeSeiten",
-            "event_type": "DIRECTORY_HARVEST",
-            "level": "TOOL",
-            "duration_ms": 4820,
-            "message": "Harvested 405 commercial directory listings across 23 Berlin shards; decoded base64 website redirects.",
-            "details": {
-                "source": "Gelbe Seiten",
-                "records_count": 405,
-                "keywords": ["Hausverwaltung", "WEG-Verwaltung", "Mietverwaltung"],
-                "shards": 23,
-                "web_density_pct": 35.1,
-            },
-        },
-        {
-            "stage": "INGEST",
-            "step_name": "Dir11880",
-            "event_type": "SCHEMA_PARSE",
-            "level": "TOOL",
-            "duration_ms": 6310,
-            "message": "Harvested 838 commercial listings from 11880.com; parsed JSON-LD LocalBusiness schemas & XOR email decrypts.",
-            "details": {
-                "source": "11880.com",
-                "records_count": 838,
-                "json_ld_schema": "LocalBusiness",
-                "email_decryption": "Cloudflare XOR",
-                "phone_density_pct": 89.4,
-            },
-        },
-        {
-            "stage": "INGEST",
-            "step_name": "SearchDiscovery",
-            "event_type": "SEARCH_DORK",
-            "level": "TOOL",
-            "duration_ms": 1120,
-            "message": "Executed search discovery for digital-native agencies; identified 2 long-tail property managers.",
-            "details": {
-                "source": "Search Discovery",
-                "records_count": 2,
-                "dorks": ["WEG Verwaltung Berlin Impressum", "Kundenportal Casavi"],
-            },
-        },
-        {
-            "stage": "INGEST",
-            "step_name": "IngestSummary",
-            "event_type": "STAGE_SUMMARY",
-            "level": "SUCCESS",
-            "duration_ms": 15688,
-            "message": "Stage 01 Ingestion complete: 1,375 raw directory records harvested across 5 orthogonal sources.",
-            "details": {
-                "total_raw": 1375,
-                "unique_sources": 5,
-                "status": "COMPLETED",
-            },
-        },
-        # Stage 2: Deduplication
-        {
-            "stage": "DEDUPLICATE",
-            "step_name": "GermanLegalNormalizer",
-            "event_type": "LEGAL_NORMALIZE",
-            "level": "INFO",
-            "duration_ms": 110,
-            "message": "Normalized German legal suffixes (GmbH, e.G., AG, KG) and expanded umlauts (ä->ae, ö->oe, ü->ue, ß->ss).",
-            "details": {
-                "entities_normalized": 1375,
-                "legal_forms_detected": ["GmbH", "AG", "GmbH & Co. KG", "e.G.", "UG"],
-            },
-        },
-        {
-            "stage": "DEDUPLICATE",
-            "step_name": "BlockingKeys",
-            "event_type": "BLOCKING_GEN",
-            "level": "INFO",
-            "duration_ms": 85,
-            "message": "Constructed 4 multi-key blocking partitions: Exact Domain, E.164 Phone, PLZ+Street Address, and Name Prefix (N[:4]).",
-            "details": {
-                "blocks": [
-                    "domain",
-                    "phone_e164",
-                    "address_plz_street",
-                    "name_prefix_4",
-                ],
-                "comparisons_avoided_pct": 99.4,
-            },
-        },
-        {
-            "stage": "DEDUPLICATE",
-            "step_name": "RapidFuzzTokenSort",
-            "event_type": "SIMILARITY_MATRIX",
-            "level": "AGENT",
-            "duration_ms": 650,
-            "message": "Evaluated pairwise token sort similarity matrix with RapidFuzz (threshold >= 85) across blocking partitions.",
-            "details": {
-                "fuzz_algorithm": "TokenSortRatio",
-                "min_threshold": 85,
-                "pairwise_matches_found": 175,
-            },
-        },
-        {
-            "stage": "DEDUPLICATE",
-            "step_name": "UnionFindClustering",
-            "event_type": "DISJOINT_SET_MERGE",
-            "level": "AGENT",
-            "duration_ms": 320,
-            "message": "Ran Union-Find disjoint-set clustering with path compression; merged 175 cross-source duplicate entities.",
-            "details": {
-                "clusters_count": total_out,
-                "duplicates_merged": 175,
-                "compression_complexity": "O(N * alpha(N))",
-            },
-        },
-        {
-            "stage": "DEDUPLICATE",
-            "step_name": "GoldenRecordSurvivorship",
-            "event_type": "STAGE_SUMMARY",
-            "level": "SUCCESS",
-            "duration_ms": 1165,
-            "message": f"Stage 02 Deduplication complete: synthesized {total_out} unique golden records using highest-trust provenance survivorship.",
-            "details": {
-                "golden_records": total_out,
-                "duplicates_merged": 175,
-                "status": "COMPLETED",
-            },
-        },
-        # Stage 3: Crawler
-        {
-            "stage": "CRAWL",
-            "step_name": "HTTP2ConnectionPool",
-            "event_type": "CLIENT_INIT",
-            "level": "INFO",
-            "duration_ms": 40,
-            "message": "Async HTTP/2 client initialized with connection multiplexing, SSL verification, and German user-agent rotation.",
-            "details": {
-                "protocol": "HTTP/2",
-                "concurrency": 16,
-                "timeout_seconds": 15,
-            },
-        },
-        {
-            "stage": "CRAWL",
-            "step_name": "SubpageResolver",
-            "event_type": "URL_DISCOVERY",
-            "level": "AGENT",
-            "duration_ms": 1850,
-            "message": "Discovered subpage targets across active domains: resolving /, /impressum, /team, /leistungen, /referenzen.",
-            "details": {
-                "target_subpages": [
-                    "/",
-                    "/impressum",
-                    "/team",
-                    "/leistungen",
-                    "/referenzen",
-                ],
-                "subpages_scanned": 218,
-            },
-        },
-        {
-            "stage": "CRAWL",
-            "step_name": "DOMPropTechScanner",
-            "event_type": "ERP_SCAN",
-            "level": "TOOL",
-            "duration_ms": 890,
-            "message": "Scanned HTML DOM trees & JavaScript bundles for PropTech ERPs: Casavi, Domus 4000, Wodis Sigma, Aareon.",
-            "details": {
-                "signatures_scanned": [
-                    "Casavi",
-                    "Domus 4000",
-                    "Wodis Sigma",
-                    "Aareon ERP",
-                ],
-                "erps_detected_count": 48,
-            },
-        },
-        {
-            "stage": "CRAWL",
-            "step_name": "MeteringSignalDetector",
-            "event_type": "METERING_DETECT",
-            "level": "TOOL",
-            "duration_ms": 420,
-            "message": "Detected incumbent submetering contracts & portal links: Techem, ista, Minol, Brunata.",
-            "details": {
-                "incumbents_scanned": ["Techem", "ista", "Minol", "Brunata"],
-                "metering_signals_found": 31,
-            },
-        },
-        {
-            "stage": "CRAWL",
-            "step_name": "CrawlSummary",
-            "event_type": "STAGE_SUMMARY",
-            "level": "SUCCESS",
-            "duration_ms": 3200,
-            "message": "Stage 03 Crawler complete: crawled active domains, saved 218 subpages into SQLite WAL.",
-            "details": {
-                "companies_processed": 50,
-                "subpages_saved": 218,
-                "status": "COMPLETED",
-            },
-        },
-        # Stage 4: AI Extraction
-        {
-            "stage": "EXTRACT",
-            "step_name": "DeterministicParser",
-            "event_type": "LEGAL_PARSER",
-            "level": "INFO",
-            "duration_ms": 80,
-            "message": "Executed Layer 1 German § 5 DDG legal parser baseline ($0 cost); extracted Geschäftsführer, HRB, Amtsgericht.",
-            "details": {
-                "baseline": "German § 5 DDG regex parser",
-                "cost_usd": 0.0,
-                "decision_makers_found": 142,
-            },
-        },
-        {
-            "stage": "EXTRACT",
-            "step_name": "LLMRouter",
-            "event_type": "ROUTER_DISPATCH",
-            "level": "AGENT",
-            "duration_ms": 210,
-            "message": "Dispatched multi-LLM router to active provider [OpenAI gpt-4o-mini] with strict Pydantic JSON schema.",
-            "details": {
-                "provider": "OpenAI",
-                "model": "gpt-4o-mini",
-                "temperature": 0.0,
-                "schema": "PropertyManagementExtraction",
-            },
-        },
-        {
-            "stage": "EXTRACT",
-            "step_name": "LLMStreamTelemetry",
-            "event_type": "LLM_INFERENCE",
-            "level": "LLM",
-            "duration_ms": 340,
-            "message": "LLM extraction completed for batch: 12,450 prompt tokens, 2,890 completion tokens (latency: 340ms).",
-            "details": {
-                "provider": "OpenAI",
-                "model": "gpt-4o-mini",
-                "prompt_tokens": 12450,
-                "completion_tokens": 2890,
-                "total_tokens": 15340,
-                "latency_ms": 340,
-                "thinking": "Analyzed /leistungen and /impressum: company states 'Verwaltung von ca. 4.200 WEG-Einheiten im Raum Berlin'. Geschäftsführer confirmed as Dipl.-Kfm. Thomas Weber. PropTech Casavi tenant portal detected in DOM.",
-                "extracted_kpis": {
-                    "exact_units": 4200,
-                    "portfolio_tier": "1,000-5,000",
-                    "manages_weg": True,
-                    "manages_miet": True,
-                    "decision_maker": "Dipl.-Kfm. Thomas Weber",
-                    "role": "Geschäftsführer",
-                },
-            },
-        },
-        {
-            "stage": "EXTRACT",
-            "step_name": "AntiHallucinationQuoteGate",
-            "event_type": "QUOTE_GATE",
-            "level": "AGENT",
-            "duration_ms": 65,
-            "message": "Verified exact verbatim quote substring gate against raw scraped HTML; 0 hallucinations passed.",
-            "details": {
-                "quote_matched": "über 4.200 Wohn- und Gewerbeeinheiten",
-                "verification_status": "PASSED (100% Verbatim)",
-                "hallucinations_blocked": 0,
-            },
-        },
-        {
-            "stage": "EXTRACT",
-            "step_name": "ExtractionSummary",
-            "event_type": "STAGE_SUMMARY",
-            "level": "SUCCESS",
-            "duration_ms": 695,
-            "message": "Stage 04 AI Extraction complete: 142 decision makers, 48 PropTech ERP stacks identified.",
-            "details": {
-                "decision_makers": 142,
-                "erps": 48,
-                "status": "COMPLETED",
-            },
-        },
-        # Stage 5: MX Verification & Scoring
-        {
-            "stage": "ENRICH",
-            "step_name": "RFCDNSMXVerifier",
-            "event_type": "DNS_MX_RESOLVE",
-            "level": "TOOL",
-            "duration_ms": 620,
-            "message": "Performed RFC 5321 live DNS MX record lookup on mail domains; verified mail server deliverability.",
-            "details": {
-                "mx_hosts_resolved": [
-                    "aspmx.l.google.com",
-                    "mail.protection.outlook.com",
-                    "mx00.ionos.de",
-                    "mx.strato.de",
-                ],
-                "valid_mx_pct": 98.2,
-            },
-        },
-        {
-            "stage": "ENRICH",
-            "step_name": "ExecutiveEmailSynthesizer",
-            "event_type": "EMAIL_SYNTHESIS",
-            "level": "TOOL",
-            "duration_ms": 190,
-            "message": "Synthesized 88 verified executive email addresses for confirmed Geschäftsführer.",
-            "details": {
-                "executive_emails_ready": 88,
-                "syntax_rfc5322": True,
-                "mx_deliverable": True,
-            },
-        },
-        {
-            "stage": "ENRICH",
-            "step_name": "LeadScorerEngine",
-            "event_type": "SCORE_ENGINE",
-            "level": "AGENT",
-            "duration_ms": 380,
-            "message": "Computed multi-factor 0-100 Lead Scores (Portfolio: +30, WEG/Miet: +25, VDIV: +15, Digital: +20, Exec: +10).",
-            "details": {
-                "weights": {
-                    "portfolio": 30,
-                    "weg_miet": 25,
-                    "vdiv": 15,
-                    "digital": 20,
-                    "exec_email": 10,
-                }
-            },
-        },
-        {
-            "stage": "ENRICH",
-            "step_name": "TierClassification",
-            "event_type": "STAGE_SUMMARY",
-            "level": "SUCCESS",
-            "duration_ms": 1190,
-            "message": "Stage 05 Scoring complete: Tier A = 182 (High Priority), Tier B = 514 (Qualified), Tier C = 504 (Long-Tail).",
-            "details": {
-                "tier_a": 182,
-                "tier_b": 514,
-                "tier_c": 504,
-                "status": "COMPLETED",
-            },
-        },
-        # Stage 6: Deliverables & Evaluation
-        {
-            "stage": "EXPORT",
-            "step_name": "ExcelMasterWorkbook",
-            "event_type": "WORKBOOK_INIT",
-            "level": "TOOL",
-            "duration_ms": 420,
-            "message": "Initialized master 4-Tab Excel workbook (metrixa_berlin_hausverwaltungen.xlsx) using openpyxl.",
-            "details": {
-                "filename": "metrixa_berlin_hausverwaltungen.xlsx",
-                "tabs": [
-                    "Overview KPI Dashboard",
-                    "Qualified Leads & Scoring",
-                    "Executive Decision Makers",
-                    "Data Dictionary & Methodology",
-                ],
-            },
-        },
-        {
-            "stage": "EXPORT",
-            "step_name": "OpenpyxlDataPopulation",
-            "event_type": "DATA_WRITER",
-            "level": "TOOL",
-            "duration_ms": 1250,
-            "message": f"Injected {total_out} golden rows, executive contacts, Excel formulas (AVERAGE, COUNTIF), and auto-width formatting.",
-            "details": {
-                "rows_written": total_out,
-                "contacts_written": 88,
-                "formulas_injected": 14,
-                "styled_cells": 38400,
-            },
-        },
-        {
-            "stage": "EXPORT",
-            "step_name": "GoldSetAblationEvaluator",
-            "event_type": "BENCHMARK_EVAL",
-            "level": "AGENT",
-            "duration_ms": 890,
-            "message": "Evaluated pipeline output against 30-Company Berlin Gold Set: Precision = 96.6%, Recall = 90.3%, F1 = 93.3%.",
-            "details": {
-                "gold_set_size": 30,
-                "precision_pct": 96.6,
-                "recall_pct": 90.3,
-                "f1_score": 0.933,
-                "benchmark_target": ">= 93.0% F1",
-                "report_path": "data/exports/evaluation_ablation_report.md",
-            },
-        },
-        {
-            "stage": "EXPORT",
-            "step_name": "DeliverablesFinalized",
-            "event_type": "STAGE_SUMMARY",
-            "level": "SUCCESS",
-            "duration_ms": 2560,
-            "message": "Stage 06 Deliverables complete: Master Excel and ablation benchmark report generated.",
-            "details": {
-                "excel_path": "data/exports/metrixa_berlin_hausverwaltungen.xlsx",
-                "report_path": "data/exports/evaluation_ablation_report.md",
-                "status": "COMPLETED",
-            },
-        },
-    ]
-
-    filtered_steps = (
-        all_steps
-        if active_stage == "full"
-        else [s for s in all_steps if s["stage"].lower() == active_stage]
-    )
-    if not filtered_steps:
-        filtered_steps = all_steps
-
-    events = []
-    base_ts = run_dict.get("started_at") or datetime.now(timezone.utc).isoformat()
-    try:
-        dt = datetime.fromisoformat(base_ts.replace("Z", "+00:00"))
-    except Exception:
-        dt = datetime.now(timezone.utc)
-
-    for i, s in enumerate(filtered_steps, start=1):
-        step_ts = dt.isoformat()
-        db.record_run_event(
-            run_id=run_id,
-            seq=i,
-            stage=s["stage"],
-            step_name=s["step_name"],
-            event_type=s["event_type"],
-            level=s["level"],
-            duration_ms=s["duration_ms"],
-            message=s["message"],
-            payload=s["details"],
-        )
-        events.append(
-            {
-                "id": i,
-                "run_id": run_id,
-                "seq": i,
-                "timestamp": step_ts,
-                "time": dt.strftime("%H:%M:%S"),
-                "stage": s["stage"],
-                "step_name": s["step_name"],
-                "event_type": s["event_type"],
-                "level": s["level"],
-                "duration_ms": s["duration_ms"],
-                "message": s["message"],
-                "details": s["details"],
-            }
-        )
-
-    return events
+    """Do not fabricate event telemetry for pipeline runs without recorded events."""
+    return []
 
 
 @app.post("/api/pipeline/run")
@@ -1136,13 +667,8 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                     "GEO_INIT",
                     "INFO",
                     45,
-                    f"Initialized {req.city or 'Berlin'} geographic bounding box [52.3382, 13.0883, 52.6755, 13.7611] across 12 Bezirke (PLZ 10115 to 14199).",
-                    {
-                        "territory": req.city or "Berlin",
-                        "bezirke_count": 12,
-                        "plz_range": "10115-14199",
-                        "sharding_strategy": "5-source orthogonal matrix",
-                    },
+                    f"Starting source ingestion for {req.city or 'Berlin'}.",
+                    {"territory": req.city or "Berlin"},
                 )
 
                 scrapers = [
@@ -1182,15 +708,13 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                         1120,
                     ),
                 ]
-                for idx, (label, sc, stp_name, ev_type, est_dur) in enumerate(
+                for idx, (label, sc, stp_name, ev_type, _) in enumerate(
                     scrapers, start=1
                 ):
                     t_sc_start = time.perf_counter()
                     items = await sc.scrape_berlin(max_pages=4)
                     ins = db.insert_raw_listings(items)
-                    dur_sc_ms = max(
-                        est_dur, int((time.perf_counter() - t_sc_start) * 1000)
-                    )
+                    dur_sc_ms = int((time.perf_counter() - t_sc_start) * 1000)
                     pct = round((idx / len(scrapers)) * 100, 1)
 
                     await event_bus.emit(
@@ -1206,7 +730,7 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                         "INGEST",
                         stp_name,
                         ev_type,
-                        "TOOL",
+                        "TOOL" if items else "WARN",
                         dur_sc_ms,
                         f"Scraped {len(items)} records from {label} ({ins} new entries staged).",
                         {
@@ -1217,6 +741,13 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                         },
                     )
 
+                with db.connect() as conn:
+                    total_raw = conn.execute(
+                        "SELECT COUNT(*) FROM raw_listings"
+                    ).fetchone()[0]
+                    source_total = conn.execute(
+                        "SELECT COUNT(DISTINCT source_name) FROM raw_listings"
+                    ).fetchone()[0]
                 stage_durations["ingest"] = round(
                     time.perf_counter() - t_ingest_start, 2
                 )
@@ -1235,10 +766,10 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                     "STAGE_SUMMARY",
                     "SUCCESS",
                     int(stage_durations["ingest"] * 1000),
-                    "Stage 01 Ingestion complete: 1,375 raw directory records harvested across 5 orthogonal sources.",
+                    f"Stage 01 Ingestion complete: {total_raw:,} raw records across {source_total} sources.",
                     {
-                        "total_raw": 1375,
-                        "unique_sources": 5,
+                        "total_raw": total_raw,
+                        "unique_sources": source_total,
                         "stage_duration_seconds": stage_durations["ingest"],
                     },
                 )
@@ -1257,41 +788,6 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                     "PROGRESS",
                     {"stage": "DEDUPLICATE", "completed": 0, "total": 1, "pct": 0},
                 )
-                await _log(
-                    "DEDUPLICATE",
-                    "GermanLegalNormalizer",
-                    "LEGAL_NORMALIZE",
-                    "INFO",
-                    110,
-                    "Normalized German legal suffixes (GmbH, e.G., AG, KG) and expanded umlauts (ä->ae, ö->oe, ü->ue, ß->ss).",
-                    {
-                        "entities_normalized": 1375,
-                        "legal_forms_detected": [
-                            "GmbH",
-                            "AG",
-                            "GmbH & Co. KG",
-                            "e.G.",
-                            "UG",
-                        ],
-                    },
-                )
-                await _log(
-                    "DEDUPLICATE",
-                    "BlockingKeys",
-                    "BLOCKING_GEN",
-                    "INFO",
-                    85,
-                    "Constructed 4 multi-key blocking partitions: Exact Domain, E.164 Phone, PLZ+Street Address, and Name Prefix (N[:4]).",
-                    {
-                        "blocks": [
-                            "domain",
-                            "phone_e164",
-                            "address_plz_street",
-                            "name_prefix_4",
-                        ],
-                        "comparisons_avoided_pct": 99.4,
-                    },
-                )
 
                 deduper = EntityDeduplicator(db)
                 stats = deduper.run_deduplication()
@@ -1299,33 +795,6 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                     time.perf_counter() - t_dedup_start, 2
                 )
                 event_bus.stage_durations = dict(stage_durations)
-
-                await _log(
-                    "DEDUPLICATE",
-                    "RapidFuzzTokenSort",
-                    "SIMILARITY_MATRIX",
-                    "AGENT",
-                    650,
-                    "Evaluated pairwise token sort similarity matrix with RapidFuzz (threshold >= 85) across blocking partitions.",
-                    {
-                        "fuzz_algorithm": "TokenSortRatio",
-                        "min_threshold": 85,
-                        "pairwise_matches_found": stats.get("duplicates_merged", 175),
-                    },
-                )
-                await _log(
-                    "DEDUPLICATE",
-                    "UnionFindClustering",
-                    "DISJOINT_SET_MERGE",
-                    "AGENT",
-                    320,
-                    "Ran Union-Find disjoint-set clustering with path compression; merged 175 cross-source duplicate entities.",
-                    {
-                        "clusters_count": stats.get("golden_clusters", 1200),
-                        "duplicates_merged": stats.get("duplicates_merged", 175),
-                        "compression_complexity": "O(N * alpha(N))",
-                    },
-                )
 
                 await event_bus.emit(
                     "PROGRESS",
@@ -1345,10 +814,13 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                     "STAGE_SUMMARY",
                     "SUCCESS",
                     int(stage_durations["deduplicate"] * 1000),
-                    f"Stage 02 Deduplication complete: {stats['golden_clusters']} unique companies ({stats['duplicates_merged']} duplicates merged).",
+                    f"Stage 02 Deduplication complete: {stats['golden_clusters']} unique companies ({stats['duplicates_merged']} duplicates merged; {stats.get('source_review_excluded', 0)} unverified legacy source rows excluded).",
                     {
                         "golden_records": stats["golden_clusters"],
                         "duplicates_merged": stats["duplicates_merged"],
+                        "source_review_excluded": stats.get(
+                            "source_review_excluded", 0
+                        ),
                         "stage_duration_seconds": stage_durations["deduplicate"],
                     },
                 )
@@ -1372,8 +844,9 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                     "Async HTTP/2 client initialized with connection multiplexing, SSL verification, and German user-agent rotation.",
                     {
                         "protocol": "HTTP/2",
-                        "concurrency": 16,
-                        "timeout_seconds": 15,
+                        "concurrency": settings.max_concurrent_crawls,
+                        "timeout_seconds": settings.http_timeout_seconds,
+                        "tls_verification": True,
                     },
                 )
 
@@ -1393,57 +866,8 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                         )
                     )
 
-                await _log(
-                    "CRAWL",
-                    "SubpageResolver",
-                    "URL_DISCOVERY",
-                    "AGENT",
-                    1850,
-                    "Discovered subpage targets across active domains: resolving /, /impressum, /team, /leistungen, /referenzen.",
-                    {
-                        "target_subpages": [
-                            "/",
-                            "/impressum",
-                            "/team",
-                            "/leistungen",
-                            "/referenzen",
-                        ],
-                        "subpages_scanned": 218,
-                    },
-                )
-
                 res = await crawler.crawl_batch(
                     limit=req.limit, progress_callback=_crawl_cb
-                )
-
-                await _log(
-                    "CRAWL",
-                    "DOMPropTechScanner",
-                    "ERP_SCAN",
-                    "TOOL",
-                    890,
-                    "Scanned HTML DOM trees & JavaScript bundles for PropTech ERPs: Casavi, Domus 4000, Wodis Sigma, Aareon.",
-                    {
-                        "signatures_scanned": [
-                            "Casavi",
-                            "Domus 4000",
-                            "Wodis Sigma",
-                            "Aareon ERP",
-                        ],
-                        "erps_detected_count": 48,
-                    },
-                )
-                await _log(
-                    "CRAWL",
-                    "MeteringSignalDetector",
-                    "METERING_DETECT",
-                    "TOOL",
-                    420,
-                    "Detected incumbent submetering contracts & portal links: Techem, ista, Minol, Brunata.",
-                    {
-                        "incumbents_scanned": ["Techem", "ista", "Minol", "Brunata"],
-                        "metering_signals_found": 31,
-                    },
                 )
 
                 stage_durations["crawl"] = round(time.perf_counter() - t_crawl_start, 2)
@@ -1460,11 +884,12 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                     "CRAWL",
                     "CrawlSummary",
                     "STAGE_SUMMARY",
-                    "SUCCESS",
+                    "SUCCESS" if res["total_pages_saved"] else "WARN",
                     int(stage_durations["crawl"] * 1000),
-                    f"Stage 03 Crawler complete: {res['companies_processed']} companies crawled, {res['total_pages_saved']} subpages saved into SQLite WAL.",
+                    f"Stage 03 Crawler complete: {res['companies_processed']} companies attempted, {res.get('reachable_websites', 0)} websites reachable, {res['total_pages_saved']} pages saved into SQLite WAL.",
                     {
                         "companies_processed": res["companies_processed"],
+                        "reachable_websites": res.get("reachable_websites", 0),
                         "subpages_saved": res["total_pages_saved"],
                         "stage_duration_seconds": stage_durations["crawl"],
                     },
@@ -1481,34 +906,6 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                     },
                 )
                 pipeline = KPIExtractionPipeline(db)
-
-                await _log(
-                    "EXTRACT",
-                    "DeterministicParser",
-                    "LEGAL_PARSER",
-                    "INFO",
-                    80,
-                    "Executed Layer 1 German § 5 DDG legal parser baseline ($0 cost); extracted Geschäftsführer, HRB, Amtsgericht.",
-                    {
-                        "baseline": "German § 5 DDG regex parser",
-                        "cost_usd": 0.0,
-                        "decision_makers_found": 142,
-                    },
-                )
-                await _log(
-                    "EXTRACT",
-                    "LLMRouter",
-                    "ROUTER_DISPATCH",
-                    "AGENT",
-                    210,
-                    f"Dispatched multi-LLM router to active provider [{req.provider or 'OpenAI gpt-4o-mini'}] with strict Pydantic JSON schema.",
-                    {
-                        "provider": req.provider or "OpenAI",
-                        "model": "gpt-4o-mini",
-                        "temperature": 0.0,
-                        "schema": "PropertyManagementExtraction",
-                    },
-                )
 
                 def _extract_cb(done: int, total: int):
                     pct = round((done / max(1, total)) * 100, 1)
@@ -1531,45 +928,6 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                     progress_callback=_extract_cb,
                 )
 
-                await _log(
-                    "EXTRACT",
-                    "LLMStreamTelemetry",
-                    "LLM_INFERENCE",
-                    "LLM",
-                    340,
-                    "LLM extraction completed for batch: 12,450 prompt tokens, 2,890 completion tokens (latency: 340ms).",
-                    {
-                        "provider": req.provider or "OpenAI",
-                        "model": "gpt-4o-mini",
-                        "prompt_tokens": 12450,
-                        "completion_tokens": 2890,
-                        "total_tokens": 15340,
-                        "latency_ms": 340,
-                        "thinking": "Analyzed /leistungen and /impressum: company states 'Verwaltung von ca. 4.200 WEG-Einheiten im Raum Berlin'. Geschäftsführer confirmed as Dipl.-Kfm. Thomas Weber. PropTech Casavi tenant portal detected in DOM.",
-                        "extracted_kpis": {
-                            "exact_units": 4200,
-                            "portfolio_tier": "1,000-5,000",
-                            "manages_weg": True,
-                            "manages_miet": True,
-                            "decision_maker": "Dipl.-Kfm. Thomas Weber",
-                            "role": "Geschäftsführer",
-                        },
-                    },
-                )
-                await _log(
-                    "EXTRACT",
-                    "AntiHallucinationQuoteGate",
-                    "QUOTE_GATE",
-                    "AGENT",
-                    65,
-                    "Verified exact verbatim quote substring gate against raw scraped HTML; 0 hallucinations passed.",
-                    {
-                        "quote_matched": "über 4.200 Wohn- und Gewerbeeinheiten",
-                        "verification_status": "PASSED (100% Verbatim)",
-                        "hallucinations_blocked": 0,
-                    },
-                )
-
                 stage_durations["extract"] = round(
                     time.perf_counter() - t_extract_start, 2
                 )
@@ -1588,8 +946,9 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                     "STAGE_SUMMARY",
                     "SUCCESS",
                     int(stage_durations["extract"] * 1000),
-                    f"Stage 04 AI Extraction complete: {res['with_decision_maker']} decision makers, {res['with_erp']} ERP stacks identified.",
+                    f"Stage 04 Extraction complete: {res.get('processed', 0)} companies processed; {res['with_decision_maker']} with decision makers and {res['with_erp']} with ERP stacks identified.",
                     {
+                        "processed": res.get("processed", 0),
                         "decision_makers": res["with_decision_maker"],
                         "erps": res["with_erp"],
                         "stage_duration_seconds": stage_durations["extract"],
@@ -1608,24 +967,6 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                 )
                 enricher = ContactEnricher(db)
                 scorer = LeadScorer(db)
-
-                await _log(
-                    "ENRICH",
-                    "RFCDNSMXVerifier",
-                    "DNS_MX_RESOLVE",
-                    "TOOL",
-                    620,
-                    "Performed RFC 5321 live DNS MX record lookup on mail domains; verified mail server deliverability.",
-                    {
-                        "mx_hosts_resolved": [
-                            "aspmx.l.google.com",
-                            "mail.protection.outlook.com",
-                            "mx00.ionos.de",
-                            "mx.strato.de",
-                        ],
-                        "valid_mx_pct": 98.2,
-                    },
-                )
 
                 def _enrich_cb(done: int, total: int):
                     pct = round((done / max(1, total)) * 100, 1)
@@ -1647,17 +988,18 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
 
                 await _log(
                     "ENRICH",
-                    "ExecutiveEmailSynthesizer",
-                    "EMAIL_SYNTHESIS",
+                    "EmailEvidenceClassifier",
+                    "EMAIL_EVIDENCE",
                     "TOOL",
                     190,
-                    f"Synthesized {en_res.get('personal_emails_ready', 88)} verified executive email addresses for confirmed Geschäftsführer.",
+                    f"Classified {en_res.get('public_emails_listed', 0)} publicly listed addresses and {en_res.get('pattern_email_candidates', 0)} inferred pattern candidates. Mailbox existence was not tested.",
                     {
-                        "executive_emails_ready": en_res.get(
-                            "personal_emails_ready", 88
+                        "public_emails_listed": en_res.get("public_emails_listed", 0),
+                        "pattern_email_candidates": en_res.get(
+                            "pattern_email_candidates", 0
                         ),
-                        "syntax_rfc5322": True,
-                        "mx_deliverable": True,
+                        "mx_check_scope": "company domain only",
+                        "mailbox_verified": False,
                     },
                 )
 
@@ -1669,14 +1011,14 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                     "SCORE_ENGINE",
                     "AGENT",
                     380,
-                    "Computed multi-factor 0-100 Lead Scores (Portfolio: +30, WEG/Miet: +25, VDIV: +15, Digital: +20, Exec: +10).",
+                    "Computed deterministic lead scores from scale, management focus, digital signals, source evidence, and publicly listed contacts. Inferred email candidates do not earn contact-email points.",
                     {
                         "weights": {
-                            "portfolio": 30,
-                            "weg_miet": 25,
-                            "vdiv": 15,
-                            "digital": 20,
-                            "exec_email": 10,
+                            "portfolio_scale_max": 35,
+                            "management_focus_max": 25,
+                            "digital_maturity_max": 20,
+                            "credibility_max": 10,
+                            "decision_maker_and_public_contact_max": 10,
                         }
                     },
                 )
@@ -1699,11 +1041,11 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                     "STAGE_SUMMARY",
                     "SUCCESS",
                     int(stage_durations["enrich"] * 1000),
-                    f"Stage 05 Scoring complete: Tier A = {tier_counts.get('Tier A (High Priority)', 182)}, Tier B = {tier_counts.get('Tier B (Qualified Mid-Market)', 514)}, Tier C = {tier_counts.get('Tier C (Long-Tail / Small)', 504)}.",
+                    f"Stage 05 Scoring complete: Tier A = {tier_counts.get('Tier A (High Priority)', 0)}, Tier B = {tier_counts.get('Tier B (Qualified Mid-Market)', 0)}, Tier C = {tier_counts.get('Tier C (Long-Tail / Small)', 0)}.",
                     {
-                        "tier_a": tier_counts.get("Tier A (High Priority)", 182),
-                        "tier_b": tier_counts.get("Tier B (Qualified Mid-Market)", 514),
-                        "tier_c": tier_counts.get("Tier C (Long-Tail / Small)", 504),
+                        "tier_a": tier_counts.get("Tier A (High Priority)", 0),
+                        "tier_b": tier_counts.get("Tier B (Qualified Mid-Market)", 0),
+                        "tier_c": tier_counts.get("Tier C (Long-Tail / Small)", 0),
                         "stage_duration_seconds": stage_durations["enrich"],
                     },
                 )
@@ -1740,31 +1082,22 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                 evaluator = PipelineEvaluator(db)
                 exp_res = exporter.export_all()
 
-                brief_src = Path("docs/Working Docs/07_TASK3_EXECUTIVE_PRESENTATION.md")
-                if brief_src.exists():
-                    shutil.copy2(
-                        brief_src,
-                        settings.export_dir / "metrixa_executive_presentation.md",
-                    )
-
-                pdf_src = Path("docs/Case Study/Case_Study_Metrixa_Systems.pdf")
-                if pdf_src.exists():
-                    shutil.copy2(
-                        pdf_src, settings.export_dir / "Case_Study_Metrixa_Systems.pdf"
-                    )
+                # Do not copy source case-study files into the live export folder.
+                # Those documents are hand-authored submission material and can
+                # contain stale metrics or claims that the current DB cannot prove.
 
                 await _log(
                     "EXPORT",
                     "OpenpyxlDataPopulation",
                     "DATA_WRITER",
                     "TOOL",
-                    1250,
-                    "Injected 1,200 golden rows, executive contacts, Excel formulas (AVERAGE, COUNTIF), and auto-width formatting.",
+                    0,
+                    f"Wrote {exp_res['total_exported_leads']:,} lead rows and {exp_res['total_exported_contacts']:,} contact rows to the local exports.",
                     {
-                        "rows_written": 1200,
-                        "contacts_written": 88,
-                        "formulas_injected": 14,
-                        "styled_cells": 38400,
+                        "rows_written": exp_res["total_exported_leads"],
+                        "contacts_written": exp_res["total_exported_contacts"],
+                        "xlsx_path": exp_res["xlsx_path"],
+                        "csv_path": exp_res["csv_path"],
                     },
                 )
 
@@ -1772,19 +1105,12 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
 
                 await _log(
                     "EXPORT",
-                    "GoldSetAblationEvaluator",
-                    "BENCHMARK_EVAL",
-                    "AGENT",
-                    890,
-                    "Evaluated pipeline output against 30-Company Berlin Gold Set: Precision = 96.6%, Recall = 90.3%, F1 = 93.3%.",
-                    {
-                        "gold_set_size": 30,
-                        "precision_pct": 96.6,
-                        "recall_pct": 90.3,
-                        "f1_score": 0.933,
-                        "benchmark_target": ">= 93.0% F1",
-                        "report_path": eval_path,
-                    },
+                    "EvaluationReportWriter",
+                    "REPORT_GENERATED",
+                    "INFO",
+                    0,
+                    "Generated the evaluation report from the current local database; review its scope and validation notes before using its metrics.",
+                    {"report_path": str(eval_path)},
                 )
 
                 stage_durations["export"] = round(
@@ -1805,7 +1131,7 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                     "STAGE_SUMMARY",
                     "SUCCESS",
                     int(stage_durations["export"] * 1000),
-                    "Stage 06 Deliverables complete: Master Excel and ablation benchmark report generated.",
+                    "Stage 06 Deliverables complete: local exports and the live data coverage report were generated.",
                     {
                         "excel_path": exp_res["xlsx_path"],
                         "report_path": eval_path,
@@ -2177,6 +1503,7 @@ async def execute_system_factory_reset(req: FactoryResetRequest):
         )
 
     tables = [
+        "artifact_library_state",
         "raw_listings",
         "companies_golden",
         "company_sources_map",
@@ -2211,6 +1538,7 @@ async def execute_system_factory_reset(req: FactoryResetRequest):
 
     for item in _artifact_store.values():
         item["status"] = "active"
+        item["retention_days"] = 30
         item["trashed_at"] = None
         item["archived_at"] = None
 
@@ -2334,9 +1662,16 @@ class GoogleSheetsSyncRequest(BaseModel):
 
 
 class ArtifactActionRequest(BaseModel):
-    action: str  # "archive" | "restore" | "trash" | "delete_permanent" | "empty_trash" | "set_retention"
+    action: Literal[
+        "archive",
+        "restore",
+        "trash",
+        "delete_permanent",
+        "empty_trash",
+        "set_retention",
+    ]
     file_ids: list[str] = Field(default_factory=list)
-    retention_days: int | None = 30
+    retention_days: int | None = Field(default=30, ge=1, le=3650)
 
 
 # In-memory artifact state management
@@ -2346,7 +1681,7 @@ _artifact_store: dict[str, dict[str, Any]] = {
         "name": "metrixa_berlin_hausverwaltungen.xlsx",
         "type": "xlsx",
         "title": "Master Berlin Leads Excel Workbook",
-        "desc": "4-Tab formatted workbook containing all 1,200 Berlin Hausverwaltungen ranked by Metrixa Lead Score (0 to 100), full decision-maker dossier, and crawled evidence logs.",
+        "desc": "4-tab workbook generated from the current local database snapshot.",
         "status": "active",
         "retention_days": 30,
         "trashed_at": None,
@@ -2354,7 +1689,7 @@ _artifact_store: dict[str, dict[str, Any]] = {
         "tags": [
             "Preferred Format",
             "4 Sheets",
-            "Salesforce Ready",
+            "Workbook Format",
             "Formulas & Formatting",
         ],
         "download_url": "/api/artifacts/download/excel",
@@ -2364,47 +1699,46 @@ _artifact_store: dict[str, dict[str, Any]] = {
         "name": "metrixa_berlin_leads_master.csv",
         "type": "csv",
         "title": "Standardized Master Clean CSV Deliverable",
-        "desc": "Standardized CSV with UTF-8 BOM encoding for seamless import into Salesforce, HubSpot, or Google Drive spreadsheets. 31 columns, 1,200 deduplicated records.",
+        "desc": "Standardized CSV with UTF-8 BOM encoding for import into CRM or spreadsheet tools.",
         "status": "active",
         "retention_days": 30,
         "trashed_at": None,
         "archived_at": None,
-        "tags": ["UTF-8 BOM", "Salesforce / HubSpot", "1,200 Leads", "RFC-4180"],
+        "tags": ["UTF-8 BOM", "Salesforce / HubSpot", "RFC-4180"],
         "download_url": "/api/artifacts/download/csv",
     },
     "eval-report": {
         "id": "eval-report",
         "name": "metrixa_evaluation_ablation_report.md",
         "type": "md",
-        "title": "Quantitative Evaluation & Ablation Report",
-        "desc": "Official validation deliverable detailing Gold-Set Precision, 4-layer anti-hallucination verification gates, and stage-by-stage pipeline ablation analysis.",
+        "title": "Live Data Coverage & Evidence Report",
+        "desc": "Current database coverage and evidence checks, with explicit limits on accuracy claims.",
         "status": "active",
         "retention_days": 30,
         "trashed_at": None,
         "archived_at": None,
         "tags": [
-            "Task 3 Deliverable",
-            "0% Hallucination",
-            "Ablation Matrix",
-            "Precision/Recall",
+            "Live Database Coverage",
+            "Evidence Quote Checks",
+            "Limitations Included",
         ],
         "download_url": "/api/artifacts/download/eval-report",
     },
     "exec-brief": {
         "id": "exec-brief",
         "name": "metrixa_executive_presentation.md",
-        "type": "pdf",
-        "title": "Executive Presentation & Submetering TAM Brief",
-        "desc": "Slide-by-slide executive briefing covering submetering TAM, European Energy Efficiency Directive (EED) compliance, PropTech ERP adoption, and sales strategy.",
+        "type": "md",
+        "title": "Local Pilot Snapshot and Review",
+        "desc": "Measured snapshot of the current local database with explicit evidence limits and submission caveats.",
         "status": "active",
         "retention_days": 30,
         "trashed_at": None,
         "archived_at": None,
         "tags": [
-            "A4 Document Print",
-            "Executive Briefing",
-            "TAM & Market Share",
-            "Slide Deck",
+            "Local Pilot",
+            "Measured Snapshot",
+            "Evidence Limits",
+            "Review Notes",
         ],
         "download_url": "/api/artifacts/download/exec-brief",
     },
@@ -2412,17 +1746,16 @@ _artifact_store: dict[str, dict[str, Any]] = {
         "id": "pdf-casestudy",
         "name": "Case_Study_Metrixa_Systems.pdf",
         "type": "pdf",
-        "title": "Autonomous B2B Lead Intelligence Enterprise Whitepaper (PDF)",
-        "desc": "Official publication-grade Enterprise Whitepaper detailing Berlin TAM saturation, 5-Pillar Scorecard, 93.3% F1 benchmark, and nationwide expansion roadmap.",
+        "title": "Case Study PDF — Review Required",
+        "desc": "Stored historical PDF contains accuracy and dataset claims that have not been validated against the current local data. Do not submit it until it is reviewed and corrected.",
         "status": "active",
         "retention_days": 30,
         "trashed_at": None,
         "archived_at": None,
         "tags": [
-            "Official PDF Whitepaper",
-            "IEEEtran / APA 7th",
-            "93.3% F1 Benchmark",
-            "Executive Deliverable",
+            "Stored PDF",
+            "Historical Metrics",
+            "Review Required Before Submission",
         ],
         "download_url": "/api/artifacts/download/pdf-casestudy",
     },
@@ -2431,7 +1764,7 @@ _artifact_store: dict[str, dict[str, Any]] = {
         "name": "Metrixa B2B Berlin Leads (Google Sheets)",
         "type": "sheet",
         "title": "Real-Time Google Sheets Cloud Mirror (4 Tabs)",
-        "desc": "Real-time Google Sheets API cloud mirror with 4 canonical tabs synchronized directly from the SQLite golden dataset via service account OAuth2 or webhook.",
+        "desc": "Google Sheets cloud copy shown only after a complete sync is recorded.",
         "status": "active",
         "retention_days": 30,
         "trashed_at": None,
@@ -2439,10 +1772,10 @@ _artifact_store: dict[str, dict[str, Any]] = {
         "tags": [
             "Google Sheets API",
             "4 Cloud Tabs",
-            "Real-Time Sync",
+            "Completed Sync",
             "Service Account OAuth2",
         ],
-        "download_url": "/api/deliverables/google-sheets/url",
+        "download_url": "/api/artifacts/download/google-sheets-live",
     },
 }
 
@@ -2496,30 +1829,59 @@ async def get_artifact_files():
         latest_db_row = conn.execute(
             "SELECT MAX(updated_at) FROM companies_golden"
         ).fetchone()[0]
+        artifact_states = {
+            row["artifact_id"]: dict(row)
+            for row in conn.execute("SELECT * FROM artifact_library_state").fetchall()
+        }
+    live_sheet = next(
+        (
+            item
+            for item in GoogleSheetsSync(db).get_live_deliverables_status()[
+                "deliverables"
+            ]
+            if item["id"] == "google_sheets_live"
+        ),
+        None,
+    )
 
     items = []
     for art_id, item in _artifact_store.items():
         if art_id == "google-sheets-live":
-            # Only list live Google Sheets mirror if qualified leads exist
-            if golden_cnt > 0:
+            # A cloud artifact exists only after a complete, recorded cloud sync.
+            if (
+                live_sheet
+                and live_sheet["status"] == "SYNCED"
+                and live_sheet["download_url"]
+            ):
                 entry = dict(item)
-                now_dt = datetime.now(UTC)
+                state = artifact_states.get(art_id)
+                if state:
+                    entry.update(
+                        status=state["status"],
+                        retention_days=state["retention_days"],
+                        trashed_at=state["trashed_at"],
+                        archived_at=state["archived_at"],
+                    )
+                if entry["status"] == "deleted":
+                    continue
+                synced_at = live_sheet["updated_at"]
+                sync_dt = datetime.fromisoformat(synced_at.replace("Z", "+00:00"))
                 entry["size_bytes"] = 0
                 entry["size_formatted"] = "4 Cloud Tabs"
-                entry["updated_at"] = now_dt.isoformat()
-                entry["created_at"] = now_dt.isoformat()
-                entry["mtime_epoch"] = round(now_dt.timestamp(), 3)
+                entry["updated_at"] = synced_at
+                entry["created_at"] = synced_at
+                entry["mtime_epoch"] = round(sync_dt.timestamp(), 3)
                 entry["sha256_short"] = "live-cloud"
-                entry["records_count"] = golden_cnt
+                entry["records_count"] = live_sheet["records_count"]
                 entry["desc"] = (
-                    f"Real-time Google Sheets API cloud mirror with 4 canonical tabs containing all {golden_cnt:,} "
+                    f"Last complete Google Sheets sync across 4 canonical tabs with {live_sheet['records_count']:,} "
                     f"Berlin Hausverwaltungen leads, {dm_cnt:,} decision makers, and {pages_cnt:,} crawl evidence records."
                 )
                 entry["tags"] = [
                     "Google Sheets API",
                     "4 Cloud Tabs",
-                    f"{golden_cnt:,} Leads",
-                    "OAuth2 / Webhook",
+                    f"{live_sheet['records_count']:,} Leads",
+                    f"Synced {sync_dt.date().isoformat()}",
                 ]
                 items.append(entry)
             continue
@@ -2540,6 +1902,16 @@ async def get_artifact_files():
                 continue
 
             entry = dict(item)
+            state = artifact_states.get(art_id)
+            if state:
+                entry.update(
+                    status=state["status"],
+                    retention_days=state["retention_days"],
+                    trashed_at=state["trashed_at"],
+                    archived_at=state["archived_at"],
+                )
+            if entry["status"] == "deleted":
+                continue
             total_bytes = stat.st_size
             latest_mtime = stat.st_mtime
             size_kb = round(total_bytes / 1024, 1)
@@ -2568,16 +1940,16 @@ async def get_artifact_files():
                     "Preferred Format",
                     "4 Sheets",
                     f"{golden_cnt:,} Leads",
-                    "Salesforce Ready",
+                    "Workbook Format",
                 ]
             elif art_id == "csv-master":
                 entry["desc"] = (
-                    f"Standardized CSV with UTF-8 BOM encoding for seamless import into Salesforce, HubSpot, "
-                    f"or Google Sheets. 31 columns, {golden_cnt:,} deduplicated Berlin records."
+                    f"Standardized CSV with UTF-8 BOM encoding and {golden_cnt:,} canonical Berlin records. "
+                    "No CRM field mapping or third-party import has been verified."
                 )
                 entry["tags"] = [
                     "UTF-8 BOM",
-                    "Salesforce / HubSpot",
+                    "CSV Format",
                     f"{golden_cnt:,} Leads",
                     "RFC-4180",
                 ]
@@ -2657,16 +2029,21 @@ async def get_artifact_preview(artifact_id: str):
                 "total_rows": len(rows),
                 "preview_rows_count": min(len(rows), 100),
             }
-        sheet_id_val = settings.google_sheet_id or "metrixa-master-leads"
+        sheet_status = next(
+            item
+            for item in sync_engine.get_live_deliverables_status()["deliverables"]
+            if item["id"] == "google_sheets_live"
+        )
         res = {
             "id": artifact_id,
             "type": "xlsx",
-            "name": "Metrixa B2B Berlin Leads (Google Sheets)",
+            "name": "Prepared Google Sheets Workbook Preview",
             "sheets": list(sheets_data.keys()),
             "sheet_data": sheets_data,
             "active_sheet": list(sheets_data.keys())[0] if sheets_data else "",
-            "cloud_mirror": True,
-            "spreadsheet_url": f"https://docs.google.com/spreadsheets/d/{sheet_id_val}",
+            "cloud_mirror": sheet_status["status"] == "SYNCED",
+            "sync_status": sheet_status["status"],
+            "spreadsheet_url": sheet_status["download_url"],
             "updated_at": datetime.now(UTC).isoformat(),
             "size_bytes": 0,
             "sha256_short": "live-cloud",
@@ -2762,7 +2139,7 @@ async def get_artifact_preview(artifact_id: str):
                 )
             text = path.read_text(encoding="utf-8")
             name = "metrixa_evaluation_ablation_report.md"
-            title = "Task 3 Quantitative Evaluation & Ablation Report"
+            title = "Live Data Coverage & Evidence Report"
         else:
             path = settings.export_dir / "metrixa_executive_presentation.md"
             if not path.exists():
@@ -2772,12 +2149,12 @@ async def get_artifact_preview(artifact_id: str):
                 )
             text = path.read_text(encoding="utf-8")
             name = "metrixa_executive_presentation.md"
-            title = "Executive Presentation & Submetering TAM Brief"
+            title = "Local Pilot Snapshot and Review"
 
         stat = path.stat()
         res = {
             "id": artifact_id,
-            "type": "md" if artifact_id == "eval-report" else "pdf",
+            "type": "md",
             "name": name,
             "title": title,
             "content": text,
@@ -2797,18 +2174,21 @@ async def get_artifact_preview(artifact_id: str):
                 detail="Case study PDF not generated yet. Please run Stage 06 (Export) from Mission Control.",
             )
         stat = pdf_path.stat()
-        md_source = Path("docs/Case Study/Case Study.md")
-        text = (
-            md_source.read_text(encoding="utf-8")
-            if md_source.exists()
-            else "# Metrixa Systems Case Study\n\nAutonomous B2B Lead Intelligence Enterprise Whitepaper."
-        )
+        md_source = settings.project_root / "docs" / "Case Study" / "Case Study.md"
+        if not md_source.exists():
+            raise HTTPException(
+                status_code=404,
+                detail="Case study source notes are not available for preview.",
+            )
+        text = md_source.read_text(encoding="utf-8")
         res = {
             "id": artifact_id,
             "type": "pdf",
             "name": "Case_Study_Metrixa_Systems.pdf",
-            "title": "Autonomous B2B Lead Intelligence Enterprise Whitepaper (PDF)",
+            "title": "Case Study PDF — Source Notes Preview (PDF pages are not rendered)",
             "content": text,
+            "preview_note": "This panel shows the Markdown source notes, not the PDF pages. The stored PDF has not been reviewed for external submission.",
+            "preview_source": str(md_source),
             "lines_count": len(text.splitlines()),
             "updated_at": datetime.fromtimestamp(stat.st_mtime, tz=UTC).isoformat(),
             "size_bytes": stat.st_size,
@@ -2824,45 +2204,103 @@ async def get_artifact_preview(artifact_id: str):
 
 @app.post("/api/artifacts/action")
 async def execute_artifact_action(req: ArtifactActionRequest):
-    """Execute archive, restore, trash, permanent delete, or retention policy change."""
+    """Persist artifact-library state; removing an item never deletes its file."""
     now_iso = datetime.now(UTC).isoformat()
     affected = 0
 
-    if req.action == "archive":
-        for fid in req.file_ids:
-            if fid in _artifact_store:
-                _artifact_store[fid]["status"] = "archived"
-                _artifact_store[fid]["archived_at"] = now_iso
-                affected += 1
-    elif req.action == "restore":
-        for fid in req.file_ids:
-            if fid in _artifact_store:
-                _artifact_store[fid]["status"] = "active"
-                _artifact_store[fid]["trashed_at"] = None
-                _artifact_store[fid]["archived_at"] = None
-                affected += 1
-    elif req.action == "trash":
-        for fid in req.file_ids:
-            if fid in _artifact_store:
-                _artifact_store[fid]["status"] = "trash"
-                _artifact_store[fid]["trashed_at"] = now_iso
-                affected += 1
-    elif req.action == "delete_permanent":
-        for fid in req.file_ids:
-            if fid in _artifact_store and _artifact_store[fid]["status"] == "trash":
-                # Reset to inactive or remove from trash
-                _artifact_store[fid]["status"] = "deleted"
-                affected += 1
+    if req.action == "set_retention":
+        ids = list(_artifact_store)
     elif req.action == "empty_trash":
-        for fid, item in _artifact_store.items():
-            if item["status"] == "trash":
+        with db.connect() as conn:
+            persisted_trash = [
+                row["artifact_id"]
+                for row in conn.execute(
+                    "SELECT artifact_id FROM artifact_library_state WHERE status = 'trash'"
+                ).fetchall()
+            ]
+        ids = list(
+            dict.fromkeys(
+                persisted_trash
+                + [
+                    fid
+                    for fid, item in _artifact_store.items()
+                    if item["status"] == "trash"
+                ]
+            )
+        )
+    else:
+        ids = list(dict.fromkeys(req.file_ids))
+    unknown_ids = [fid for fid in ids if fid not in _artifact_store]
+    if unknown_ids:
+        raise HTTPException(
+            status_code=404, detail=f"Unknown artifact id(s): {', '.join(unknown_ids)}"
+        )
+
+    with db.connect() as conn:
+        persisted_states = (
+            {
+                row["artifact_id"]: dict(row)
+                for row in conn.execute(
+                    "SELECT * FROM artifact_library_state WHERE artifact_id IN (%s)"
+                    % ",".join("?" for _ in ids),
+                    ids,
+                ).fetchall()
+            }
+            if ids
+            else {}
+        )
+        for fid in ids:
+            item = _artifact_store[fid]
+            persisted = persisted_states.get(fid)
+            if persisted:
+                item.update(
+                    status=persisted["status"],
+                    retention_days=persisted["retention_days"],
+                    trashed_at=persisted["trashed_at"],
+                    archived_at=persisted["archived_at"],
+                )
+            if req.action == "archive":
+                item["status"] = "archived"
+                item["archived_at"] = now_iso
+            elif req.action == "restore":
+                item["status"] = "active"
+                item["trashed_at"] = None
+                item["archived_at"] = None
+            elif req.action == "trash":
+                item["status"] = "trash"
+                item["trashed_at"] = now_iso
+            elif req.action == "delete_permanent":
+                if item["status"] != "trash":
+                    continue
                 item["status"] = "deleted"
-                affected += 1
-    elif req.action == "set_retention":
-        days = req.retention_days or 30
-        for fid in _artifact_store:
-            _artifact_store[fid]["retention_days"] = days
-        affected = len(_artifact_store)
+            elif req.action == "empty_trash":
+                if item["status"] != "trash":
+                    continue
+                item["status"] = "deleted"
+            elif req.action == "set_retention":
+                item["retention_days"] = req.retention_days or 30
+            conn.execute(
+                """
+                INSERT INTO artifact_library_state
+                    (artifact_id, status, retention_days, trashed_at, archived_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+                ON CONFLICT(artifact_id) DO UPDATE SET
+                    status = excluded.status,
+                    retention_days = excluded.retention_days,
+                    trashed_at = excluded.trashed_at,
+                    archived_at = excluded.archived_at,
+                    updated_at = excluded.updated_at
+                """,
+                (
+                    fid,
+                    item["status"],
+                    item["retention_days"],
+                    item["trashed_at"],
+                    item["archived_at"],
+                    now_iso,
+                ),
+            )
+            affected += 1
 
     return {"status": "ok", "action": req.action, "affected_count": affected}
 
@@ -2928,11 +2366,19 @@ async def download_artifact_by_id(artifact_id: str):
                 status_code=404,
                 detail="Google Sheets mirror not generated yet. Please run the pipeline first.",
             )
-        sheet_id_val = settings.google_sheet_id or "metrixa-master-leads"
-        return {
-            "url": f"https://docs.google.com/spreadsheets/d/{sheet_id_val}",
-            "type": "google_sheet",
-        }
+        sheet_status = next(
+            item
+            for item in GoogleSheetsSync(db).get_live_deliverables_status()[
+                "deliverables"
+            ]
+            if item["id"] == "google_sheets_live"
+        )
+        if sheet_status["status"] != "SYNCED" or not sheet_status["download_url"]:
+            raise HTTPException(
+                status_code=404,
+                detail="Google Sheets is not configured and fully synchronized.",
+            )
+        return RedirectResponse(sheet_status["download_url"])
 
     raise HTTPException(status_code=404, detail="Deliverable not found")
 
@@ -3004,7 +2450,10 @@ async def sync_all_deliverables_endpoint():
         ).fetchone()[0]
     if cnt == 0:
         return {
-            "success": True,
+            "success": False,
+            "local_exports_ready": False,
+            "cloud_sync_success": False,
+            "status": "NO_DATA",
             "duration_ms": 0,
             "excel": None,
             "google_sheets": None,
@@ -3062,9 +2511,16 @@ async def get_google_sheets_preview():
             "total_rows": len(rows),
             "preview_rows": rows[:25],
         }
+    sheet_id = settings.google_sheet_id or None
+    sheet_status = next(
+        item
+        for item in sync_engine.get_live_deliverables_status()["deliverables"]
+        if item["id"] == "google_sheets_live"
+    )
     return {
-        "spreadsheet_id": settings.google_sheet_id or "metrixa-master-leads",
-        "spreadsheet_url": f"https://docs.google.com/spreadsheets/d/{settings.google_sheet_id or 'metrixa-master-leads'}",
+        "spreadsheet_id": sheet_id,
+        "spreadsheet_url": sheet_status["download_url"],
+        "cloud_sync_status": sheet_status["status"],
         "tabs": summary,
     }
 
@@ -3072,10 +2528,16 @@ async def get_google_sheets_preview():
 @app.get("/api/deliverables/google-sheets/url")
 async def get_google_sheets_url():
     """Return the direct Google Sheets URL or redirect target."""
-    sheet_id = settings.google_sheet_id or "metrixa-master-leads"
+    sheet_id = settings.google_sheet_id or None
+    sheet_status = next(
+        item
+        for item in GoogleSheetsSync(db).get_live_deliverables_status()["deliverables"]
+        if item["id"] == "google_sheets_live"
+    )
     return {
         "spreadsheet_id": sheet_id,
-        "spreadsheet_url": f"https://docs.google.com/spreadsheets/d/{sheet_id}",
+        "spreadsheet_url": sheet_status["download_url"],
+        "status": sheet_status["status"],
     }
 
 
@@ -3099,11 +2561,11 @@ async def get_tools_catalog():
                 0
             ]
             mx_cnt = conn.execute(
-                "SELECT COUNT(*) FROM decision_makers WHERE email_status IN ('PATTERN_MX_VERIFIED', 'PUBLIC_DIRECT_VERIFIED')"
+                "SELECT COUNT(*) FROM decision_makers WHERE email_status IN ('PATTERN_CANDIDATE_MX', 'PATTERN_MX_VERIFIED', 'PUBLIC_LISTED', 'PUBLIC_DIRECT_VERIFIED')"
             ).fetchone()[0]
     except Exception:
-        crawled_cnt = 866
-        mx_cnt = 115
+        crawled_cnt = 0
+        mx_cnt = 0
 
     return [
         {
@@ -3112,7 +2574,7 @@ async def get_tools_catalog():
             "category": "Directory Scraper",
             "status": "ready",
             "description": "Multi-keyword pagination with 23 Berlin district shards and base64 URL decoder.",
-            "records_extracted": counts.get("gelbe_seiten", 405),
+            "records_extracted": counts.get("gelbe_seiten", 0),
             "engine": "Python 3.12 / httpx HTTP/2 + BeautifulSoup4 lxml",
             "target": "https://www.gelbeseiten.de",
         },
@@ -3122,7 +2584,7 @@ async def get_tools_catalog():
             "category": "Directory Scraper",
             "status": "ready",
             "description": "JSON-LD & HTML card parser with Cloudflare XOR email-protection decrypter.",
-            "records_extracted": counts.get("11880", 835),
+            "records_extracted": counts.get("11880", 0),
             "engine": "Python 3.12 / Cloudflare XOR Byte Decryptor",
             "target": "https://www.11880.com",
         },
@@ -3131,8 +2593,8 @@ async def get_tools_catalog():
             "name": "VDIV Berlin-Brandenburg Association",
             "category": "Certified Association",
             "status": "ready",
-            "description": "Captures institutional certified German property managers managing 1,000+ units.",
-            "records_extracted": counts.get("vdiv", 30),
+            "description": "Reads member records returned by the live VDIV directory; results are not assumed to manage a particular number of units.",
+            "records_extracted": counts.get("vdiv", 0),
             "engine": "Python 3.12 / VDIV BB Scraper + Member Schema",
             "target": "https://www.vdiv.de",
         },
@@ -3142,7 +2604,7 @@ async def get_tools_catalog():
             "category": "Geospatial Parser",
             "status": "ready",
             "description": "Queries Berlin bounding box for office=property_management nodes.",
-            "records_extracted": counts.get("osm", 100),
+            "records_extracted": counts.get("osm", 0),
             "engine": "Python 3.12 / Overpass QL GeoJSON Client",
             "target": "https://overpass-api.de/api/interpreter",
         },
@@ -3177,22 +2639,38 @@ async def test_tool_health(tool_id: str):
     if tool_id == "tool_mx_verifier":
         from metrixa_engine.enrichment.email_verifier import EmailVerifier
 
+        with db.connect() as conn:
+            row = conn.execute(
+                "SELECT canonical_domain FROM companies_golden WHERE canonical_domain IS NOT NULL AND canonical_domain != '' ORDER BY company_id LIMIT 1"
+            ).fetchone()
+        if not row:
+            return {
+                "tool_id": tool_id,
+                "status": "DEGRADED",
+                "latency_ms": round((time.time() - t0) * 1000, 1),
+                "target": "DNS MX resolver",
+                "probe_result": "No company domain is available in the local database.",
+                "message": "Add real company records before testing MX lookup.",
+                "records_checked": 0,
+            }
+
         verifier = EmailVerifier()
-        test_domain = "gewobag.de"
+        test_domain = str(row[0])
         ok, mx_host = verifier.check_domain_mx_sync(test_domain)
         latency_ms = round((time.time() - t0) * 1000, 1)
         return {
             "tool_id": tool_id,
             "status": "OK" if ok else "DEGRADED",
             "latency_ms": latency_ms,
-            "target": f"DNS Port 53 (RFC 5321 MX Query: {test_domain})",
-            "probe_result": f"Resolved live MX host: {mx_host}",
-            "verified_records": 115,
-            "message": f"RFC DNS MX resolution operational. Query for '{test_domain}' resolved to '{mx_host}' in {latency_ms}ms.",
+            "target": "DNS MX resolver using a domain from the local database",
+            "probe_result": f"MX host: {mx_host}" if ok else "No MX record found",
+            "message": "Domain-level MX lookup completed. This does not verify an individual mailbox.",
+            "records_checked": 1,
             "details": {
                 "tested_domain": test_domain,
                 "primary_mx": mx_host,
-                "is_deliverable": ok,
+                "domain_has_mx": ok,
+                "mailbox_verified": False,
             },
         }
 
@@ -3201,21 +2679,35 @@ async def test_tool_health(tool_id: str):
             scan_html_for_tech_and_contacts,
         )
 
-        sample_html = (
-            "<div>Willkommen bei der Muster Hausverwaltung Berlin. "
-            "Kundenportal: mycasavi.com/portal aktiv. Buchhaltung ueber Domus 4000. "
-            "Messdienst Techem. Kontakt: geschaeftsleitung [at] muster-hv.de</div>"
-        )
-        res = scan_html_for_tech_and_contacts(sample_html)
+        with db.connect() as conn:
+            row = conn.execute(
+                "SELECT clean_markdown, url FROM crawled_pages WHERE http_status = 200 AND COALESCE(TRIM(clean_markdown), '') != '' ORDER BY crawled_at DESC LIMIT 1"
+            ).fetchone()
+        if not row:
+            return {
+                "tool_id": tool_id,
+                "status": "DEGRADED",
+                "latency_ms": round((time.time() - t0) * 1000, 1),
+                "target": "Stored successful crawl page",
+                "probe_result": "No successful crawl content is available in the local database.",
+                "message": "Run the crawler on real company websites before testing extraction.",
+                "records_checked": 0,
+            }
+        res = scan_html_for_tech_and_contacts(row["clean_markdown"])
         latency_ms = round((time.time() - t0) * 1000, 1)
         return {
             "tool_id": tool_id,
-            "status": "OK",
+            "status": "OK" if row["clean_markdown"].strip() else "DEGRADED",
             "latency_ms": latency_ms,
-            "target": "HTTP/2 Async Crawler + Regex DOM Analyzer Engine",
+            "target": str(row["url"]),
             "probe_result": f"Detected ERP: {res['erp_list']}, Metering: {res['metering_list']}, Portal: {res['has_portal']}",
-            "verified_records": 866,
-            "message": f"Async crawler & regex tech detector operational. Parsed DOM signatures in {latency_ms}ms.",
+            "records_checked": 1,
+            "detected_signals": {
+                "erp_count": len(res["erp_list"]),
+                "metering_count": len(res["metering_list"]),
+                "has_portal": res["has_portal"],
+            },
+            "message": f"Parser checked stored crawl content in {latency_ms}ms.",
             "details": res,
         }
 
@@ -3227,17 +2719,24 @@ async def test_tool_health(tool_id: str):
                 )
                 status_code = resp.status_code
         except Exception:
-            status_code = 200
+            status_code = None
         latency_ms = round((time.time() - t0) * 1000, 1)
         return {
             "tool_id": tool_id,
-            "status": "OK",
+            "status": (
+                "OK"
+                if status_code is not None and 200 <= status_code < 400
+                else "DEGRADED" if status_code is not None else "ERROR"
+            ),
             "latency_ms": latency_ms,
             "target": "https://www.vdiv.de (VDIV Certified Association Endpoint)",
-            "probe_result": f"HTTP status {status_code} - Association registry online",
-            "verified_records": 30,
-            "message": f"VDIV Berlin-Brandenburg scraper operational. Upstream association endpoint reachable in {latency_ms}ms.",
-            "details": {"http_status": status_code, "certified_members": 30},
+            "probe_result": (
+                f"HTTP status {status_code}"
+                if status_code is not None
+                else "Connection failed"
+            ),
+            "message": f"VDIV endpoint probe {'completed' if status_code is not None else 'failed'} in {latency_ms}ms.",
+            "details": {"http_status": status_code},
         }
 
     elif tool_id == "tool_gelbe_seiten":
@@ -3249,20 +2748,26 @@ async def test_tool_health(tool_id: str):
                 )
                 status_code = resp.status_code
         except Exception:
-            status_code = 200
+            status_code = None
         latency_ms = round((time.time() - t0) * 1000, 1)
         return {
             "tool_id": tool_id,
-            "status": "OK",
+            "status": (
+                "OK"
+                if status_code is not None and 200 <= status_code < 400
+                else "DEGRADED" if status_code is not None else "ERROR"
+            ),
             "latency_ms": latency_ms,
             "target": "https://www.gelbeseiten.de/robots.txt",
-            "probe_result": f"HTTP status {status_code} - 23 Berlin District shards operational",
-            "verified_records": 405,
-            "message": f"Gelbe Seiten scraper operational. Target directory online in {latency_ms}ms.",
+            "probe_result": (
+                f"HTTP status {status_code}"
+                if status_code is not None
+                else "Connection failed"
+            ),
+            "message": f"Gelbe Seiten endpoint probe {'completed' if status_code is not None else 'failed'} in {latency_ms}ms.",
             "details": {
                 "http_status": status_code,
-                "shards": 23,
-                "records": 405,
+                "shards_configured": 23,
             },
         }
 
@@ -3275,20 +2780,26 @@ async def test_tool_health(tool_id: str):
                 )
                 status_code = resp.status_code
         except Exception:
-            status_code = 200
+            status_code = None
         latency_ms = round((time.time() - t0) * 1000, 1)
         return {
             "tool_id": tool_id,
-            "status": "OK",
+            "status": (
+                "OK"
+                if status_code is not None and 200 <= status_code < 400
+                else "DEGRADED" if status_code is not None else "ERROR"
+            ),
             "latency_ms": latency_ms,
             "target": "https://www.11880.com/robots.txt",
-            "probe_result": f"HTTP status {status_code} - Cloudflare XOR decrypter operational",
-            "verified_records": 835,
-            "message": f"11880.com scraper operational. Target directory online in {latency_ms}ms.",
+            "probe_result": (
+                f"HTTP status {status_code}"
+                if status_code is not None
+                else "Connection failed"
+            ),
+            "message": f"11880.com endpoint probe {'completed' if status_code is not None else 'failed'} in {latency_ms}ms.",
             "details": {
                 "http_status": status_code,
-                "xor_decrypt": "active",
-                "records": 835,
+                "xor_decryptor": "available",
             },
         }
 
@@ -3301,16 +2812,23 @@ async def test_tool_health(tool_id: str):
                 )
                 status_code = resp.status_code
         except Exception:
-            status_code = 200
+            status_code = None
         latency_ms = round((time.time() - t0) * 1000, 1)
         return {
             "tool_id": tool_id,
-            "status": "OK",
+            "status": (
+                "OK"
+                if status_code is not None and 200 <= status_code < 400
+                else "DEGRADED" if status_code is not None else "ERROR"
+            ),
             "latency_ms": latency_ms,
             "target": "https://overpass-api.de/api/interpreter (Berlin Bounding Box)",
-            "probe_result": f"HTTP status {status_code} - Overpass QL parser online",
-            "verified_records": 100,
-            "message": f"OpenStreetMap Overpass parser operational. Geospatial query node reached in {latency_ms}ms.",
+            "probe_result": (
+                f"HTTP status {status_code}"
+                if status_code is not None
+                else "Connection failed"
+            ),
+            "message": f"Overpass status probe {'completed' if status_code is not None else 'failed'} in {latency_ms}ms.",
             "details": {
                 "http_status": status_code,
                 "bbox": "52.338,13.088,52.675,13.761",
@@ -3331,9 +2849,22 @@ async def execute_tool(payload: dict[str, Any]):
         from metrixa_engine.enrichment.email_verifier import EmailVerifier
 
         verifier = EmailVerifier()
-        domain = user_input or "degewo.de"
+        if not user_input:
+            raise HTTPException(
+                status_code=422,
+                detail="Enter a real company domain or email address to check.",
+            )
+        domain = user_input
         if "@" in domain:
             domain = domain.split("@")[-1]
+        domain = domain.strip().lower().rstrip(".")
+        if not re.fullmatch(
+            r"(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}",
+            domain,
+        ):
+            raise HTTPException(
+                status_code=422, detail="Enter a valid DNS domain or email address."
+            )
         ok, mx_host = verifier.check_domain_mx_sync(domain)
         latency_ms = round((time.time() - t0) * 1000, 1)
         return {
@@ -3345,9 +2876,8 @@ async def execute_tool(payload: dict[str, Any]):
                 "domain": domain,
                 "has_valid_mx": ok,
                 "primary_mx_host": mx_host or "None detected",
-                "rfc_status": (
-                    "RFC 5321 COMPLIANT" if ok else "NO_MX_RECORDS_DETECTED"
-                ),
+                "rfc_status": "DOMAIN_HAS_MX" if ok else "DOMAIN_HAS_NO_MX",
+                "mailbox_verified": False,
                 "verification_time": f"{latency_ms}ms",
             },
         }
@@ -3357,10 +2887,12 @@ async def execute_tool(payload: dict[str, Any]):
             scan_html_for_tech_and_contacts,
         )
 
-        text_to_scan = user_input or (
-            "Kundenportal: casavi.de aktiv. Buchhaltung ueber Domus 4000 ERP. "
-            "Messdienst Techem. Kontakt: info@berlin-hausverwaltung.de"
-        )
+        if not user_input:
+            raise HTTPException(
+                status_code=422,
+                detail="Paste real website text or HTML to inspect.",
+            )
+        text_to_scan = user_input
         res = scan_html_for_tech_and_contacts(text_to_scan)
         latency_ms = round((time.time() - t0) * 1000, 1)
         return {
@@ -3439,6 +2971,63 @@ async def execute_tool(payload: dict[str, Any]):
     raise HTTPException(status_code=400, detail="Invalid tool_id")
 
 
+def _persist_runtime_settings(updates: dict[str, Any]) -> None:
+    """Persist user-selected settings atomically in the ignored local .env file."""
+    env_path = (
+        Path(os.environ.get("METRIXA_ENV_PATH", str(settings.project_root / ".env")))
+        .expanduser()
+        .resolve()
+    )
+    env_path.parent.mkdir(parents=True, exist_ok=True)
+    original = env_path.read_text(encoding="utf-8") if env_path.exists() else ""
+    newline = "\r\n" if "\r\n" in original else "\n"
+    lines = original.splitlines(keepends=True)
+
+    for field_name, value in updates.items():
+        key = field_name.upper()
+        raw_value = str(value).lower() if isinstance(value, bool) else str(value)
+        escaped = (
+            raw_value.replace("\\", "\\\\")
+            .replace('"', '\\"')
+            .replace("\r", "\\r")
+            .replace("\n", "\\n")
+        )
+        assignment = f'{key}="{escaped}"'
+        matcher = re.compile(rf"^\s*(?:export\s+)?{re.escape(key)}\s*=")
+        for index, line in enumerate(lines):
+            if matcher.match(line):
+                line_ending = (
+                    "\r\n"
+                    if line.endswith("\r\n")
+                    else "\n" if line.endswith("\n") else ""
+                )
+                lines[index] = assignment + line_ending
+                break
+        else:
+            if lines and not lines[-1].endswith(("\n", "\r")):
+                lines[-1] += newline
+            lines.append(assignment + newline)
+
+    temporary_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            newline="",
+            dir=env_path.parent,
+            prefix=f".{env_path.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as temporary:
+            temporary_path = Path(temporary.name)
+            temporary.write("".join(lines))
+        os.replace(temporary_path, env_path)
+    except OSError:
+        if temporary_path and temporary_path.exists():
+            temporary_path.unlink()
+        raise
+
+
 @app.get("/api/settings")
 async def get_settings():
     """Return runtime provider settings with masked keys."""
@@ -3467,6 +3056,7 @@ async def get_settings():
         "enable_native_metasearch": settings.enable_native_metasearch,
         "tavily_configured": bool(settings.tavily_api_key),
         "google_cse_configured": bool(settings.google_cse_api_key),
+        "google_cse_id": settings.google_cse_id,
         "brave_configured": bool(settings.brave_search_api_key),
         "max_concurrent_crawls": settings.max_concurrent_crawls,
         "http_timeout_seconds": settings.http_timeout_seconds,
@@ -3474,8 +3064,23 @@ async def get_settings():
 
 
 class SettingsUpdateRequest(BaseModel):
-    default_llm_provider: str | None = None
-    default_search_provider: str | None = None
+    default_llm_provider: (
+        Literal[
+            "auto_fallback",
+            "deterministic",
+            "openai",
+            "deepseek",
+            "gemini",
+            "nvidia_nim",
+            "ollama",
+            "local_llamacpp",
+            "lm_studio",
+        ]
+        | None
+    ) = None
+    default_search_provider: (
+        Literal["searxng", "native_metasearch", "tavily", "google_cse", "brave"] | None
+    ) = None
     deepseek_api_key: str | None = None
     deepseek_base_url: str | None = None
     deepseek_model: str | None = None
@@ -3499,67 +3104,31 @@ class SettingsUpdateRequest(BaseModel):
     google_cse_api_key: str | None = None
     google_cse_id: str | None = None
     brave_search_api_key: str | None = None
-    max_concurrent_crawls: int | None = None
+    max_concurrent_crawls: int | None = Field(default=None, ge=1, le=100)
 
 
 @app.post("/api/settings")
 async def update_settings(req: SettingsUpdateRequest):
-    """Update runtime provider settings."""
-    if req.default_llm_provider:
-        settings.default_llm_provider = req.default_llm_provider
-    if req.default_search_provider:
-        settings.default_search_provider = req.default_search_provider
-    if req.deepseek_api_key is not None:
-        settings.deepseek_api_key = req.deepseek_api_key
-    if req.deepseek_base_url is not None:
-        settings.deepseek_base_url = req.deepseek_base_url
-    if req.deepseek_model is not None:
-        settings.deepseek_model = req.deepseek_model
-    if req.gemini_api_key is not None:
-        settings.gemini_api_key = req.gemini_api_key
-    if req.gemini_base_url is not None:
-        settings.gemini_base_url = req.gemini_base_url
-    if req.gemini_model is not None:
-        settings.gemini_model = req.gemini_model
-    if req.openai_api_key is not None:
-        settings.openai_api_key = req.openai_api_key
-    if req.openai_base_url is not None:
-        settings.openai_base_url = req.openai_base_url
-    if req.openai_model is not None:
-        settings.openai_model = req.openai_model
-    if req.ollama_base_url is not None:
-        settings.ollama_base_url = req.ollama_base_url
-    if req.ollama_model is not None:
-        settings.ollama_model = req.ollama_model
-    if req.nvidia_nim_api_key is not None:
-        settings.nvidia_nim_api_key = req.nvidia_nim_api_key
-    if req.nvidia_nim_base_url is not None:
-        settings.nvidia_nim_base_url = req.nvidia_nim_base_url
-    if req.nvidia_nim_model is not None:
-        settings.nvidia_nim_model = req.nvidia_nim_model
-    if req.llamacpp_base_url is not None:
-        settings.llamacpp_base_url = req.llamacpp_base_url
-    if req.llamacpp_model is not None:
-        settings.llamacpp_model = req.llamacpp_model
-    if req.lmstudio_base_url is not None:
-        settings.lmstudio_base_url = req.lmstudio_base_url
-    if req.lmstudio_model is not None:
-        settings.lmstudio_model = req.lmstudio_model
-    if req.searxng_base_url is not None:
-        settings.searxng_base_url = req.searxng_base_url
-    if req.tavily_api_key is not None:
-        settings.tavily_api_key = req.tavily_api_key
-    if req.google_cse_api_key is not None:
-        settings.google_cse_api_key = req.google_cse_api_key
-    if req.google_cse_id is not None:
-        settings.google_cse_id = req.google_cse_id
-    if req.brave_search_api_key is not None:
-        settings.brave_search_api_key = req.brave_search_api_key
-    if req.max_concurrent_crawls:
-        settings.max_concurrent_crawls = req.max_concurrent_crawls
+    """Validate, persist, and activate user-selected local provider settings."""
+    updates = req.model_dump(exclude_none=True)
+    if "searxng_base_url" in updates:
+        updates["searxng_base_url"] = updates["searxng_base_url"].strip().rstrip("/")
+
+    if updates:
+        try:
+            with _settings_persist_lock:
+                _persist_runtime_settings(updates)
+        except OSError as exc:
+            raise HTTPException(
+                status_code=500,
+                detail="Settings could not be saved to the local configuration file.",
+            ) from exc
+        for field_name, value in updates.items():
+            setattr(settings, field_name, value)
 
     return {
         "status": "saved",
+        "persisted": True,
         "active_provider": settings.default_llm_provider,
         "active_search": settings.default_search_provider,
     }
@@ -3576,7 +3145,7 @@ class ProviderPingRequest(BaseModel):
 async def ping_provider(req: ProviderPingRequest):
     """
     Test connection ping for any LLM provider.
-    Sends a 10-token prompt to verify reachability, auth, and response latency.
+    Sends a minimal prompt to verify reachability, authentication, and response latency.
     """
     import time
 
@@ -3585,14 +3154,22 @@ async def ping_provider(req: ProviderPingRequest):
     t0 = time.perf_counter()
 
     # 1. Deterministic Parser Ping
-    if req.provider in ("deterministic", "regex", "auto_fallback"):
-        await asyncio.sleep(0.01)
+    if req.provider in ("deterministic", "regex"):
         return {
             "status": "ok",
-            "latency_ms": 1,
-            "reply": "PONG: German § 5 DDG Legal Parser & Fallback Active ($0/free)",
+            "latency_ms": round((time.perf_counter() - t0) * 1000),
+            "reply": "Deterministic German legal parser responded.",
             "model": "regex_german_impressum_v2",
-            "tokens": 10,
+            "tokens": 0,
+        }
+
+    if req.provider == "auto_fallback":
+        return {
+            "status": "degraded",
+            "latency_ms": round((time.perf_counter() - t0) * 1000),
+            "reply": "Auto fallback is a routing policy. Select a specific provider to test its live connection; deterministic extraction remains available locally.",
+            "model": None,
+            "tokens": 0,
         }
 
     # 2. Map provider to base_url, model, and api_key (zero hardcoded model stubs)
@@ -3648,7 +3225,9 @@ async def ping_provider(req: ProviderPingRequest):
         },
     }
 
-    target = provider_map.get(req.provider, provider_map["deepseek"])
+    target = provider_map.get(req.provider)
+    if target is None:
+        raise HTTPException(status_code=400, detail="Unsupported LLM provider.")
     base_url = str(target.get("base_url") or "").rstrip("/")
     model = str(target.get("model") or "").strip()
     api_key = str(target.get("api_key") or "").strip()
@@ -3708,9 +3287,7 @@ async def ping_provider(req: ProviderPingRequest):
         }
 
     try:
-        async with httpx.AsyncClient(
-            timeout=10.0, verify=False
-        ) as client:  # nosec B501
+        async with httpx.AsyncClient(timeout=10.0) as client:
             res = await client.post(endpoint, headers=headers, json=payload)
             res.raise_for_status()
             data = res.json()
@@ -3722,7 +3299,7 @@ async def ping_provider(req: ProviderPingRequest):
                 first_cand = data["candidates"][0] if data["candidates"] else {}
                 content_obj = first_cand.get("content") or {}
                 parts = content_obj.get("parts") or []
-                raw_reply = parts[0].get("text") if parts else "PONG"
+                raw_reply = parts[0].get("text") if parts else None
             else:
                 choice = choices[0] if (choices and isinstance(choices, list)) else {}
                 msg = choice.get("message") if isinstance(choice, dict) else {}
@@ -3737,13 +3314,20 @@ async def ping_provider(req: ProviderPingRequest):
                         or data.get("text")
                     )
 
-            reply = str(raw_reply or "PONG").strip()
-            tokens = (data.get("usage") or {}).get("total_tokens", 8)
+            reply = str(raw_reply or "").strip()
+            if not reply:
+                return {
+                    "status": "error",
+                    "latency_ms": latency_ms,
+                    "error": "The provider returned a successful HTTP response without completion text.",
+                }
+            usage = data.get("usage") or {}
+            tokens = usage.get("total_tokens")
 
             return {
                 "status": "ok",
                 "latency_ms": latency_ms,
-                "reply": reply or "PONG",
+                "reply": reply,
                 "model": model,
                 "tokens": tokens,
             }
@@ -3863,7 +3447,7 @@ async def discover_provider_models(req: ProviderPingRequest):
         }
 
     try:
-        async with httpx.AsyncClient(timeout=6.0, verify=False) as client:  # nosec B501
+        async with httpx.AsyncClient(timeout=6.0) as client:
             # 1. Live discovery for Ollama via /api/tags
             if prov == "ollama":
                 ollama_root = (
@@ -4046,7 +3630,8 @@ class SearchPingRequest(BaseModel):
     provider: str
     base_url: str | None = None
     api_key: str | None = None
-    query: str | None = "Hausverwaltung Berlin"
+    google_cse_id: str | None = None
+    query: str | None = None
 
 
 @app.post("/api/search/ping")
@@ -4060,16 +3645,33 @@ async def ping_search_provider(req: SearchPingRequest):
     import httpx
 
     t0 = time.perf_counter()
+    query = (req.query or "").strip()
+    if not query:
+        raise HTTPException(
+            status_code=422,
+            detail="Enter a real search query before testing the search provider.",
+        )
 
     # 1. Native Meta-Search (Local Direct Scraper Pipeline)
     if req.provider in ("native_metasearch", "internal"):
-        await asyncio.sleep(0.01)
+        from metrixa_engine.enrichment.search_router import search_router
+
+        results = await search_router.search(
+            query, max_results=5, allow_tavily_fallback=False
+        )
+        engines = sorted({item.engine for item in results})
         return {
-            "status": "ok",
-            "latency_ms": 1,
-            "reply": "Native Meta-Search Active (Direct German Ingestion: Gelbe Seiten + 11880 + VDIV)",
-            "engines_active": 4,
-            "privacy": "100% Private (No External API Required)",
+            "status": "ok" if results else "degraded",
+            "latency_ms": int((time.perf_counter() - t0) * 1000),
+            "reply": (
+                f"Live search returned {len(results)} results."
+                if results
+                else "Live search returned no results."
+            ),
+            "results_count": len(results),
+            "engines_active": len(engines),
+            "engines": engines,
+            "privacy": "Search request sent to the configured search endpoints.",
         }
 
     # 2. SearXNG Local Engine
@@ -4078,29 +3680,45 @@ async def ping_search_provider(req: SearchPingRequest):
             req.base_url or settings.searxng_base_url or "http://127.0.0.1:8888"
         ).rstrip("/")
         endpoint = f"{url}/search"
-        params = {"q": req.query or "Hausverwaltung Berlin", "format": "json"}
+        params = {"q": query, "format": "json"}
         try:
             async with httpx.AsyncClient(timeout=4.0) as client:
                 res = await client.get(endpoint, params=params)
                 if res.status_code == 200:
                     data = res.json()
                     latency_ms = int((time.perf_counter() - t0) * 1000)
-                    results_count = len(data.get("results", []))
+                    results = data.get("results", [])
+                    engines = sorted(
+                        {
+                            str(item.get("engine"))
+                            for item in results
+                            if item.get("engine")
+                        }
+                    )
                     return {
                         "status": "ok",
                         "latency_ms": latency_ms,
-                        "reply": f"SearXNG Local Live: {results_count} results retrieved across meta-engines (Google, Bing, Qwant, DDG)",
-                        "engines_active": 12,
-                        "privacy": "100% Privacy Guard (Zero Tracking)",
+                        "reply": f"SearXNG returned {len(results)} search results.",
+                        "results_count": len(results),
+                        "engines_active": len(engines),
+                        "engines": engines,
+                        "privacy": "Local endpoint; upstream engine behavior depends on SearXNG configuration.",
                     }
+                return {
+                    "status": "error",
+                    "latency_ms": int((time.perf_counter() - t0) * 1000),
+                    "reply": f"SearXNG returned HTTP {res.status_code}.",
+                    "engines_active": 0,
+                    "privacy": "No successful search completed.",
+                }
         except Exception:
             latency_ms = int((time.perf_counter() - t0) * 1000)
             return {
-                "status": "ok",
-                "latency_ms": max(latency_ms, 2),
-                "reply": "SearXNG Local Default Active: Seamless Failover to Native Meta-Search & Async DOM Crawlers",
-                "engines_active": 4,
-                "privacy": "100% Local (Zero API Costs)",
+                "status": "error",
+                "latency_ms": latency_ms,
+                "reply": "SearXNG endpoint could not be reached; test native search separately.",
+                "engines_active": 0,
+                "privacy": "No search request completed.",
             }
 
     # 3. Tavily AI Search API
@@ -4117,7 +3735,7 @@ async def ping_search_provider(req: SearchPingRequest):
                 res = await client.post(
                     "https://api.tavily.com/search",
                     json={
-                        "query": req.query or "Hausverwaltung Berlin",
+                        "query": query,
                         "search_depth": "basic",
                         "max_results": 2,
                     },
@@ -4162,17 +3780,19 @@ async def ping_search_provider(req: SearchPingRequest):
             async with httpx.AsyncClient(timeout=6.0) as client:
                 res = await client.get(
                     "https://api.search.brave.com/res/v1/web/search",
-                    params={"q": req.query or "Hausverwaltung Berlin", "count": 2},
+                    params={"q": query, "count": 2},
                     headers={"X-Subscription-Token": key, "Accept": "application/json"},
                 )
                 latency_ms = int((time.perf_counter() - t0) * 1000)
                 if res.status_code == 200:
+                    results = (res.json().get("web") or {}).get("results") or []
                     return {
                         "status": "ok",
                         "latency_ms": latency_ms,
-                        "reply": "Brave Privacy Search: Connection verified (200 OK)",
+                        "reply": f"Brave returned {len(results)} search results.",
+                        "results_count": len(results),
                         "engines_active": 1,
-                        "privacy": "Independent Web Index",
+                        "privacy": "Brave Search API; query sent to Brave.",
                     }
                 else:
                     return {
@@ -4187,10 +3807,53 @@ async def ping_search_provider(req: SearchPingRequest):
                 "error": str(e),
             }
 
-    return {
-        "status": "ok",
-        "latency_ms": 1,
-        "reply": "Search provider operational.",
-        "engines_active": 1,
-        "privacy": "Verified",
-    }
+    if req.provider == "google_cse":
+        key = req.api_key or settings.google_cse_api_key
+        engine_id = req.google_cse_id or settings.google_cse_id
+        if not key:
+            return {
+                "status": "error",
+                "latency_ms": 0,
+                "error": "Google Custom Search API key is not configured.",
+            }
+        if not engine_id:
+            return {
+                "status": "error",
+                "latency_ms": 0,
+                "error": "Google Custom Search Engine ID is not configured.",
+            }
+        try:
+            async with httpx.AsyncClient(timeout=6.0) as client:
+                res = await client.get(
+                    "https://www.googleapis.com/customsearch/v1",
+                    params={
+                        "key": key,
+                        "cx": engine_id,
+                        "q": query,
+                        "num": 2,
+                    },
+                )
+                latency_ms = int((time.perf_counter() - t0) * 1000)
+                if res.status_code == 200:
+                    results = res.json().get("items") or []
+                    return {
+                        "status": "ok",
+                        "latency_ms": latency_ms,
+                        "reply": f"Google Custom Search returned {len(results)} search results.",
+                        "results_count": len(results),
+                        "engines_active": 1,
+                        "privacy": "Google Custom Search API; query sent to Google.",
+                    }
+                return {
+                    "status": "error",
+                    "latency_ms": latency_ms,
+                    "error": f"Google Custom Search returned HTTP {res.status_code}.",
+                }
+        except Exception:
+            return {
+                "status": "error",
+                "latency_ms": int((time.perf_counter() - t0) * 1000),
+                "error": "Could not reach Google Custom Search.",
+            }
+
+    raise HTTPException(status_code=400, detail="Unsupported search provider.")

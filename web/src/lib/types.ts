@@ -95,6 +95,8 @@ export interface MetricsResponse {
     with_erp_stack: number;
     with_decision_maker: number;
     with_personal_email: number;
+    with_public_personal_email: number;
+    with_pattern_email_candidate: number;
     with_linkedin: number;
     crawled_pages: number;
   };

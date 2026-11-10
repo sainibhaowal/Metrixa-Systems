@@ -188,7 +188,8 @@ def extract_deterministic_german_kpis(
 ) -> CompanyKPIExtraction:
     """
     High-precision deterministic parser for German Hausverwaltung websites & § 5 DDG Impressum.
-    Provides 100% evidence-backed extraction even before/without LLM calls, and merges with LLM output.
+    Extracts claims from supplied source text and merges deterministic findings with
+    optional LLM output. Evidence checks do not establish an overall accuracy rate.
     """
     text = combined_text or ""
     lower_text = text.lower()
@@ -470,9 +471,11 @@ class LLMRouter:
     async def resolve_active_provider(
         self, requested_provider: Optional[str] = None
     ) -> Optional[Dict[str, str]]:
-        target = str(
-            requested_provider or settings.default_llm_provider or "deterministic"
-        ).lower().strip()
+        target = (
+            str(requested_provider or settings.default_llm_provider or "deterministic")
+            .lower()
+            .strip()
+        )
         if target == "deterministic":
             return None
 
@@ -511,7 +514,7 @@ class LLMRouter:
         requested_provider: Optional[str] = None,
     ) -> Tuple[CompanyKPIExtraction, Dict[str, Any]]:
         """
-        1. Runs the deterministic German Impressum/KPI parser first (zero hallucination baseline).
+        1. Runs the deterministic German Impressum/KPI parser first as a rule-based baseline.
         2. If an LLM provider (local or cloud) is active and crawled text is non-empty,
            queries the LLM, parses the Pydantic schema, verifies evidence quotes against
            the source text, and merges with deterministic findings.
@@ -592,9 +595,7 @@ class LLMRouter:
                     if not raw_content:
                         # Handle reasoning models where output tokens are placed in reasoning_content
                         raw_content = (
-                            msg_obj.get("reasoning_content")
-                            or choice.get("text")
-                            or ""
+                            msg_obj.get("reasoning_content") or choice.get("text") or ""
                         )
 
                     content = str(raw_content or "").strip()

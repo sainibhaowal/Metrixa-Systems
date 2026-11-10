@@ -30,6 +30,7 @@ import {
   syncGoogleSheets,
   testGoogleSheetsConnection,
   fetchDeliverablesStatus,
+  apiUrl,
 } from "@/lib/api";
 
 interface ArtifactFile {
@@ -129,6 +130,10 @@ export default function ArtifactsLibraryPage() {
       const items = res.items || [];
       setFiles(items);
       setSummary(res.summary || { total: 0, active: 0, archived: 0, trash: 0 });
+      const savedRetention = items.find((item: ArtifactFile) =>
+        Number.isInteger(item.retention_days),
+      )?.retention_days;
+      if (savedRetention) setRetentionDays(savedRetention);
 
       if (items.length > 0) {
         if (
@@ -315,7 +320,7 @@ export default function ArtifactsLibraryPage() {
         archive: "Archived to Vault",
         restore: "Restored to Active Library",
         trash: "Moved to Trash Bin",
-        delete_permanent: "Permanently Deleted",
+        delete_permanent: "Removed from library; file retained on disk",
         empty_trash: "Trash Bin Emptied",
         set_retention: `Retention set to ${retention} days`,
       };
@@ -781,7 +786,7 @@ export default function ArtifactsLibraryPage() {
                               e.stopPropagation();
                               handleAction("delete_permanent", [f.id]);
                             }}
-                            title="Permanent delete"
+                            title="Remove from library; keep the file on disk"
                             className="p-1 rounded text-zinc-400 hover:text-rose-400 hover:bg-zinc-800 transition-colors"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -790,7 +795,7 @@ export default function ArtifactsLibraryPage() {
                       )}
 
                       <a
-                        href={`http://127.0.0.1:8000${f.download_url}`}
+                        href={apiUrl(f.download_url)}
                         download
                         onClick={(e) => e.stopPropagation()}
                         title="Download file directly"
@@ -810,7 +815,7 @@ export default function ArtifactsLibraryPage() {
             <div className="p-3 rounded-2xl bg-[#111114] border border-rose-500/30 shadow-matte flex items-center justify-between gap-2 text-xs font-mono shrink-0 animate-in fade-in">
               <div className="flex items-center gap-1.5 text-rose-300">
                 <Clock className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-                <span>Trash Auto-Purge TTL:</span>
+                <span>Retention metadata (no auto-delete):</span>
               </div>
 
               <div className="flex items-center gap-1">
@@ -847,8 +852,8 @@ export default function ArtifactsLibraryPage() {
                   No Deliverables Available
                 </p>
                 <p className="text-xs text-zinc-500 max-w-sm">
-                  Run Stage 06 (Export) from Mission Control to generate
-                  verified Excel workbooks, CSV files, and evaluation reports.
+                  Run Stage 06 (Export) from Mission Control to generate local
+                  Excel workbooks, CSV files, and evidence reports.
                 </p>
               </div>
             </div>
@@ -866,7 +871,9 @@ export default function ArtifactsLibraryPage() {
                         {currentFile?.name || "Select Deliverable"}
                       </h2>
                       <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-emerald-400 shrink-0">
-                        Office Preview
+                        {previewData?.type === "pdf"
+                          ? "Source Preview"
+                          : "Office Preview"}
                       </span>
                       {currentFile?.sha256_short &&
                         currentFile.sha256_short !== "pending" && (
@@ -886,6 +893,11 @@ export default function ArtifactsLibraryPage() {
                         ({formatRelativeTime(currentFile?.updated_at, nowTick)})
                       </span>
                     </p>
+                    {currentFile?.desc && (
+                      <p className="text-[11px] text-zinc-400 mt-1 max-w-2xl">
+                        {currentFile.desc}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -927,7 +939,7 @@ export default function ArtifactsLibraryPage() {
                     <a
                       href={
                         previewData?.spreadsheet_url ||
-                        `http://127.0.0.1:8000${currentFile.download_url}`
+                        apiUrl(currentFile.download_url)
                       }
                       target="_blank"
                       rel="noopener noreferrer"
@@ -938,7 +950,7 @@ export default function ArtifactsLibraryPage() {
                     </a>
                   ) : currentFile ? (
                     <a
-                      href={`http://127.0.0.1:8000${currentFile.download_url}`}
+                      href={apiUrl(currentFile.download_url)}
                       download
                       className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs shadow-glowEmerald transition-all"
                     >
@@ -1184,7 +1196,7 @@ export default function ArtifactsLibraryPage() {
                             Berlin Leads
                           </span>
                           <span className="text-sky-400">
-                            Salesforce & HubSpot Import Ready
+                            CSV format only; CRM field mapping is not verified
                           </span>
                         </div>
                       </div>
@@ -1195,9 +1207,18 @@ export default function ArtifactsLibraryPage() {
                   {(previewData.type === "md" ||
                     previewData.type === "pdf") && (
                     <div className="flex-1 min-h-0 flex flex-col space-y-2">
+                      {previewData.type === "pdf" && (
+                        <div
+                          role="note"
+                          className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-200"
+                        >
+                          {previewData.preview_note ||
+                            "This is source text, not a rendered or validated PDF. Review the PDF before external use."}
+                        </div>
+                      )}
                       <div className="flex items-center justify-between pb-1.5 border-b border-zinc-800 text-xs font-mono shrink-0">
                         <span className="text-zinc-400 text-[11px]">
-                          Lines: {previewData.lines_count || 120} • Formatted
+                          Lines: {previewData.lines_count ?? 0} • Formatted
                           Markdown Document
                         </span>
                         <button
@@ -1508,12 +1529,12 @@ export default function ArtifactsLibraryPage() {
               <div>
                 <h3 className="text-base font-bold text-zinc-100 flex items-center gap-2">
                   <Trash2 className="w-4 h-4 text-rose-400" />
-                  <span>Deliverables Trash Bin & Auto-Purge Lifecycle</span>
+                  <span>Deliverables Trash Bin</span>
                 </h3>
                 <p className="text-xs text-zinc-400 mt-0.5">
-                  Trashed files are automatically purged after {retentionDays}{" "}
-                  days. Restore files back to the active library or delete
-                  permanently.
+                  The {retentionDays}-day retention value is stored for
+                  reference; files are not automatically deleted. Removing an
+                  item from the library leaves its file on disk.
                 </p>
               </div>
 
@@ -1527,7 +1548,9 @@ export default function ArtifactsLibraryPage() {
 
             {/* Trash Retention Setting Inside Modal */}
             <div className="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-between gap-2 text-xs font-mono">
-              <span className="text-zinc-400">Auto-Purge Retention TTL:</span>
+              <span className="text-zinc-400">
+                Retention metadata (no auto-delete):
+              </span>
               <div className="flex items-center gap-1">
                 {[30, 45, 60, 90].map((days) => (
                   <button
@@ -1584,7 +1607,7 @@ export default function ArtifactsLibraryPage() {
                   className="px-2.5 py-1 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold disabled:opacity-40 transition-all flex items-center gap-1"
                 >
                   <Trash2 className="w-3 h-3" />
-                  <span>Delete Permanently</span>
+                  <span>Remove from Library</span>
                 </button>
 
                 <button
@@ -1606,7 +1629,7 @@ export default function ArtifactsLibraryPage() {
                     Trash Bin is Empty
                   </p>
                   <p className="text-[11px] text-zinc-500 font-mono">
-                    All deliverables are active in the library.
+                    No deliverables are in the trash.
                   </p>
                 </div>
               ) : (
@@ -1639,7 +1662,8 @@ export default function ArtifactsLibraryPage() {
                             {tf.name}
                           </p>
                           <span className="text-[10px] font-mono text-zinc-500">
-                            Auto-purges in {retentionDays} days
+                            Retention set to {retentionDays} days; file remains
+                            on disk
                           </span>
                         </div>
                       </div>

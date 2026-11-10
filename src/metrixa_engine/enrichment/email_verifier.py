@@ -95,7 +95,7 @@ class EmailVerifier:
 
         # Strip titles (Dr., Prof., Dipl.-Ing., Dipl.-Kfm.)
         cleaned = re.sub(
-            r"\b(?:dr\.|prof\.|dipl\.-[a-zäöüß]+|m\.a\.|ll\.m\.|herr|frau)\b",
+            r"\b(?:dr\.|prof\.|dipl\.-[a-zäöüß]+|m\.a\.|ll\.m\.|herr|frau)(?:\s+|$)",
             "",
             full_name,
             flags=re.IGNORECASE,

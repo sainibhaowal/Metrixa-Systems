@@ -144,7 +144,7 @@ export function EvidenceDrawer({ companyId, onClose }: EvidenceDrawerProps) {
         <div className="flex-1 p-6 overflow-y-auto space-y-6">
           {loading ? (
             <div className="h-64 flex items-center justify-center text-xs text-zinc-400 font-mono">
-              Loading verified dossier...
+              Loading company dossier...
             </div>
           ) : (
             <>
@@ -229,7 +229,19 @@ export function EvidenceDrawer({ companyId, onClose }: EvidenceDrawerProps) {
                                 </span>
                               </div>
                               {dm.email_status && (
-                                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                                <span
+                                  className={`text-[10px] font-mono px-2 py-0.5 rounded border ${
+                                    dm.email_status.startsWith(
+                                      "Publicly listed",
+                                    )
+                                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                                      : dm.email_status.startsWith(
+                                            "Pattern candidate",
+                                          )
+                                        ? "bg-amber-500/10 text-amber-300 border-amber-500/30"
+                                        : "bg-zinc-500/10 text-zinc-400 border-zinc-500/30"
+                                  }`}
+                                >
                                   {dm.email_status}
                                 </span>
                               )}
@@ -350,11 +362,11 @@ export function EvidenceDrawer({ companyId, onClose }: EvidenceDrawerProps) {
 
                   <div className="p-4 rounded-xl bg-[#141418] border border-zinc-800/80 space-y-2">
                     <span className="text-xs font-semibold text-zinc-300">
-                      AI Qualification Summary Reasoning
+                      Stored Qualification Notes — Review Source Evidence
                     </span>
                     <p className="text-xs text-zinc-400 leading-relaxed">
                       {kpi?.qualification_reasoning ||
-                        "Active Berlin Hausverwaltung meeting residential submetering qualification criteria."}
+                        "No qualification notes are stored for this company."}
                     </p>
                   </div>
                 </div>

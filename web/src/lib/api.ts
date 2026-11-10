@@ -1,4 +1,11 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+export const API_BASE = (
+  process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"
+).replace(/\/+$/, "");
+
+export function apiUrl(path: string): string {
+  if (/^https?:\/\//i.test(path)) return path;
+  return `${API_BASE}${path.startsWith("/") ? path : `/${path}`}`;
+}
 
 // In-memory request deduplication & micro-cache for ultra-low latency navigation
 let metricsCache: { data: any; timestamp: number } | null = null;
@@ -160,6 +167,7 @@ export async function pingSearchProvider(data: {
   provider: string;
   base_url?: string;
   api_key?: string;
+  google_cse_id?: string;
   query?: string;
 }) {
   const res = await fetch(`${API_BASE}/api/search/ping`, {

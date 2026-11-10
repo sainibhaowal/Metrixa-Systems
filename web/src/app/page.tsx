@@ -42,7 +42,10 @@ export default function DashboardPage() {
   const tierA = tiers["Tier A (High Priority)"] ?? 0;
   const tierB = tiers["Tier B (Qualified Mid-Market)"] ?? 0;
   const decisionMakers = metrics?.coverage?.with_decision_maker ?? 0;
-  const personalEmails = metrics?.coverage?.with_personal_email ?? 0;
+  const publicPersonalEmails =
+    metrics?.coverage?.with_public_personal_email ?? 0;
+  const patternEmailCandidates =
+    metrics?.coverage?.with_pattern_email_candidate ?? 0;
   const portals = metrics?.coverage?.with_customer_portal ?? 0;
 
   const erpData = Object.entries(metrics?.erp_breakdown || {}).map(
@@ -51,10 +54,10 @@ export default function DashboardPage() {
 
   const districtData = (metrics?.district_breakdown || []).slice(0, 8);
 
-  const totalPortals =
-    portals ||
-    erpData.reduce((acc, curr) => acc + (Number(curr.value) || 0), 0) ||
-    1;
+  const maxErpCount = Math.max(
+    1,
+    ...erpData.map((item) => Number(item.value) || 0),
+  );
 
   const COLORS = ["#10b981", "#34d399", "#f59e0b", "#a1a1aa", "#71717a"];
 
@@ -66,12 +69,12 @@ export default function DashboardPage() {
           <h1 className="text-2xl font-bold tracking-tight text-zinc-100 flex items-center gap-2.5">
             <span>Executive Cockpit</span>
             <span className="text-xs px-2.5 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono">
-              Berlin Submetering TAM
+              Berlin Property Management Leads
             </span>
           </h1>
           <p className="text-xs text-zinc-400 mt-1">
-            Real-time market intelligence, lead tiers, PropTech ERP penetration,
-            and decision-maker coverage.
+            Current local dataset, scoring bands, observed technology signals,
+            and source-listed contact coverage.
           </p>
         </div>
         <div className="flex items-center gap-2.5">
@@ -102,7 +105,7 @@ export default function DashboardPage() {
         <div className="p-5 rounded-2xl bg-[#141418] border border-zinc-800/80 shadow-matteCard hover:border-zinc-700/80 transition-all">
           <div className="flex items-center justify-between text-zinc-400 mb-3">
             <span className="text-xs font-medium uppercase tracking-wider text-zinc-400">
-              Total Market TAM
+              Canonical Companies
             </span>
             <Building2 className="w-4 h-4 text-emerald-400" />
           </div>
@@ -142,9 +145,7 @@ export default function DashboardPage() {
           </div>
           <p className="text-[11px] text-zinc-400 mt-2 font-mono">
             {tierA > 0 ? (
-              <>
-                Managing <strong className="text-zinc-200">1,000+</strong> units
-              </>
+              <>Prioritized by the current lead scoring rules</>
             ) : (
               <span className="text-zinc-500">0 high-density portfolios</span>
             )}
@@ -176,28 +177,28 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        {/* Card 4: Personal Emails */}
+        {/* Card 4: Email Evidence */}
         <div className="p-5 rounded-2xl bg-[#141418] border border-zinc-800/80 shadow-matteCard hover:border-zinc-700/80 transition-all">
           <div className="flex items-center justify-between text-zinc-400 mb-3">
             <span className="text-xs font-medium uppercase tracking-wider text-zinc-400">
-              Personal Emails
+              Decision-Maker Emails
             </span>
             <MailCheck className="w-4 h-4 text-amber-400" />
           </div>
           <div className="text-3xl font-bold text-zinc-100 tracking-tight font-mono">
-            {formatNumber(personalEmails)}
+            {formatNumber(publicPersonalEmails)}
           </div>
           <p className="text-[11px] text-zinc-400 mt-2 font-mono">
-            {personalEmails > 0 ? (
-              <>
-                <strong className="text-amber-400">
-                  {formatNumber(personalEmails)}
-                </strong>{" "}
-                live DNS MX verified
-              </>
-            ) : (
-              <span className="text-zinc-500">0 verified mailboxes</span>
-            )}
+            <>
+              <strong className="text-emerald-400">
+                {formatNumber(publicPersonalEmails)}
+              </strong>{" "}
+              publicly listed;{" "}
+              <strong className="text-amber-400">
+                {formatNumber(patternEmailCandidates)}
+              </strong>{" "}
+              pattern candidates. Mailboxes are not tested.
+            </>
           </p>
         </div>
 
@@ -214,7 +215,7 @@ export default function DashboardPage() {
           </div>
           <p className="text-[11px] text-zinc-400 mt-2 font-mono">
             {portals > 0 ? (
-              <span>Casavi, Domus, Haufe, Immoware</span>
+              <span>Observed portal and ERP signals</span>
             ) : (
               <span className="text-zinc-500">0 tenant portals detected</span>
             )}
@@ -229,10 +230,10 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-sm font-bold text-zinc-100 tracking-tight">
-                Berlin District Market Penetration
+                Companies by Berlin District
               </h2>
               <p className="text-[11px] text-zinc-400">
-                Verified property managers across top Berlin Bezirke
+                Dataset records with a mapped district
               </p>
             </div>
             <span className="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
@@ -312,14 +313,14 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-sm font-bold text-zinc-100 tracking-tight">
-                  PropTech ERP Adoption
+                  Observed PropTech / ERP Signals
                 </h2>
                 <p className="text-[11px] text-zinc-400">
-                  Buying signals for smart metering integration
+                  Signal counts from the current dataset; categories may overlap
                 </p>
               </div>
               <span className="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
-                {erpData.length > 0 ? "Tech Forward" : "Standby"}
+                {erpData.length > 0 ? "Signals Recorded" : "No Signals"}
               </span>
             </div>
 
@@ -328,20 +329,20 @@ export default function DashboardPage() {
                 {erpData.map(
                   (item: { name: string; value: any }, idx: number) => {
                     const numVal = Number(item.value) || 0;
-                    const pct = Math.round((numVal / totalPortals) * 100);
+                    const barWidth = Math.round((numVal / maxErpCount) * 100);
                     return (
                       <div key={item.name} className="space-y-1">
                         <div className="flex justify-between text-xs font-medium">
                           <span className="text-zinc-300">{item.name}</span>
                           <span className="font-mono text-zinc-400">
-                            {numVal} firms ({pct}%)
+                            {formatNumber(numVal)} records
                           </span>
                         </div>
                         <div className="w-full h-2 rounded-md bg-zinc-800 overflow-hidden">
                           <div
                             className="h-full rounded-md transition-all duration-500"
                             style={{
-                              width: `${pct}%`,
+                              width: `${barWidth}%`,
                               backgroundColor: COLORS[idx % COLORS.length],
                             }}
                           />
@@ -385,8 +386,8 @@ export default function DashboardPage() {
           </div>
           <p className="text-xs text-zinc-300 leading-relaxed font-sans">
             {tierA > 0
-              ? `${formatNumber(tierA)} high-priority companies managing high-density residential portfolios with verified Geschäftsführer. Prime targets for Metrixa Systems Account Executives.`
-              : "High-priority property managers managing large residential portfolios and verified Geschäftsführer are scored as Tier A upon pipeline completion."}
+              ? `${formatNumber(tierA)} companies are currently in Tier A under the configured heuristic. Review each company's source evidence before prioritizing outreach.`
+              : "Companies enter Tier A when their current heuristic score meets the configured threshold. Scores are prioritization signals, not independent verification."}
           </p>
         </div>
 
@@ -397,8 +398,8 @@ export default function DashboardPage() {
           </div>
           <p className="text-xs text-zinc-300 leading-relaxed font-sans">
             {tierB > 0
-              ? `${formatNumber(tierB)} solid mid-market property managers with verified commercial register (HRB) and phone numbers ready for structured outreach cadences.`
-              : "Mid-market property managers with verified commercial register (HRB) records and verified contact channels will populate here."}
+              ? `${formatNumber(tierB)} companies are currently in Tier B under the configured heuristic. Check source and contact evidence before acting on a record.`
+              : "Companies enter Tier B when their current heuristic score meets the configured threshold. This app does not verify every contact channel."}
           </p>
         </div>
 
@@ -408,9 +409,9 @@ export default function DashboardPage() {
             <span>Audit & Evidence Proof</span>
           </div>
           <p className="text-xs text-zinc-300 leading-relaxed font-sans">
-            Every discovered KPI is strictly grounded in verbatim German
-            Impressum quotes and verified HTTP 200 URLs. Zero unverified claims
-            or LLM hallucinations.
+            Source URLs and quotes are stored where available. Extraction and
+            scoring still require human review; the app does not claim zero
+            errors or independently verified facts.
           </p>
         </div>
       </div>

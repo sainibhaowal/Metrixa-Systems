@@ -196,36 +196,114 @@ class SearchRouter:
             pass
         return []
 
+    async def _query_brave_api(
+        self, client: httpx.AsyncClient, query: str, max_results: int = 8
+    ) -> List[SearchResultItem]:
+        """Query Brave's configured API and preserve its actual result URLs."""
+        if not settings.brave_search_api_key:
+            return []
+        try:
+            response = await client.get(
+                "https://api.search.brave.com/res/v1/web/search",
+                params={"q": query, "count": min(max_results, 20)},
+                headers={
+                    "X-Subscription-Token": settings.brave_search_api_key,
+                    "Accept": "application/json",
+                },
+                timeout=10.0,
+            )
+            if response.status_code != 200:
+                return []
+            items = (response.json().get("web") or {}).get("results") or []
+            return [
+                SearchResultItem(
+                    title=str(item.get("title") or "").strip(),
+                    url=str(item.get("url") or "").strip(),
+                    snippet=str(item.get("description") or "").strip(),
+                    engine="brave_api",
+                )
+                for item in items[:max_results]
+                if str(item.get("url") or "").startswith("http")
+            ]
+        except Exception:
+            return []
+
+    async def _query_google_cse(
+        self, client: httpx.AsyncClient, query: str, max_results: int = 8
+    ) -> List[SearchResultItem]:
+        """Query Google Custom Search when both the API key and engine ID exist."""
+        if not settings.google_cse_api_key or not settings.google_cse_id:
+            return []
+        try:
+            response = await client.get(
+                "https://www.googleapis.com/customsearch/v1",
+                params={
+                    "key": settings.google_cse_api_key,
+                    "cx": settings.google_cse_id,
+                    "q": query,
+                    "num": min(max_results, 10),
+                },
+                timeout=10.0,
+            )
+            if response.status_code != 200:
+                return []
+            items = response.json().get("items") or []
+            return [
+                SearchResultItem(
+                    title=str(item.get("title") or "").strip(),
+                    url=str(item.get("link") or "").strip(),
+                    snippet=str(item.get("snippet") or "").strip(),
+                    engine="google_cse",
+                )
+                for item in items[:max_results]
+                if str(item.get("link") or "").startswith("http")
+            ]
+        except Exception:
+            return []
+
     async def search(
         self,
         query: str,
         max_results: int = 8,
         allow_tavily_fallback: bool = True,
     ) -> List[SearchResultItem]:
+        provider_order = {
+            "searxng": ["searxng", "native_metasearch", "tavily"],
+            "native_metasearch": ["native_metasearch", "searxng", "tavily"],
+            "tavily": ["tavily", "searxng", "native_metasearch"],
+            "brave": ["brave", "searxng", "native_metasearch", "tavily"],
+            "google_cse": ["google_cse", "searxng", "native_metasearch", "tavily"],
+        }.get(
+            settings.default_search_provider, ["searxng", "native_metasearch", "tavily"]
+        )
+        if not allow_tavily_fallback:
+            provider_order = [
+                provider for provider in provider_order if provider != "tavily"
+            ]
+
         async with self._semaphore:
             async with httpx.AsyncClient(http2=True, follow_redirects=True) as client:
-                # Tier 1: Local SearXNG
-                items = await self._query_local_searxng(
-                    client, query, max_results=max_results
-                )
-                if items:
-                    return items
-
-                # Tier 2: Built-in Native Meta-Search
-                await asyncio.sleep(random.uniform(0.3, 0.7))
-                items = await self._query_native_metasearch(
-                    client, query, max_results=max_results
-                )
-                if items:
-                    return items
-
-                # Tier 3: Tavily API Fallback
-                if allow_tavily_fallback:
-                    items = await self._query_tavily_fallback(
-                        client, query, max_results=max_results
-                    )
+                for provider in provider_order:
+                    if provider == "searxng":
+                        items = await self._query_local_searxng(
+                            client, query, max_results
+                        )
+                    elif provider == "native_metasearch":
+                        items = await self._query_native_metasearch(
+                            client, query, max_results
+                        )
+                    elif provider == "tavily":
+                        items = await self._query_tavily_fallback(
+                            client, query, max_results
+                        )
+                    elif provider == "brave":
+                        items = await self._query_brave_api(client, query, max_results)
+                    else:
+                        items = await self._query_google_cse(client, query, max_results)
                     if items:
                         return items
+                    if provider == "native_metasearch":
+                        await asyncio.sleep(random.uniform(0.3, 0.7))
 
                 return []
 

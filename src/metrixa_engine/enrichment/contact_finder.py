@@ -1,7 +1,7 @@
 """
-Stage 5 Decision-Maker LinkedIn & Personal Email Enrichment Engine.
-Verifies DNS MX records, resolves personal LinkedIn URLs via SearXNG/Meta-Search/Tavily,
-and generates MX-verified personal corporate emails when only info@ was listed on the website.
+Stage 5 Decision-Maker LinkedIn & Email Candidate Enrichment Engine.
+Checks corporate-domain DNS MX records, resolves LinkedIn URLs via search providers,
+and labels generated address patterns as candidates rather than mailbox-verified emails.
 """
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ from metrixa_engine.llm.router import clean_extracted_person_name
 
 
 class ContactEnricher:
-    """Enriches extracted Berlin property managers with verified personal emails & LinkedIn URLs."""
+    """Enriches leads with sourced contacts and clearly labeled email candidates."""
 
     def __init__(self, db: Database, concurrency: int = 8) -> None:
         self.db = db
@@ -127,7 +127,8 @@ class ContactEnricher:
                     )
 
             # 3. Verify or infer personal emails for each Decision Maker
-            has_personal_email = False
+            has_public_email = False
+            has_pattern_email_candidate = False
             now_iso = datetime.now(timezone.utc).isoformat()
 
             with self.db.connect() as conn:
@@ -136,17 +137,21 @@ class ContactEnricher:
                     e_status = dm["email_status"]
                     li_url = dm["linkedin_url"] or (pers_li_found if idx == 0 else None)
 
-                    if p_email and email_verifier.is_personal_email(p_email):
-                        e_status = "PUBLIC_DIRECT_VERIFIED"
-                        has_personal_email = True
+                    if (
+                        p_email
+                        and email_verifier.is_personal_email(p_email)
+                        and e_status in ("PUBLIC_DIRECT_VERIFIED", "PUBLIC_LISTED")
+                    ):
+                        e_status = "PUBLIC_LISTED"
+                        has_public_email = True
                     elif mx_valid and domain:
                         inferred = email_verifier.generate_german_b2b_personal_email(
                             dm["full_name"], domain
                         )
                         if inferred:
                             p_email = inferred
-                            e_status = "PATTERN_MX_VERIFIED"
-                            has_personal_email = True
+                            e_status = "PATTERN_CANDIDATE_MX"
+                            has_pattern_email_candidate = True
                     else:
                         p_email = None
                         e_status = (
@@ -214,7 +219,8 @@ class ContactEnricher:
             return {
                 "company_id": comp_id,
                 "mx_valid": mx_valid,
-                "has_personal_email": has_personal_email,
+                "has_public_email": has_public_email,
+                "has_pattern_email_candidate": has_pattern_email_candidate,
                 "has_linkedin": bool(pers_li_found or comp_li),
             }
 
@@ -236,11 +242,17 @@ class ContactEnricher:
 
         total = len(rows)
         if total == 0:
-            return {"processed": 0, "mx_valid_domains": 0, "personal_emails_ready": 0}
+            return {
+                "processed": 0,
+                "mx_valid_domains": 0,
+                "public_emails_listed": 0,
+                "pattern_email_candidates": 0,
+            }
 
         completed = 0
         mx_valid_cnt = 0
-        pers_email_cnt = 0
+        public_email_cnt = 0
+        pattern_email_candidate_cnt = 0
 
         tasks = [
             self.enrich_single_company(
@@ -253,13 +265,16 @@ class ContactEnricher:
             completed += 1
             if res["mx_valid"]:
                 mx_valid_cnt += 1
-            if res["has_personal_email"]:
-                pers_email_cnt += 1
+            if res["has_public_email"]:
+                public_email_cnt += 1
+            if res["has_pattern_email_candidate"]:
+                pattern_email_candidate_cnt += 1
             if progress_callback:
                 progress_callback(completed, total)
 
         return {
             "processed": total,
             "mx_valid_domains": mx_valid_cnt,
-            "personal_emails_ready": pers_email_cnt,
+            "public_emails_listed": public_email_cnt,
+            "pattern_email_candidates": pattern_email_candidate_cnt,
         }

@@ -8,8 +8,11 @@ from __future__ import annotations
 
 import pytest
 from fastapi.testclient import TestClient
+from pathlib import Path
+import os
 
 from metrixa_engine.api.server import app
+from metrixa_engine.config import settings
 
 
 @pytest.fixture
@@ -25,6 +28,30 @@ def test_api_metrics(client: TestClient) -> None:
     assert data["golden_total"] >= 0
     assert isinstance(data["tiers"], dict)
     assert isinstance(data["district_breakdown"], list)
+
+
+def test_cors_allows_configured_frontend_and_rejects_unknown_origin(
+    client: TestClient,
+) -> None:
+    allowed = client.options(
+        "/api/metrics",
+        headers={
+            "Origin": "http://localhost:3000",
+            "Access-Control-Request-Method": "GET",
+        },
+    )
+    assert allowed.status_code == 200
+    assert allowed.headers["access-control-allow-origin"] == "http://localhost:3000"
+
+    blocked = client.options(
+        "/api/metrics",
+        headers={
+            "Origin": "https://unknown.example",
+            "Access-Control-Request-Method": "GET",
+        },
+    )
+    assert blocked.status_code == 400
+    assert "access-control-allow-origin" not in blocked.headers
 
 
 def test_api_leads_search_and_filters(client: TestClient) -> None:
@@ -76,6 +103,32 @@ def test_api_tools_catalog(client: TestClient) -> None:
     assert "tool_mx_verifier" in tool_ids
 
 
+def test_tool_health_reports_connection_failure_truthfully(
+    client: TestClient, monkeypatch
+) -> None:
+    from metrixa_engine.api import server
+
+    class OfflineClient:
+        def __init__(self, *args, **kwargs) -> None:
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args) -> None:
+            return None
+
+        async def head(self, *args, **kwargs):
+            raise OSError("offline")
+
+    monkeypatch.setattr(server.httpx, "AsyncClient", OfflineClient)
+    result = client.post("/api/tools/test/tool_vdiv").json()
+
+    assert result["status"] == "ERROR"
+    assert result["details"]["http_status"] is None
+    assert "failed" in result["message"]
+
+
 def test_api_settings(client: TestClient) -> None:
     resp = client.get("/api/settings")
     assert resp.status_code == 200
@@ -84,12 +137,40 @@ def test_api_settings(client: TestClient) -> None:
     assert "max_concurrent_crawls" in settings_data
 
 
+def test_api_settings_persist_locally_without_returning_secrets(
+    client: TestClient,
+) -> None:
+    from metrixa_engine.api import server
+
+    previous_key = server.settings.openai_api_key
+    previous_concurrency = server.settings.max_concurrent_crawls
+    try:
+        response = client.post(
+            "/api/settings",
+            json={
+                "openai_api_key": "local-test-credential",
+                "max_concurrent_crawls": 3,
+            },
+        )
+        assert response.status_code == 200
+        assert response.json()["persisted"] is True
+
+        env_file = Path(os.environ["METRIXA_ENV_PATH"])
+        saved = env_file.read_text(encoding="utf-8")
+        assert 'OPENAI_API_KEY="local-test-credential"' in saved
+        assert "local-test-credential" not in str(client.get("/api/settings").json())
+        assert server.settings.max_concurrent_crawls == 3
+    finally:
+        server.settings.openai_api_key = previous_key
+        server.settings.max_concurrent_crawls = previous_concurrency
+
+
 def test_api_provider_ping(client: TestClient) -> None:
     resp = client.post("/api/providers/ping", json={"provider": "deterministic"})
     assert resp.status_code == 200
     data = resp.json()
     assert data["status"] == "ok"
-    assert "PONG" in data["reply"]
+    assert "parser responded" in data["reply"]
     assert data["latency_ms"] >= 0
 
     # Test ping with unconfigured provider returns clean validation error
@@ -122,18 +203,187 @@ def test_api_provider_ping(client: TestClient) -> None:
             assert disc_data["models"] == []
 
 
+def test_provider_ping_rejects_unknown_provider(client: TestClient) -> None:
+    response = client.post("/api/providers/ping", json={"provider": "unknown"})
+    assert response.status_code == 400
+    assert "Unsupported LLM provider" in response.json()["detail"]
+
+
+def test_provider_ping_does_not_invent_reply_or_token_usage(
+    client: TestClient, monkeypatch
+) -> None:
+    from metrixa_engine.api import server
+
+    class Response:
+        status_code = 200
+
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self) -> dict:
+            return {"choices": [{"message": {"content": "Actual provider reply"}}]}
+
+    class ProviderClient:
+        def __init__(self, *args, **kwargs) -> None:
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args) -> None:
+            return None
+
+        async def post(self, *args, **kwargs) -> Response:
+            return Response()
+
+    monkeypatch.setattr(server.httpx, "AsyncClient", ProviderClient)
+    response = client.post(
+        "/api/providers/ping",
+        json={
+            "provider": "openai",
+            "base_url": "https://provider.invalid/v1",
+            "model": "configured-model",
+            "api_key": "test-only-key",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "ok"
+    assert response.json()["reply"] == "Actual provider reply"
+    assert response.json()["tokens"] is None
+
+
+def test_provider_ping_rejects_empty_provider_response(
+    client: TestClient, monkeypatch
+) -> None:
+    from metrixa_engine.api import server
+
+    class Response:
+        status_code = 200
+
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self) -> dict:
+            return {"choices": [{"message": {"content": ""}}]}
+
+    class ProviderClient:
+        def __init__(self, *args, **kwargs) -> None:
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args) -> None:
+            return None
+
+        async def post(self, *args, **kwargs) -> Response:
+            return Response()
+
+    monkeypatch.setattr(server.httpx, "AsyncClient", ProviderClient)
+    response = client.post(
+        "/api/providers/ping",
+        json={
+            "provider": "openai",
+            "base_url": "https://provider.invalid/v1",
+            "model": "configured-model",
+            "api_key": "test-only-key",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "error"
+    assert "without completion text" in response.json()["error"]
+    assert "reply" not in response.json()
+
+
+def test_search_ping_requires_real_query_and_google_cse_settings(
+    client: TestClient,
+) -> None:
+    missing_query = client.post("/api/search/ping", json={"provider": "searxng"})
+    assert missing_query.status_code == 422
+
+    missing_key = client.post(
+        "/api/search/ping",
+        json={"provider": "google_cse", "query": "actual user query"},
+    )
+    assert missing_key.status_code == 200
+    assert missing_key.json()["status"] == "error"
+    assert "API key is not configured" in missing_key.json()["error"]
+
+
+def test_search_ping_google_cse_uses_configured_endpoint_and_real_results(
+    client: TestClient, monkeypatch
+) -> None:
+    from metrixa_engine.api import server
+
+    captured: dict = {}
+
+    class Response:
+        status_code = 200
+
+        def json(self) -> dict:
+            return {
+                "items": [{"title": "Returned title", "link": "https://example.org"}]
+            }
+
+    class SearchClient:
+        def __init__(self, *args, **kwargs) -> None:
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args) -> None:
+            return None
+
+        async def get(self, url, **kwargs) -> Response:
+            captured["url"] = url
+            captured["params"] = kwargs["params"]
+            return Response()
+
+    monkeypatch.setattr(server.httpx, "AsyncClient", SearchClient)
+    response = client.post(
+        "/api/search/ping",
+        json={
+            "provider": "google_cse",
+            "api_key": "test-only-key",
+            "google_cse_id": "test-engine-id",
+            "query": "a real query",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "ok"
+    assert response.json()["results_count"] == 1
+    assert "test-only-key" not in response.text
+    assert captured["params"] == {
+        "key": "test-only-key",
+        "cx": "test-engine-id",
+        "q": "a real query",
+        "num": 2,
+    }
+
+
 def test_api_artifacts_library_and_preview(client: TestClient) -> None:
     from metrixa_engine.api.server import db
     from metrixa_engine.telemetry.evaluator import PipelineEvaluator
     from metrixa_engine.telemetry.excel_exporter import ExcelExporter
 
+    settings.export_dir.mkdir(parents=True, exist_ok=True)
+    (settings.export_dir / "metrixa_executive_presentation.md").write_text(
+        "# Isolated test snapshot\n", encoding="utf-8"
+    )
+    (settings.export_dir / "Case_Study_Metrixa_Systems.pdf").write_bytes(
+        b"%PDF isolated test file"
+    )
     resp = client.get("/api/artifacts/files")
     assert resp.status_code == 200
     data = resp.json()
     assert "items" in data
 
-    # If empty (clean factory state), generate test deliverables for verification
-    if len(data["items"]) == 0:
+    # Generate isolated test deliverables if the factory state has no workbook yet.
+    if not (settings.export_dir / "metrixa_berlin_hausverwaltungen.xlsx").exists():
         ExcelExporter(db).export_all()
         PipelineEvaluator(db).generate_markdown_report()
         resp = client.get("/api/artifacts/files")
@@ -144,6 +394,11 @@ def test_api_artifacts_library_and_preview(client: TestClient) -> None:
     file_ids = [item["id"] for item in data["items"]]
     assert "xlsx-master" in file_ids
     assert "csv-master" in file_ids
+    presentation = next(item for item in data["items"] if item["id"] == "exec-brief")
+    assert presentation["type"] == "md"
+    assert "Measured Snapshot" in presentation["tags"]
+    pdf = next(item for item in data["items"] if item["id"] == "pdf-casestudy")
+    assert "review required" in pdf["title"].lower()
 
     # Test preview endpoint for Excel
     prev_resp = client.get("/api/artifacts/preview/xlsx-master")
@@ -157,6 +412,10 @@ def test_api_artifacts_library_and_preview(client: TestClient) -> None:
     csv_prev = client.get("/api/artifacts/preview/csv-master")
     assert csv_prev.status_code == 200
     assert csv_prev.json()["type"] == "csv"
+    pdf_prev = client.get("/api/artifacts/preview/pdf-casestudy")
+    assert pdf_prev.status_code == 200
+    assert pdf_prev.json()["type"] == "pdf"
+    assert "not the PDF pages" in pdf_prev.json()["preview_note"]
 
     # Test artifact action (archive and restore)
     act_resp = client.post(
@@ -165,12 +424,41 @@ def test_api_artifacts_library_and_preview(client: TestClient) -> None:
     )
     assert act_resp.status_code == 200
     assert act_resp.json()["affected_count"] == 1
+    from metrixa_engine.api import server as api_module
+
+    # Simulate a new server process with its default in-memory metadata.
+    api_module._artifact_store["xlsx-master"]["status"] = "active"
+    api_module._artifact_store["xlsx-master"]["archived_at"] = None
+    archived = client.get("/api/artifacts/files").json()
+    archived_item = next(
+        item for item in archived["items"] if item["id"] == "xlsx-master"
+    )
+    assert archived_item["status"] == "archived"
+    with db.connect() as conn:
+        state = conn.execute(
+            "SELECT status FROM artifact_library_state WHERE artifact_id = ?",
+            ("xlsx-master",),
+        ).fetchone()
+    assert state["status"] == "archived"
 
     restore_resp = client.post(
         "/api/artifacts/action",
         json={"action": "restore", "file_ids": ["xlsx-master"]},
     )
     assert restore_resp.status_code == 200
+    restored = client.get("/api/artifacts/files").json()
+    restored_item = next(
+        item for item in restored["items"] if item["id"] == "xlsx-master"
+    )
+    assert restored_item["status"] == "active"
+
+
+def test_artifact_action_rejects_unknown_artifact(client: TestClient) -> None:
+    resp = client.post(
+        "/api/artifacts/action",
+        json={"action": "archive", "file_ids": ["not-a-real-artifact"]},
+    )
+    assert resp.status_code == 404
 
 
 def test_api_pipeline_runs_and_comparison(client: TestClient) -> None:
@@ -298,12 +586,18 @@ def test_api_deliverables_and_google_sheets_sync(client: TestClient) -> None:
     assert status_resp.status_code == 200
     status_data = status_resp.json()
     assert status_data["canonical_leads"] >= 0
-    assert status_data["deliverables_count"] >= 5
+    assert status_data["deliverables_count"] >= 4
     deliv_ids = [d["id"] for d in status_data["deliverables"]]
     assert "excel_master" in deliv_ids
     assert "csv_master" in deliv_ids
     assert "sqlite_db" in deliv_ids
     assert "google_sheets_live" in deliv_ids
+    sheet_status = next(
+        d for d in status_data["deliverables"] if d["id"] == "google_sheets_live"
+    )
+    assert sheet_status["status"] == "NOT_CONFIGURED"
+    assert sheet_status["records_count"] == 0
+    assert sheet_status["prepared_records_count"] == status_data["canonical_leads"]
 
     # 2. Test Google Sheets connectivity test endpoint
     test_conn = client.post("/api/deliverables/google-sheets/test", json={})
@@ -316,9 +610,17 @@ def test_api_deliverables_and_google_sheets_sync(client: TestClient) -> None:
     sync_resp = client.post("/api/deliverables/google-sheets/sync", json={})
     assert sync_resp.status_code == 200
     sync_data = sync_resp.json()
-    assert sync_data["success"] is True
-    assert sync_data["qualified_leads_synced"] >= 0
-    assert len(sync_data["tabs_updated"]) == 4
+    assert sync_data["success"] is False
+    assert sync_data["sync_mode"] == "dry_run"
+    assert sync_data["qualified_leads_synced"] == 0
+    assert sync_data["qualified_leads_prepared"] >= 0
+    assert sync_data["tabs_updated"] == []
+    after_dry_run = client.get("/api/deliverables/status").json()
+    after_dry_run_sheet = next(
+        d for d in after_dry_run["deliverables"] if d["id"] == "google_sheets_live"
+    )
+    assert after_dry_run_sheet["status"] == "NOT_CONFIGURED"
+    assert after_dry_run_sheet["records_count"] == 0
 
     # 4. Test Google Sheets preview endpoint
     preview_resp = client.get("/api/deliverables/google-sheets/preview")
@@ -332,6 +634,8 @@ def test_api_deliverables_and_google_sheets_sync(client: TestClient) -> None:
     url_resp = client.get("/api/deliverables/google-sheets/url")
     assert url_resp.status_code == 200
     assert "spreadsheet_url" in url_resp.json()
+    assert url_resp.json()["spreadsheet_url"] is None
+    assert url_resp.json()["status"] == "NOT_CONFIGURED"
 
     # 6. Test artifacts preview for google-sheets-live
     art_prev = client.get("/api/artifacts/preview/google-sheets-live")
@@ -345,10 +649,18 @@ def test_api_deliverables_and_google_sheets_sync(client: TestClient) -> None:
     # 7. Test sync all deliverables endpoint
     sync_all = client.post("/api/deliverables/sync-all")
     assert sync_all.status_code == 200
-    assert sync_all.json()["success"] is True
+    assert sync_all.json()["success"] is False
+    assert sync_all.json()["status"] == "NO_DATA"
+    assert sync_all.json()["local_exports_ready"] is False
+    assert sync_all.json()["cloud_sync_success"] is False
 
 
 def test_api_system_stats_and_factory_reset(client: TestClient) -> None:
+    from metrixa_engine.api.server import db
+
+    assert db.db_path != settings.project_root / "data" / "metrixa_leads.db"
+    assert settings.export_dir != settings.project_root / "data" / "exports"
+
     # 1. Test system stats endpoint
     stats_resp = client.get("/api/system/stats")
     assert stats_resp.status_code == 200

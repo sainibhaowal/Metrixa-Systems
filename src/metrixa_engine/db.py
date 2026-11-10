@@ -209,6 +209,15 @@ CREATE TABLE IF NOT EXISTS pipeline_run_events (
     payload_json TEXT
 );
 
+CREATE TABLE IF NOT EXISTS artifact_library_state (
+    artifact_id TEXT PRIMARY KEY,
+    status TEXT NOT NULL CHECK (status IN ('active', 'archived', 'trash', 'deleted')),
+    retention_days INTEGER NOT NULL DEFAULT 30 CHECK (retention_days BETWEEN 1 AND 3650),
+    trashed_at TEXT,
+    archived_at TEXT,
+    updated_at TEXT NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_pipeline_runs_num ON pipeline_runs(run_number DESC);
 CREATE INDEX IF NOT EXISTS idx_deliv_sync_created ON deliverables_sync_log(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_run_events_run_seq ON pipeline_run_events(run_id, seq);
@@ -245,6 +254,81 @@ class Database:
     def init_schema(self) -> None:
         with self.connect() as conn:
             conn.executescript(SCHEMA_DDL)
+
+            # Older builds inserted a hand-curated VDIV list and marked every
+            # entry as verified. Preserve those source records, but remove the
+            # unsupported membership assertion and its derived company flag.
+            legacy_rows = conn.execute(
+                """
+                SELECT id, raw_json_payload
+                FROM raw_listings
+                WHERE source_name = 'vdiv'
+                  AND raw_json_payload LIKE '%verified_vdiv_member%'
+                """
+            ).fetchall()
+            migrated_ids = []
+            for row in legacy_rows:
+                try:
+                    payload = json.loads(row["raw_json_payload"] or "{}")
+                except (TypeError, json.JSONDecodeError):
+                    continue
+                if payload.pop("verified_vdiv_member", None) is True:
+                    payload["legacy_curated_vdiv_registry_requires_review"] = True
+                    conn.execute(
+                        """
+                        UPDATE raw_listings
+                        SET is_vdiv_member = 0, raw_json_payload = ?
+                        WHERE id = ?
+                        """,
+                        (json.dumps(payload, ensure_ascii=False), row["id"]),
+                    )
+                    migrated_ids.append(row["id"])
+
+            if migrated_ids:
+                conn.execute(
+                    """
+                    UPDATE companies_golden AS company
+                    SET is_vdiv_member = CASE WHEN EXISTS (
+                        SELECT 1
+                        FROM company_sources_map AS source_map
+                        JOIN raw_listings AS source
+                          ON source.id = source_map.raw_listing_id
+                        WHERE source_map.company_id = company.company_id
+                          AND source.source_name = 'vdiv'
+                          AND source.is_vdiv_member = 1
+                    ) THEN 1 ELSE 0 END
+                    """
+                )
+
+            # Keep historical curated VDIV records for audit, but do not expose
+            # companies supported only by those unverified records as active leads.
+            conn.execute(
+                """
+                UPDATE companies_golden AS company
+                SET pipeline_stage = 'DISQUALIFIED',
+                    disqualification_reason = 'legacy_vdiv_source_requires_live_review',
+                    is_vdiv_member = 0,
+                    updated_at = ?
+                WHERE company.pipeline_stage != 'DISQUALIFIED'
+                  AND EXISTS (
+                    SELECT 1
+                    FROM company_sources_map AS source_map
+                    JOIN raw_listings AS source
+                      ON source.id = source_map.raw_listing_id
+                    WHERE source_map.company_id = company.company_id
+                      AND source.raw_json_payload LIKE '%legacy_curated_vdiv_registry_requires_review%'
+                  )
+                  AND NOT EXISTS (
+                    SELECT 1
+                    FROM company_sources_map AS source_map
+                    JOIN raw_listings AS source
+                      ON source.id = source_map.raw_listing_id
+                    WHERE source_map.company_id = company.company_id
+                      AND COALESCE(source.raw_json_payload, '') NOT LIKE '%legacy_curated_vdiv_registry_requires_review%'
+                  )
+                """,
+                (datetime.now(timezone.utc).isoformat(),),
+            )
 
     def insert_raw_listings(self, listings: List[RawListing]) -> int:
         """Insert a batch of raw scraped listings, skipping exact duplicate (source_name, raw_company_name, raw_postal_code)."""
@@ -351,39 +435,70 @@ class Database:
                 "SELECT COUNT(*) FROM crawled_pages"
             ).fetchone()[0]
 
-            kpi_cnt = conn.execute("""
+            kpi_cnt = conn.execute(
+                """
                 SELECT COUNT(*) FROM kpi_extractions k
                 JOIN companies_golden c ON c.company_id = k.company_id
                 WHERE c.pipeline_stage != 'DISQUALIFIED'
-                """).fetchone()[0]
+                """
+            ).fetchone()[0]
 
-            with_erp = conn.execute("""
+            with_erp = conn.execute(
+                """
                 SELECT COUNT(*) FROM kpi_extractions k
                 JOIN companies_golden c ON c.company_id = k.company_id
                 WHERE c.pipeline_stage != 'DISQUALIFIED'
                   AND k.detected_erp_proptech IS NOT NULL AND k.detected_erp_proptech != ''
-                """).fetchone()[0]
+                """
+            ).fetchone()[0]
 
-            with_portal = conn.execute("""
+            with_portal = conn.execute(
+                """
                 SELECT COUNT(*) FROM kpi_extractions k
                 JOIN companies_golden c ON c.company_id = k.company_id
                 WHERE c.pipeline_stage != 'DISQUALIFIED' AND k.has_customer_portal = 1
-                """).fetchone()[0]
+                """
+            ).fetchone()[0]
 
-            dm_companies = conn.execute("""
+            dm_companies = conn.execute(
+                """
                 SELECT COUNT(DISTINCT d.company_id) FROM decision_makers d
                 JOIN companies_golden c ON c.company_id = d.company_id
                 WHERE c.pipeline_stage != 'DISQUALIFIED'
-                """).fetchone()[0]
+                """
+            ).fetchone()[0]
 
-            personal_emails = conn.execute("""
+            personal_emails = conn.execute(
+                """
                 SELECT COUNT(DISTINCT d.company_id) FROM decision_makers d
                 JOIN companies_golden c ON c.company_id = d.company_id
                 WHERE c.pipeline_stage != 'DISQUALIFIED'
                   AND d.personal_email IS NOT NULL AND d.personal_email != ''
-                """).fetchone()[0]
+                """
+            ).fetchone()[0]
 
-            linkedin_cnt = conn.execute("""
+            public_personal_emails = conn.execute(
+                """
+                SELECT COUNT(DISTINCT d.company_id) FROM decision_makers d
+                JOIN companies_golden c ON c.company_id = d.company_id
+                WHERE c.pipeline_stage != 'DISQUALIFIED'
+                  AND d.email_status IN ('PUBLIC_LISTED', 'PUBLIC_DIRECT_VERIFIED')
+                  AND d.personal_email IS NOT NULL AND d.personal_email != ''
+                """
+            ).fetchone()[0]
+
+            pattern_email_candidates = conn.execute(
+                """
+                SELECT COUNT(DISTINCT d.company_id) FROM decision_makers d
+                JOIN companies_golden c ON c.company_id = d.company_id
+                WHERE c.pipeline_stage != 'DISQUALIFIED'
+                  AND d.email_status IN ('PATTERN_CANDIDATE_MX', 'PATTERN_MX_VERIFIED')
+                  AND d.personal_email IS NOT NULL AND d.personal_email != ''
+                """
+            ).fetchone()[0]
+
+            linkedin_cnt = conn.execute(
+                """
                 SELECT COUNT(DISTINCT c.company_id) FROM companies_golden c
                 LEFT JOIN decision_makers d ON d.company_id = c.company_id
                 WHERE c.pipeline_stage != 'DISQUALIFIED'
@@ -391,9 +506,11 @@ class Database:
                     (c.company_linkedin_url IS NOT NULL AND c.company_linkedin_url != '')
                     OR (d.linkedin_url IS NOT NULL AND d.linkedin_url != '')
                   )
-                """).fetchone()[0]
+                """
+            ).fetchone()[0]
 
-            llm_stats = conn.execute("""
+            llm_stats = conn.execute(
+                """
                 SELECT
                     COUNT(*) as total_calls,
                     COALESCE(SUM(prompt_tokens), 0) as total_prompt_tokens,
@@ -401,7 +518,8 @@ class Database:
                     COALESCE(AVG(latency_ms), 0) as avg_latency_ms,
                     COALESCE(SUM(hallucination_blocked), 0) as hallucinations_blocked
                 FROM llm_audit_logs
-                """).fetchone()
+                """
+            ).fetchone()
 
             return {
                 "raw_total": raw_total,
@@ -417,6 +535,8 @@ class Database:
                 "with_customer_portal": with_portal,
                 "companies_with_decision_maker": dm_companies,
                 "companies_with_personal_email": personal_emails,
+                "companies_with_public_personal_email": public_personal_emails,
+                "companies_with_pattern_email_candidate": pattern_email_candidates,
                 "companies_with_linkedin": linkedin_cnt,
                 "llm_stats": dict(llm_stats) if llm_stats else {},
             }
@@ -496,106 +616,3 @@ class Database:
                 }
             )
         return events
-
-    def seed_initial_pipeline_runs(self) -> None:
-        """Seed baseline historical pipeline runs for execution tracking and comparison diffing."""
-        with self.connect() as conn:
-            cnt = conn.execute("SELECT COUNT(*) FROM pipeline_runs").fetchone()[0]
-            if cnt > 0:
-                return
-
-            runs = [
-                (
-                    "run-20261107-142010",
-                    14,
-                    "MANUAL_STAGE",
-                    "Berlin",
-                    "ingest",
-                    "COMPLETED",
-                    1240,
-                    1187,
-                    12,
-                    8,
-                    41.8,
-                    "2026-11-07T14:20:10Z",
-                    "2026-11-07T14:20:51Z",
-                    None,
-                    json.dumps(
-                        {
-                            "stage": "ingest",
-                            "sources": [
-                                "gelbe_seiten",
-                                "11880",
-                                "vdiv",
-                                "osm",
-                                "search",
-                            ],
-                            "records_scraped": 1240,
-                            "coverage": "Berlin 12 Bezirke",
-                        }
-                    ),
-                ),
-                (
-                    "run-20261107-183045",
-                    15,
-                    "MANUAL_STAGE",
-                    "Berlin",
-                    "crawl",
-                    "COMPLETED",
-                    1187,
-                    1192,
-                    5,
-                    14,
-                    49.2,
-                    "2026-11-07T18:30:45Z",
-                    "2026-11-07T18:31:34Z",
-                    None,
-                    json.dumps(
-                        {
-                            "stage": "crawl",
-                            "pages_crawled": 1187,
-                            "http_status_200": 1148,
-                            "erp_signatures_detected": 866,
-                        }
-                    ),
-                ),
-                (
-                    "run-20261108-034500",
-                    16,
-                    "MANUAL_FULL",
-                    "Berlin",
-                    "full",
-                    "COMPLETED",
-                    1240,
-                    1200,
-                    7,
-                    22,
-                    138.5,
-                    "2026-11-08T03:45:00Z",
-                    "2026-11-08T03:47:18Z",
-                    None,
-                    json.dumps(
-                        {
-                            "stage": "full",
-                            "stages_executed": 6,
-                            "golden_companies": 1200,
-                            "tier_a": 182,
-                            "tier_b": 514,
-                            "tier_c": 503,
-                            "verified_units": 82450,
-                            "f1_score": 0.946,
-                        }
-                    ),
-                ),
-            ]
-
-            conn.executemany(
-                """
-                INSERT INTO pipeline_runs (
-                    run_id, run_number, trigger_type, target_city, active_stage, status,
-                    total_companies_in, total_companies_out, new_companies_found, changed_kpis_count,
-                    duration_seconds, started_at, finished_at, error_message, summary_metrics_json
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                runs,
-            )

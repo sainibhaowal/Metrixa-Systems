@@ -50,6 +50,7 @@ import {
   executeTool,
   pingProvider,
   fetchMetrics,
+  apiUrl,
 } from "@/lib/api";
 import { RoundedSelect, SelectOption } from "@/components/ui/RoundedSelect";
 
@@ -132,16 +133,16 @@ const STAGES: PipelineStageDef[] = [
   },
   {
     id: "enrich",
-    name: "DNS MX Verification & Scoring",
+    name: "Email Evidence & Scoring",
     shortName: "Scoring",
     stepNum: "05",
     category: "enrich",
-    desc: "Live RFC 5321 MX validation & transparent 0-100 scoring.",
+    desc: "Domain-level MX checks and transparent 0-100 lead scoring.",
     details:
-      "Performs real DNS MX resolution on mail domains to eliminate fake mailboxes. Scores leads 0-100 by portfolio size, WEG/Miet focus, VDIV membership, and digital maturity into Tiers A, B, and C.",
+      "Checks company-domain MX records. Publicly listed addresses are separated from inferred pattern candidates; mailbox existence is not tested. Scores leads from portfolio size, management focus, source evidence, and digital signals.",
     tools: [
       "RFCDNSMXVerifier",
-      "ExecutiveEmailSynthesizer",
+      "EmailEvidenceClassifier",
       "LeadScorerEngine",
       "TierClassifier",
     ],
@@ -152,14 +153,14 @@ const STAGES: PipelineStageDef[] = [
     shortName: "Deliverables",
     stepNum: "06",
     category: "export",
-    desc: "Builds 4-Tab Excel, CSV & Gold-Set Ablation benchmarks.",
+    desc: "Builds the current Excel and CSV exports and reports live data coverage.",
     details:
-      "Generates master Excel workbook (Overview, Leads & Scoring, Decision Makers, Data Dictionary) and computes precision/recall/F1 score against the 30-company Berlin Gold Set.",
+      "Generates the master workbook and CSV from the current database. Accuracy metrics require an independently labeled evaluation set and are not currently measured.",
     tools: [
       "ExcelExporter",
-      "GoldSetEvaluator",
-      "AblationReportGenerator",
-      "CSVStreamer",
+      "PipelineEvaluator",
+      "EvidenceCoverageReport",
+      "CSVExporter",
     ],
   },
 ];
@@ -360,25 +361,12 @@ export default function MissionControlPage() {
   const [copiedJson, setCopiedJson] = useState<boolean>(false);
 
   // Telemetry Event Logs
-  const [logs, setLogs] = useState<LogEntry[]>([
-    {
-      id: "init-1",
-      time: "INIT",
-      level: "INFO",
-      msg: "Metrixa Enterprise Mission Control operational. EventBus connected to http://127.0.0.1:8000.",
-    },
-    {
-      id: "init-2",
-      time: "STATUS",
-      level: "SUCCESS",
-      msg: "Connected to SQLite WAL (metrixa_leads.db). Engine operational.",
-    },
-  ]);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<LogEntry | null>(null);
   const [filterStage, setFilterStage] = useState<string>("all");
 
   // Right Panel: Interactive Tooling State
-  const [toolDomain, setToolDomain] = useState<string>("degewo.de");
+  const [toolDomain, setToolDomain] = useState<string>("");
   const [toolResult, setToolResult] = useState<any>(null);
   const [testingTool, setTestingTool] = useState<boolean>(false);
   const [liveMetrics, setLiveMetrics] = useState<any>(null);
@@ -592,7 +580,7 @@ export default function MissionControlPage() {
 
   // SSE Stream Listener (Persistent Single Connection)
   useEffect(() => {
-    const sse = new EventSource("http://127.0.0.1:8000/api/pipeline/stream");
+    const sse = new EventSource(apiUrl("/api/pipeline/stream"));
 
     sse.addEventListener("HEARTBEAT", (e: any) => {
       try {
@@ -1537,9 +1525,9 @@ export default function MissionControlPage() {
                 </span>
               </div>
               <div className="flex justify-between items-center text-zinc-400">
-                <span className="text-[10px] text-zinc-500">PRECISION</span>
-                <span className="text-sky-400 text-[11px]">
-                  93.3% F1 (Gold Set Ablation)
+                <span className="text-[10px] text-zinc-500">ACCURACY</span>
+                <span className="text-zinc-400 text-[11px]">
+                  Not measured (labeled benchmark required)
                 </span>
               </div>
             </div>
@@ -1859,219 +1847,58 @@ export default function MissionControlPage() {
               </div>
             )}
 
-            {/* TAB CONTENT 2: LIVE LLM & REASONING INSPECTOR */}
+            {/* TAB CONTENT 2: RECORDED EXTRACTION EVENTS */}
             {telemetryTab === "llm" && (
               <div
                 className="flex-1 min-h-0 overflow-y-auto space-y-2.5 p-1 font-mono text-xs"
                 style={{ scrollbarWidth: "thin" }}
               >
-                {/* Model Status Card */}
-                <div className="p-3 rounded-xl bg-gradient-to-r from-amber-500/10 via-zinc-900 to-zinc-950 border border-amber-500/20 space-y-2">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-amber-400" />
-                      <span className="font-bold text-zinc-100 text-xs">
-                        Hybrid Multi-LLM Extraction Engine
-                      </span>
-                      <span className="px-2 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-semibold">
-                        Active: gpt-4o-mini
-                      </span>
-                    </div>
-                    <span className="text-[10px] text-zinc-400">
-                      Strategy: Deterministic German legal parser ($0 baseline)
-                      + LLM Live Router
-                    </span>
-                  </div>
-
-                  {/* Token & Latency Metrics */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 border-t border-white/[0.06] text-[11px]">
-                    <div className="p-2 rounded-lg bg-zinc-950/80 border border-white/[0.04]">
-                      <span className="text-[10px] text-zinc-500 block">
-                        Prompt Tokens
-                      </span>
-                      <strong className="text-zinc-200 text-xs">
-                        1,420 tokens
-                      </strong>
-                    </div>
-                    <div className="p-2 rounded-lg bg-zinc-950/80 border border-white/[0.04]">
-                      <span className="text-[10px] text-zinc-500 block">
-                        Completion Tokens
-                      </span>
-                      <strong className="text-zinc-200 text-xs">
-                        384 tokens
-                      </strong>
-                    </div>
-                    <div className="p-2 rounded-lg bg-zinc-950/80 border border-white/[0.04]">
-                      <span className="text-[10px] text-zinc-500 block">
-                        Avg Inference Latency
-                      </span>
-                      <strong className="text-emerald-400 text-xs">
-                        680ms
-                      </strong>
-                    </div>
-                    <div className="p-2 rounded-lg bg-zinc-950/80 border border-white/[0.04]">
-                      <span className="text-[10px] text-zinc-500 block">
-                        Estimated Cost
-                      </span>
-                      <strong className="text-sky-400 text-xs">
-                        $0.0004 / lead
-                      </strong>
-                    </div>
-                  </div>
+                <div className="p-3 rounded-xl bg-[#09090b] border border-white/[0.06]">
+                  <h3 className="text-xs font-bold text-zinc-100">
+                    Recorded extraction and pipeline events
+                  </h3>
+                  <p className="text-[11px] text-zinc-400 mt-1">
+                    This view shows events received from actual pipeline runs.
+                    It does not display generated examples or model
+                    chain-of-thought.
+                  </p>
                 </div>
-
-                {/* Real-Time Thinking & Chain-of-Thought Stream */}
-                <div className="p-3 rounded-xl bg-[#09090b] border border-white/[0.06] space-y-2">
-                  <div className="flex items-center justify-between pb-1.5 border-b border-white/[0.06]">
-                    <span className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
-                      <Activity className="w-3.5 h-3.5" />
-                      Agent Thinking & Chain-of-Thought Stream
-                    </span>
-                    <span className="text-[10px] text-zinc-500 flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      Live Stream
-                    </span>
+                {runEvents.length === 0 ? (
+                  <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 text-sm text-zinc-400">
+                    No pipeline events are recorded in this session. Start a
+                    real pipeline run to populate this view.
                   </div>
-                  <div className="p-2.5 rounded-lg bg-zinc-950 text-[11px] text-zinc-300 space-y-1 leading-relaxed max-h-44 overflow-y-auto">
-                    <div className="text-zinc-500">
-                      [00:00.012]{" "}
-                      <span className="text-amber-400">INGEST_PAYLOAD:</span>{" "}
-                      Received Impressum HTML DOM chunk for &apos;degewo
-                      AG&apos; (34,180 bytes).
-                    </div>
-                    <div className="text-zinc-500">
-                      [00:00.045]{" "}
-                      <span className="text-sky-400">LEGAL_PARSER:</span>{" "}
-                      Identified German Section 5 DDG provider identification
-                      block.
-                    </div>
-                    <div className="text-zinc-500">
-                      [00:00.120]{" "}
-                      <span className="text-purple-400">ENTITY_RESOLVE:</span>{" "}
-                      Extracted executive candidates: &apos;Christoph
-                      Beck&apos;, &apos;Sandra Wehrmann&apos; (Vorstand).
-                    </div>
-                    <div className="text-zinc-500">
-                      [00:00.185]{" "}
-                      <span className="text-emerald-400">
-                        FILTER_PROKURIST:
-                      </span>{" "}
-                      Discarded 2 non-executive authorized signers
-                      (Prokuristen).
-                    </div>
-                    <div className="text-zinc-500">
-                      [00:00.240]{" "}
-                      <span className="text-sky-400">HRB_VALIDATE:</span>{" "}
-                      Verified Handelsregister: Amtsgericht Charlottenburg HRB
-                      37233 B.
-                    </div>
-                    <div className="text-zinc-500">
-                      [00:00.380]{" "}
-                      <span className="text-amber-400">PORTFOLIO_SCAN:</span>{" "}
-                      Extracted managed units: &apos;rund 75.000 Wohnungen und
-                      Gewerbeobjekte&apos; -&gt; 75,000 units.
-                    </div>
-                    <div className="text-zinc-500">
-                      [00:00.510]{" "}
-                      <span className="text-purple-400">PROPTECH_SCAN:</span>{" "}
-                      Detected PropTech ERP signature: SAP Real Estate
-                      Management + Casavi tenant portal.
-                    </div>
-                    <div className="text-zinc-500">
-                      [00:00.640]{" "}
-                      <span className="text-cyan-400">METERING_SCAN:</span>{" "}
-                      Detected submetering incumbent: ista Deutschland GmbH.
-                    </div>
-                    <div className="text-zinc-500">
-                      [00:00.680]{" "}
-                      <span className="text-emerald-400">
-                        GROUNDING_VERIFY:
-                      </span>{" "}
-                      Anti-hallucination quote check: 100% exact substring match
-                      passed.
-                    </div>
-                    <div className="text-emerald-400 font-bold pt-1">
-                      [RESULT] Lead synthesized with qualification score = 98
-                      (Tier A High Priority).
-                      <span className="animate-pulse"> ▋</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Extracted Structured JSON & Anti-Hallucination Gate Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                  {/* JSON Schema */}
-                  <div className="p-3 rounded-xl bg-[#09090b] border border-white/[0.06] space-y-2">
-                    <div className="flex items-center justify-between pb-1.5 border-b border-white/[0.06]">
-                      <span className="text-xs font-bold text-zinc-200 flex items-center gap-1.5">
-                        <Database className="w-3.5 h-3.5 text-sky-400" />
-                        Verified KPI Schema (JSON)
-                      </span>
-                      <span className="text-[10px] text-emerald-400 font-semibold">
-                        Pydantic Validated
-                      </span>
-                    </div>
-                    <pre className="p-2.5 rounded-lg bg-zinc-950 text-[10.5px] text-zinc-300 leading-relaxed overflow-x-auto max-h-48 overflow-y-auto">
-                      {`{
-  "company_name": "degewo AG",
-  "managing_directors": [
-    "Christoph Beck",
-    "Sandra Wehrmann"
-  ],
-  "units_managed": 75000,
-  "proptech_software": "Casavi",
-  "submetering_provider": "ista",
-  "commercial_register": "HRB 37233 B",
-  "qualification_score": 98,
-  "tier": "Tier A (High Priority)"
-}`}
-                    </pre>
-                  </div>
-
-                  {/* Anti-Hallucination Grounding Gate */}
-                  <div className="p-3 rounded-xl bg-[#09090b] border border-white/[0.06] space-y-2">
-                    <div className="flex items-center justify-between pb-1.5 border-b border-white/[0.06]">
-                      <span className="text-xs font-bold text-zinc-200 flex items-center gap-1.5">
-                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                        Anti-Hallucination Grounding Gate
-                      </span>
-                      <span className="text-[10px] text-emerald-400 font-semibold">
-                        100% Verbatim Match
-                      </span>
-                    </div>
-                    <div className="space-y-2 text-[11px]">
-                      <div className="p-2 rounded-lg bg-zinc-950 border border-white/[0.04] space-y-1">
-                        <span className="text-[10px] text-zinc-500 font-bold block">
-                          SOURCE IMPRESSUM DOM SNIPPET:
-                        </span>
-                        <p className="text-zinc-300 italic text-[11px] bg-zinc-900/60 p-1.5 rounded">
-                          &quot;Vorstand: Christoph Beck, Sandra Wehrmann |
-                          Aufsichtsratsvorsitzende: Dr. Manuela Damianakis |
-                          Amtsgericht Charlottenburg HRB 37233 B&quot;
+                ) : (
+                  [...runEvents]
+                    .slice(-100)
+                    .reverse()
+                    .map((event, index) => (
+                      <article
+                        key={`${event.run_id || "run"}-${event.seq ?? index}-${index}`}
+                        className="p-3 rounded-xl bg-zinc-950 border border-zinc-800 space-y-2"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-zinc-200 font-semibold">
+                            {event.step_name || event.stage || "Pipeline event"}
+                          </span>
+                          <span className="text-zinc-500 text-[10px]">
+                            {[event.stage, event.event_type, event.level]
+                              .filter(Boolean)
+                              .join(" ? ")}
+                          </span>
+                        </div>
+                        <p className="text-zinc-300 font-sans leading-relaxed">
+                          {event.message || "No event message was recorded."}
                         </p>
-                      </div>
-                      <div className="p-2 rounded-lg bg-zinc-950 border border-white/[0.04] space-y-1">
-                        <span className="text-[10px] text-zinc-500 font-bold block">
-                          EXTRACTED EXECUTIVE CONTACTS:
-                        </span>
-                        <p className="text-emerald-400 font-semibold font-mono text-xs">
-                          [&quot;Christoph Beck&quot;, &quot;Sandra
-                          Wehrmann&quot;]
-                        </p>
-                      </div>
-                      <div className="flex items-center justify-between text-[10px] text-zinc-400 pt-1">
-                        <span>
-                          Confidence:{" "}
-                          <strong className="text-emerald-400">99.2%</strong>
-                        </span>
-                        <span className="text-emerald-400 font-semibold flex items-center gap-1">
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          Zero Hallucination Verified
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                        {event.details &&
+                          Object.keys(event.details).length > 0 && (
+                            <pre className="p-2 rounded-lg bg-black/40 text-[10px] text-zinc-400 overflow-x-auto max-h-48">
+                              {JSON.stringify(event.details, null, 2)}
+                            </pre>
+                          )}
+                      </article>
+                    ))
+                )}
               </div>
             )}
 
@@ -2197,7 +2024,7 @@ export default function MissionControlPage() {
             <div className="flex items-center justify-between px-2 py-1 text-[10px] font-mono text-zinc-500 border-t border-white/[0.04] shrink-0">
               <span className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                SSE Stream Active: 127.0.0.1:8000/api/pipeline/stream
+                SSE Stream Active
               </span>
               <span>Buffer: Real-Time EventBus</span>
             </div>
@@ -2295,7 +2122,7 @@ export default function MissionControlPage() {
                 type="text"
                 value={toolDomain}
                 onChange={(e) => setToolDomain(e.target.value)}
-                placeholder="degewo.de"
+                placeholder="Enter a domain from your current data"
                 className="w-full px-2.5 py-1.5 rounded-lg bg-zinc-900/90 border border-white/[0.06] text-xs font-mono text-zinc-100 focus:outline-none focus:border-emerald-500/50"
               />
             </div>

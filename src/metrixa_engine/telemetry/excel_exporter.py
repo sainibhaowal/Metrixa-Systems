@@ -18,6 +18,7 @@ from openpyxl.utils import get_column_letter
 
 from metrixa_engine.config import settings
 from metrixa_engine.db import Database
+from metrixa_engine.models import email_status_label
 
 HEADER_FILL = PatternFill(start_color="1B365D", end_color="1B365D", fill_type="solid")
 HEADER_FONT = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
@@ -73,7 +74,8 @@ class ExcelExporter:
         out_csv = csv_path or (settings.export_dir / "metrixa_berlin_leads_master.csv")
 
         with self.db.connect() as conn:
-            master_rows = conn.execute("""
+            master_rows = conn.execute(
+                """
                 SELECT
                     c.company_id, c.display_name, c.legal_form, c.commercial_register_id,
                     c.street_address, c.postal_code, c.city, c.district,
@@ -90,18 +92,22 @@ class ExcelExporter:
                 LEFT JOIN kpi_extractions k ON k.company_id = c.company_id
                 WHERE c.pipeline_stage != 'DISQUALIFIED'
                 ORDER BY c.metrixa_lead_score DESC, c.is_vdiv_member DESC, c.source_count DESC, c.display_name ASC
-                """).fetchall()
+                """
+            ).fetchall()
 
-            dm_rows = conn.execute("""
+            dm_rows = conn.execute(
+                """
                 SELECT
                     d.*, c.display_name as company_name, c.lead_tier, c.metrixa_lead_score, c.website_url
                 FROM decision_makers d
                 JOIN companies_golden c ON c.company_id = d.company_id
                 WHERE c.pipeline_stage != 'DISQUALIFIED'
                 ORDER BY c.metrixa_lead_score DESC, d.is_primary_contact DESC, d.contact_id ASC
-                """).fetchall()
+                """
+            ).fetchall()
 
-            audit_rows = conn.execute("""
+            audit_rows = conn.execute(
+                """
                 SELECT
                     c.company_id, c.display_name, c.metrixa_lead_score, c.lead_tier,
                     p.page_type, p.url, p.http_status, p.detected_erp_csv,
@@ -112,7 +118,8 @@ class ExcelExporter:
                 LEFT JOIN kpi_extractions k ON k.company_id = c.company_id
                 WHERE c.pipeline_stage != 'DISQUALIFIED'
                 ORDER BY c.metrixa_lead_score DESC, c.company_id ASC
-                """).fetchall()
+                """
+            ).fetchall()
 
         # Index primary decision maker per company_id
         primary_dm_by_comp: Dict[int, Dict[str, Any]] = {}
@@ -154,8 +161,8 @@ class ExcelExporter:
             "Founding Year",
             "Primary Decision Maker Name",
             "Decision Maker Role",
-            "Personal / Direct Email (Bonus)",
-            "Email Verification Status",
+            "Email Address / Candidate",
+            "Email Evidence Status",
             "Decision Maker / Company LinkedIn",
             "General Company Email",
             "Company Phone",
@@ -176,6 +183,7 @@ class ExcelExporter:
             email_status = pdm.get("email_status") or (
                 "GENERIC_ONLY" if r["general_email"] else "NONE"
             )
+            email_status = email_status_label(email_status)
 
             row_vals = [
                 lead_id,
@@ -276,8 +284,8 @@ class ExcelExporter:
             "Metrixa Score",
             "Decision Maker Full Name",
             "Role / Title",
-            "Personal / Direct Email",
-            "Email Verification Status",
+            "Email Address / Candidate",
+            "Email Evidence Status",
             "DNS MX Valid",
             "DNS MX Server Host",
             "Direct Phone",
@@ -296,7 +304,7 @@ class ExcelExporter:
                     dm["full_name"],
                     dm["role"],
                     dm["personal_email"] or "",
-                    dm["email_status"],
+                    email_status_label(dm["email_status"]),
                     "Yes" if dm["mx_valid"] else "No",
                     dm["mx_host"] or "",
                     dm["direct_phone"] or "",
@@ -431,9 +439,14 @@ class ExcelExporter:
                 "Extracted from legally mandated German § 5 DDG Impressum and Team pages.",
             ),
             (
-                "Companies with Verified / MX-Valid Personal Email (Non-info@)",
-                str(tel["companies_with_personal_email"]),
-                "Strictly separates generic info@ inboxes from personal executive emails verified against live DNS MX servers.",
+                "Companies with publicly listed decision-maker emails (mailbox not tested)",
+                str(tel["companies_with_public_personal_email"]),
+                "Address was found in source content; the application does not test mailbox existence or deliverability.",
+            ),
+            (
+                "Companies with inferred email pattern candidates (domain MX only)",
+                str(tel["companies_with_pattern_email_candidate"]),
+                "Candidate address pattern only. An MX record does not verify that a mailbox exists or belongs to the named person.",
             ),
             (
                 "KPI Pillar 1: Portfolio Scale (Max 35 pts)",

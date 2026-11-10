@@ -7,8 +7,15 @@ and the Deterministic 0-100 Metrixa Lead Scoring Formula.
 
 from __future__ import annotations
 
+import asyncio
+import json
 from pathlib import Path
-from metrixa_engine.config import is_valid_berlin_plz, map_berlin_plz_to_district
+import pytest
+from metrixa_engine.config import (
+    Settings,
+    is_valid_berlin_plz,
+    map_berlin_plz_to_district,
+)
 from metrixa_engine.crawler.tech_detector import scan_html_for_tech_and_contacts
 from metrixa_engine.db import Database
 from metrixa_engine.enrichment.scorer import calculate_metrixa_lead_score
@@ -20,7 +27,10 @@ from metrixa_engine.entity_resolution.normalizer import (
     normalize_phone_e164,
 )
 from metrixa_engine.llm.router import extract_deterministic_german_kpis
+from metrixa_engine.llm.extractor import KPIExtractionPipeline
 from metrixa_engine.models import RawListing
+from metrixa_engine.enrichment.search_router import SearchResultItem, SearchRouter
+from metrixa_engine.scrapers.vdiv import VDIVScraper
 
 
 def test_berlin_plz_and_district_mapping() -> None:
@@ -34,6 +44,25 @@ def test_berlin_plz_and_district_mapping() -> None:
     assert map_berlin_plz_to_district("10719") == "Charlottenburg-Wilmersdorf"
     assert map_berlin_plz_to_district("10405") == "Pankow"
     assert map_berlin_plz_to_district("10997") == "Friedrichshain-Kreuzberg"
+
+
+def test_configured_database_path_overrides_existing_project_database(
+    tmp_path: Path, monkeypatch
+) -> None:
+    target = tmp_path / "isolated.db"
+    monkeypatch.setenv("DATABASE_PATH", str(target))
+
+    assert Settings().database_path == target.resolve()
+
+
+def test_cors_configuration_rejects_wildcards_and_paths(monkeypatch) -> None:
+    monkeypatch.setenv("CORS_ORIGINS", "*")
+    with pytest.raises(ValueError, match="cannot contain"):
+        Settings()
+
+    monkeypatch.setenv("CORS_ORIGINS", "https://example.com/app")
+    with pytest.raises(ValueError, match="host only"):
+        Settings()
 
 
 def test_german_normalizer_and_eligibility() -> None:
@@ -158,3 +187,195 @@ def test_union_find_deduplication_and_scoring(tmp_path: Path) -> None:
     )
     assert score >= 90
     assert "Tier A" in tier
+
+
+def test_postcode_match_compares_both_records() -> None:
+    record_a = {
+        "canonical_name": "alpha hausverwaltung gmbh",
+        "canonical_domain": "alpha.example",
+        "phone_e164": None,
+        "address_key": None,
+        "clean_plz": "10115",
+    }
+    record_b = {
+        **record_a,
+        "canonical_name": "alpha hausverwaltun gmbh",
+        "canonical_domain": "beta.example",
+        "clean_plz": "10997",
+    }
+
+    assert EntityDeduplicator.is_match(record_a, record_b) is False
+    record_b["clean_plz"] = record_a["clean_plz"]
+    assert EntityDeduplicator.is_match(record_a, record_b) is True
+
+
+def test_extract_batch_uses_default_provider_when_none(
+    tmp_path: Path, monkeypatch
+) -> None:
+    db = Database(tmp_path / "extractor.db")
+    with db.connect() as conn:
+        conn.execute(
+            """
+            INSERT INTO companies_golden (
+                canonical_name, display_name, sources_csv, pipeline_stage, updated_at
+            ) VALUES (?, ?, ?, 'CRAWLED', ?)
+            """,
+            (
+                "Test Hausverwaltung GmbH",
+                "Test Hausverwaltung GmbH",
+                "test",
+                "2026-11-10T00:00:00Z",
+            ),
+        )
+
+    pipeline = KPIExtractionPipeline(db)
+
+    async def fake_extract(row, requested_provider=None):
+        return {
+            "company_id": row["company_id"],
+            "provider": "deterministic",
+            "dms_found": 0,
+            "has_erp": False,
+        }
+
+    monkeypatch.setattr(pipeline, "extract_single_company", fake_extract)
+    result = asyncio.run(pipeline.extract_batch(requested_provider=None))
+
+    assert result == {"processed": 1, "with_decision_maker": 0, "with_erp": 0}
+
+
+@pytest.mark.asyncio
+async def test_search_router_uses_selected_provider_first(monkeypatch) -> None:
+    from metrixa_engine.enrichment import search_router as search_module
+
+    calls: list[str] = []
+
+    class ClientContext:
+        async def __aenter__(self):
+            return object()
+
+        async def __aexit__(self, *args) -> None:
+            return None
+
+    async def selected(client, query, max_results=8):
+        calls.append(query)
+        return [
+            SearchResultItem(
+                "Actual result", "https://example.org", "Source snippet", "brave_api"
+            )
+        ]
+
+    async def should_not_run(client, query, max_results=8):
+        raise AssertionError(
+            "A later fallback ran despite a successful selected provider."
+        )
+
+    monkeypatch.setattr(search_module.settings, "default_search_provider", "brave")
+    monkeypatch.setattr(
+        search_module.httpx, "AsyncClient", lambda **kwargs: ClientContext()
+    )
+    router = SearchRouter()
+    monkeypatch.setattr(router, "_query_brave_api", selected)
+    monkeypatch.setattr(router, "_query_local_searxng", should_not_run)
+    monkeypatch.setattr(router, "_query_native_metasearch", should_not_run)
+
+    results = await router.search("a real query", allow_tavily_fallback=False)
+
+    assert calls == ["a real query"]
+    assert len(results) == 1
+    assert results[0].engine == "brave_api"
+
+
+@pytest.mark.asyncio
+async def test_vdiv_scraper_returns_no_registry_fallback_when_site_is_unavailable(
+    monkeypatch,
+) -> None:
+    scraper = VDIVScraper()
+
+    async def unavailable(client, url):
+        return ""
+
+    monkeypatch.setattr(scraper, "fetch_text", unavailable)
+
+    assert await scraper.scrape_berlin() == []
+
+
+def test_legacy_vdiv_registry_is_preserved_but_excluded_from_active_leads(
+    tmp_path: Path,
+) -> None:
+    db = Database(tmp_path / "legacy-vdiv.db")
+    db.insert_raw_listings(
+        [
+            RawListing(
+                source_name="vdiv",
+                raw_company_name="Curated Hausverwaltung GmbH",
+                raw_postal_code="10719",
+                raw_city="Berlin",
+                raw_website="https://curated.example",
+                is_vdiv_member=True,
+                raw_payload={"verified_vdiv_member": True},
+            )
+        ]
+    )
+    db.init_schema()
+    stats = EntityDeduplicator(db).run_deduplication()
+
+    db.init_schema()
+    db.init_schema()  # The migration is safe to run on every app startup.
+
+    with db.connect() as conn:
+        raw = conn.execute(
+            "SELECT * FROM raw_listings WHERE source_name = 'vdiv'"
+        ).fetchone()
+        active_count = conn.execute(
+            "SELECT COUNT(*) FROM companies_golden WHERE pipeline_stage != 'DISQUALIFIED'"
+        ).fetchone()[0]
+
+    payload = json.loads(raw["raw_json_payload"])
+    assert raw["raw_company_name"] == "Curated Hausverwaltung GmbH"
+    assert raw["is_vdiv_member"] == 0
+    assert payload == {"legacy_curated_vdiv_registry_requires_review": True}
+    assert stats["source_review_excluded"] == 1
+    assert stats["golden_clusters"] == 0
+    assert active_count == 0
+
+
+def test_legacy_vdiv_only_company_is_quarantined_on_database_migration(
+    tmp_path: Path,
+) -> None:
+    db = Database(tmp_path / "legacy-vdiv-company.db")
+    listing = RawListing(
+        source_name="vdiv",
+        raw_company_name="Legacy Hausverwaltung GmbH",
+        raw_postal_code="10719",
+        raw_city="Berlin",
+        raw_payload={"legacy_curated_vdiv_registry_requires_review": True},
+    )
+    db.insert_raw_listings([listing])
+    with db.connect() as conn:
+        raw_id = conn.execute("SELECT id FROM raw_listings").fetchone()[0]
+        company_id = conn.execute(
+            """
+            INSERT INTO companies_golden (
+                canonical_name, display_name, sources_csv, updated_at
+            ) VALUES ('legacy hausverwaltung', 'Legacy Hausverwaltung GmbH', 'vdiv', '2026-11-10T00:00:00+00:00')
+            """
+        ).lastrowid
+        conn.execute(
+            "INSERT INTO company_sources_map (company_id, raw_listing_id) VALUES (?, ?)",
+            (company_id, raw_id),
+        )
+
+    db.init_schema()
+
+    with db.connect() as conn:
+        company = conn.execute(
+            "SELECT pipeline_stage, disqualification_reason, is_vdiv_member FROM companies_golden WHERE company_id = ?",
+            (company_id,),
+        ).fetchone()
+
+    assert company["pipeline_stage"] == "DISQUALIFIED"
+    assert (
+        company["disqualification_reason"] == "legacy_vdiv_source_requires_live_review"
+    )
+    assert company["is_vdiv_member"] == 0

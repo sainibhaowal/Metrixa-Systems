@@ -136,7 +136,8 @@ class LeadScorer:
         }
 
         with self.db.connect() as conn:
-            rows = conn.execute("""
+            rows = conn.execute(
+                """
                 SELECT
                     c.company_id, c.legal_form, c.commercial_register_id,
                     c.website_url, c.phone_e164, c.company_linkedin_url,
@@ -148,17 +149,22 @@ class LeadScorer:
                 FROM companies_golden c
                 LEFT JOIN kpi_extractions k ON k.company_id = c.company_id
                 WHERE c.pipeline_stage != 'DISQUALIFIED'
-                """).fetchall()
+                """
+            ).fetchall()
 
             for r in rows:
                 cid = r["company_id"]
                 dms = conn.execute(
-                    "SELECT full_name, personal_email, linkedin_url, direct_phone FROM decision_makers WHERE company_id = ?",
+                    "SELECT full_name, personal_email, email_status, linkedin_url, direct_phone FROM decision_makers WHERE company_id = ?",
                     (cid,),
                 ).fetchall()
 
                 has_dm = len(dms) > 0
-                has_pers_email = any(bool(d["personal_email"]) for d in dms)
+                has_pers_email = any(
+                    bool(d["personal_email"])
+                    and d["email_status"] in ("PUBLIC_LISTED", "PUBLIC_DIRECT_VERIFIED")
+                    for d in dms
+                )
                 has_li_or_phone = bool(
                     r["company_linkedin_url"]
                     or r["phone_e164"]
@@ -203,13 +209,12 @@ class LeadScorer:
                     """
                     UPDATE companies_golden
                     SET metrixa_lead_score = ?,
-                        metrixa_lead_score = ?,
                         lead_tier = ?,
                         pipeline_stage = 'SCORED',
                         updated_at = ?
                     WHERE company_id = ?
                     """,
-                    (score, score, tier, now_iso, cid),
+                    (score, tier, now_iso, cid),
                 )
 
         return tier_counts

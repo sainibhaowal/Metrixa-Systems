@@ -10,6 +10,7 @@ import asyncio
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict, List, Optional
 
+from metrixa_engine.config import settings
 from metrixa_engine.db import Database
 from metrixa_engine.llm.router import llm_router
 from metrixa_engine.models import UnitsSizeTier
@@ -269,7 +270,7 @@ class KPIExtractionPipeline:
                     parts = dm.full_name.split()
                     first_name = parts[0] if parts else ""
                     last_name = parts[-1] if len(parts) > 1 else ""
-                    email_stat = "PUBLIC_DIRECT_VERIFIED" if dm.direct_email else "NONE"
+                    email_stat = "PUBLIC_LISTED" if dm.direct_email else "NONE"
                     conn.execute(
                         """
                         INSERT INTO decision_makers (
@@ -403,7 +404,7 @@ class KPIExtractionPipeline:
                     return await self.extract_single_company(
                         row, requested_provider=requested_provider
                     )
-                except Exception as err:
+                except Exception:
                     return {
                         "company_id": row.get("company_id", 0),
                         "provider": "error",
