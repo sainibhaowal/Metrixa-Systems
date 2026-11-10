@@ -69,7 +69,9 @@ export function StickyTopbar() {
           <span>
             Database:{" "}
             <strong className="text-zinc-200">
-              {metrics?.golden_total || "1,200"}
+              {metrics?.golden_total !== undefined
+                ? metrics.golden_total.toLocaleString()
+                : "0"}
             </strong>{" "}
             Qualified Berlin Leads
           </span>

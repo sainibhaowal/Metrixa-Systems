@@ -23,38 +23,33 @@ import { EvidenceDrawer } from "@/components/leads/EvidenceDrawer";
 import { RoundedSelect, SelectOption } from "@/components/ui/RoundedSelect";
 
 const DISTRICT_OPTIONS: SelectOption[] = [
-  { value: "All Districts", label: "All Districts", count: "1,200" },
+  { value: "All Districts", label: "All Districts" },
   {
     value: "Charlottenburg-Wilmersdorf",
     label: "Charlottenburg-Wilmersdorf",
-    count: "211",
   },
   {
     value: "Steglitz-Zehlendorf",
     label: "Steglitz-Zehlendorf",
-    count: "150",
   },
   {
     value: "Tempelhof-Schöneberg",
     label: "Tempelhof-Schöneberg",
-    count: "141",
   },
   {
     value: "Friedrichshain-Kreuzberg",
     label: "Friedrichshain-Kreuzberg",
-    count: "120",
   },
-  { value: "Pankow", label: "Pankow", count: "113" },
-  { value: "Mitte", label: "Mitte", count: "97" },
-  { value: "Reinickendorf", label: "Reinickendorf", count: "83" },
-  { value: "Treptow-Köpenick", label: "Treptow-Köpenick", count: "66" },
-  { value: "Spandau", label: "Spandau", count: "61" },
-  { value: "Neukölln", label: "Neukölln", count: "52" },
-  { value: "Lichtenberg", label: "Lichtenberg", count: "38" },
+  { value: "Pankow", label: "Pankow" },
+  { value: "Mitte", label: "Mitte" },
+  { value: "Reinickendorf", label: "Reinickendorf" },
+  { value: "Treptow-Köpenick", label: "Treptow-Köpenick" },
+  { value: "Spandau", label: "Spandau" },
+  { value: "Neukölln", label: "Neukölln" },
+  { value: "Lichtenberg", label: "Lichtenberg" },
   {
     value: "Marzahn-Hellersdorf",
     label: "Marzahn-Hellersdorf",
-    count: "13",
   },
 ];
 

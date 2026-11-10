@@ -49,6 +49,7 @@ import {
   comparePipelineRuns,
   executeTool,
   pingProvider,
+  fetchMetrics,
 } from "@/lib/api";
 import { RoundedSelect, SelectOption } from "@/components/ui/RoundedSelect";
 
@@ -164,7 +165,7 @@ const STAGES: PipelineStageDef[] = [
 ];
 
 const TERRITORY_OPTIONS: SelectOption[] = [
-  { value: "Berlin", label: "Berlin", badge: "Live Hub (1,200 Leads)" },
+  { value: "Berlin", label: "Berlin", badge: "Live Hub" },
   { value: "München", label: "München (Munich)", badge: "Expansion" },
   { value: "Hamburg", label: "Hamburg", badge: "Expansion" },
   { value: "Frankfurt", label: "Frankfurt am Main", badge: "Expansion" },
@@ -370,7 +371,7 @@ export default function MissionControlPage() {
       id: "init-2",
       time: "STATUS",
       level: "SUCCESS",
-      msg: "Connected to SQLite WAL (metrixa_leads.db): 1,200 qualified Berlin property managers active.",
+      msg: "Connected to SQLite WAL (metrixa_leads.db). Engine operational.",
     },
   ]);
   const [selectedEvent, setSelectedEvent] = useState<LogEntry | null>(null);
@@ -380,6 +381,7 @@ export default function MissionControlPage() {
   const [toolDomain, setToolDomain] = useState<string>("degewo.de");
   const [toolResult, setToolResult] = useState<any>(null);
   const [testingTool, setTestingTool] = useState<boolean>(false);
+  const [liveMetrics, setLiveMetrics] = useState<any>(null);
 
   const logEndRef = useRef<HTMLDivElement>(null);
 
@@ -493,6 +495,9 @@ export default function MissionControlPage() {
 
   useEffect(() => {
     loadRuns();
+    fetchMetrics()
+      .then(setLiveMetrics)
+      .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -1526,7 +1531,9 @@ export default function MissionControlPage() {
               <div className="flex justify-between items-center text-zinc-400">
                 <span className="text-[10px] text-zinc-500">QUALIFIED</span>
                 <span className="text-zinc-200 font-semibold text-[11px]">
-                  1,200 Leads (Berlin Scope)
+                  {liveMetrics?.golden_total !== undefined
+                    ? `${liveMetrics.golden_total.toLocaleString()} Leads (Berlin Scope)`
+                    : "0 Leads (Berlin Scope)"}
                 </span>
               </div>
               <div className="flex justify-between items-center text-zinc-400">

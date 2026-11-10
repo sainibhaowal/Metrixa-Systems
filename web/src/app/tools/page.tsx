@@ -161,8 +161,8 @@ export default function ToolsCatalogPage() {
           </h1>
           <p className="text-xs text-zinc-400 mt-1">
             Production-grade scrapers, HTTP/2 subpage crawlers, regex DOM
-            analyzers, and RFC-5321 DNS MX resolvers powering the 1,200 Berlin
-            company pipeline.
+            analyzers, and RFC-5321 DNS MX resolvers powering the Berlin
+            property management intelligence pipeline.
           </p>
         </div>
 

@@ -197,7 +197,7 @@ export default function ArtifactsLibraryPage() {
       setSheetsSyncing(true);
       const res = await syncGoogleSheets();
       setActionSuccess(
-        res.message || "Pushed 1,200 leads across 4 tabs to Google Sheets API",
+        res.message || "Pushed leads across 4 tabs to Google Sheets API",
       );
       await loadFiles(true, true);
       if (selectedFileId === "google-sheets-live") {
@@ -442,7 +442,7 @@ export default function ArtifactsLibraryPage() {
             onClick={handleGoogleSheetsSync}
             disabled={sheetsSyncing}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/40 text-sky-300 font-bold transition-all disabled:opacity-50"
-            title="Push all 4 canonical tabs (1,200 leads, contacts, crawl logs, methodology) directly to Google Sheets API"
+            title="Push all 4 canonical tabs (leads, contacts, crawl logs, methodology) directly to Google Sheets API"
           >
             <Cloud
               className={`w-3.5 h-3.5 text-sky-400 ${
