@@ -103,7 +103,7 @@ export default function ArtifactsLibraryPage() {
   );
 
   // Selection & Search
-  const [selectedFileId, setSelectedFileId] = useState<string>("xlsx-master");
+  const [selectedFileId, setSelectedFileId] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState("");
   const [checkedIds, setCheckedIds] = useState<string[]>([]);
 
@@ -126,16 +126,24 @@ export default function ArtifactsLibraryPage() {
     try {
       if (!silent) setLoading(true);
       const res = await fetchArtifactFiles();
-      setFiles(res.items || []);
+      const items = res.items || [];
+      setFiles(items);
       setSummary(res.summary || { total: 0, active: 0, archived: 0, trash: 0 });
 
-      if (res.items && res.items.length > 0) {
-        if (!preserveSelected || !selectedFileId) {
-          const firstActive =
-            res.items.find((f: ArtifactFile) => f.status === "active") ||
-            res.items[0];
-          setSelectedFileId(firstActive.id);
+      if (items.length > 0) {
+        if (
+          !preserveSelected ||
+          !selectedFileId ||
+          !items.some((f: ArtifactFile) => f.id === selectedFileId)
+        ) {
+          const firstInTab =
+            items.find((f: ArtifactFile) => f.status === currentTab) ||
+            items[0];
+          setSelectedFileId(firstInTab.id);
         }
+      } else {
+        setSelectedFileId("");
+        setPreviewData(null);
       }
     } catch (err) {
       console.error("Failed to load artifacts:", err);
@@ -206,7 +214,10 @@ export default function ArtifactsLibraryPage() {
 
   // 2. Load Preview when selected file changes
   useEffect(() => {
-    if (!selectedFileId) return;
+    if (!selectedFileId) {
+      setPreviewData(null);
+      return;
+    }
     setPreviewLoading(true);
     fetchArtifactPreview(selectedFileId)
       .then((data) => {
@@ -252,7 +263,8 @@ export default function ArtifactsLibraryPage() {
 
   // Selected file object
   const currentFile = useMemo(() => {
-    return files.find((f) => f.id === selectedFileId) || files[0];
+    if (!selectedFileId) return null;
+    return files.find((f) => f.id === selectedFileId) || null;
   }, [files, selectedFileId]);
 
   // Batch Selection Helpers
@@ -616,7 +628,9 @@ export default function ArtifactsLibraryPage() {
                     ? "Trash bin is empty."
                     : currentTab === "archived"
                       ? "No archived deliverables yet."
-                      : "No matching deliverables found."}
+                      : files.length === 0
+                        ? "No deliverables generated yet. Run Stage 06 Export from Mission Control."
+                        : "No matching deliverables found."}
                 </p>
               </div>
             ) : (
@@ -825,621 +839,660 @@ export default function ArtifactsLibraryPage() {
         {/* RIGHT PANEL: Live Office Document Previewer (8 Cols)   */}
         {/* ====================================================== */}
         <div className="lg:col-span-8 h-full flex flex-col min-h-0 p-5 rounded-2xl bg-[#111114] border border-zinc-800/90 shadow-matte space-y-3 print:p-0 print:border-none print:shadow-none">
-          {/* Preview Header & Tight Action Toolbar */}
-          <div className="flex items-center justify-between gap-3 pb-3 border-b border-zinc-800 shrink-0 print:hidden">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="shrink-0">
-                {currentFile && getFileIcon(currentFile.type, "w-6 h-6")}
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <h2 className="text-sm font-bold text-zinc-100 truncate">
-                    {currentFile?.name || "Select Deliverable"}
-                  </h2>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-emerald-400 shrink-0">
-                    Office Preview
-                  </span>
-                  {currentFile?.sha256_short &&
-                    currentFile.sha256_short !== "pending" && (
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-400 shrink-0">
-                        SHA-256: {currentFile.sha256_short}
-                      </span>
-                    )}
-                </div>
-                <p className="text-[11px] text-zinc-400 truncate font-mono mt-0.5">
-                  {currentFile?.size_formatted} (
-                  {(currentFile?.size_bytes || 0).toLocaleString()} bytes) •
-                  Modified: {formatExactDateTime(currentFile?.updated_at)}{" "}
-                  <span suppressHydrationWarning className="text-emerald-400">
-                    ({formatRelativeTime(currentFile?.updated_at, nowTick)})
-                  </span>
+          {!currentFile ? (
+            <div className="flex-1 flex flex-col items-center justify-center gap-3 text-zinc-500 font-mono text-xs p-8 text-center">
+              <FileSpreadsheet className="w-12 h-12 text-zinc-600 stroke-[1.5]" />
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-zinc-300">
+                  No Deliverables Available
+                </p>
+                <p className="text-xs text-zinc-500 max-w-sm">
+                  Run Stage 06 (Export) from Mission Control to generate
+                  verified Excel workbooks, CSV files, and evaluation reports.
                 </p>
               </div>
             </div>
-
-            {/* Document Action Buttons (Tight, Unified Toolbar) */}
-            <div className="flex items-center gap-1.5 shrink-0">
-              {/* Copy Entire Data */}
-              <button
-                onClick={handleCopyPreview}
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 text-zinc-200 hover:text-white border border-zinc-800 hover:border-zinc-700 text-xs font-semibold transition-all shadow-sm"
-                title="Copy entire document content or table rows to clipboard"
-              >
-                {copied ? (
-                  <>
-                    <Check className="w-3.5 h-3.5 text-emerald-400" />
-                    <span className="text-emerald-400 font-bold">Copied!</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-3.5 h-3.5 text-zinc-400" />
-                    <span>Copy All</span>
-                  </>
-                )}
-              </button>
-
-              {/* Print / Export A4 PDF */}
-              <button
-                onClick={handlePrintA4}
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 text-zinc-200 hover:text-white border border-zinc-800 hover:border-zinc-700 text-xs font-semibold transition-all shadow-sm"
-                title="Print or export as standardized A4 document"
-              >
-                <Printer className="w-3.5 h-3.5 text-zinc-400" />
-                <span>Export PDF (A4)</span>
-              </button>
-
-              {/* Download Original File or Open Cloud Sheet */}
-              {currentFile && currentFile.type === "sheet" ? (
-                <a
-                  href={
-                    previewData?.spreadsheet_url ||
-                    `http://127.0.0.1:8000${currentFile.download_url}`
-                  }
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-zinc-950 font-bold text-xs shadow-md transition-all"
-                >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  <span>Open Google Sheet</span>
-                </a>
-              ) : currentFile ? (
-                <a
-                  href={`http://127.0.0.1:8000${currentFile.download_url}`}
-                  download
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs shadow-glowEmerald transition-all"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Download File</span>
-                </a>
-              ) : null}
-            </div>
-          </div>
-
-          {/* Preview Content Area (Fills Full Height Till Edge) */}
-          {previewLoading ? (
-            <div className="flex-1 flex flex-col items-center justify-center gap-2 text-zinc-500 font-mono text-xs">
-              <div className="w-6 h-6 border-2 border-emerald-500/20 border-t-emerald-400 rounded-full animate-spin" />
-              <span>Loading Office Preview...</span>
-            </div>
-          ) : !previewData ? (
-            <div className="flex-1 flex flex-col items-center justify-center gap-2 text-zinc-500 font-mono text-xs">
-              <FileText className="w-7 h-7 text-zinc-600" />
-              <span>No preview data available for this deliverable.</span>
-            </div>
           ) : (
-            <div className="flex-1 min-h-0 flex flex-col space-y-2">
-              {/* ==================== 1. EXCEL WORKBOOK PREVIEW ==================== */}
-              {previewData.type === "xlsx" && (
-                <div className="flex-1 min-h-0 flex flex-col space-y-2">
-                  {/* Sheet Selector Tabs & In-Sheet Search */}
-                  <div className="flex items-center justify-between gap-2 shrink-0">
-                    <div className="flex items-center gap-1 overflow-x-auto pb-0.5">
-                      {previewData.sheets?.map((sname: string) => (
-                        <button
-                          key={sname}
-                          onClick={() => setActiveSheet(sname)}
-                          className={`px-2.5 py-1 rounded-lg text-xs font-mono font-semibold transition-all shrink-0 border ${
-                            activeSheet === sname
-                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/40"
-                              : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-zinc-200"
-                          }`}
-                        >
-                          📄 {sname}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Filter Inside Spreadsheet */}
-                    <div className="relative w-44 shrink-0">
-                      <Search className="w-3 h-3 text-zinc-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="text"
-                        value={previewSearch}
-                        onChange={(e) => setPreviewSearch(e.target.value)}
-                        placeholder="Search sheet..."
-                        className="w-full pl-7 pr-2 py-1 rounded-lg bg-zinc-900 border border-zinc-800 text-[11px] font-mono text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-emerald-500 transition-all"
-                      />
-                    </div>
+            <>
+              {/* Preview Header & Tight Action Toolbar */}
+              <div className="flex items-center justify-between gap-3 pb-3 border-b border-zinc-800 shrink-0 print:hidden">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="shrink-0">
+                    {currentFile && getFileIcon(currentFile.type, "w-6 h-6")}
                   </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-sm font-bold text-zinc-100 truncate">
+                        {currentFile?.name || "Select Deliverable"}
+                      </h2>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-emerald-400 shrink-0">
+                        Office Preview
+                      </span>
+                      {currentFile?.sha256_short &&
+                        currentFile.sha256_short !== "pending" && (
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-400 shrink-0">
+                            SHA-256: {currentFile.sha256_short}
+                          </span>
+                        )}
+                    </div>
+                    <p className="text-[11px] text-zinc-400 truncate font-mono mt-0.5">
+                      {currentFile?.size_formatted} (
+                      {(currentFile?.size_bytes || 0).toLocaleString()} bytes) •
+                      Modified: {formatExactDateTime(currentFile?.updated_at)}{" "}
+                      <span
+                        suppressHydrationWarning
+                        className="text-emerald-400"
+                      >
+                        ({formatRelativeTime(currentFile?.updated_at, nowTick)})
+                      </span>
+                    </p>
+                  </div>
+                </div>
 
-                  {/* Spreadsheet Data Grid (Stretches to Bottom Edge) */}
-                  {previewData.sheet_data &&
-                  previewData.sheet_data[activeSheet] ? (
-                    <div className="flex-1 min-h-0 rounded-xl border border-zinc-800 bg-zinc-950 flex flex-col overflow-hidden shadow-inner">
-                      <div className="flex-1 min-h-0 overflow-auto">
-                        <table className="w-full text-left border-collapse text-[11px] font-mono">
-                          <thead className="sticky top-0 bg-[#141418] border-b border-zinc-800 z-10">
-                            <tr>
-                              <th className="py-2 px-2 text-zinc-500 border-r border-zinc-800/80 w-10 text-center select-none bg-zinc-900/60">
-                                #
-                              </th>
-                              {previewData.sheet_data[activeSheet].headers.map(
-                                (header: string, idx: number) => (
-                                  <th
-                                    key={idx}
-                                    className="py-2 px-2.5 text-zinc-300 font-bold border-r border-zinc-800/80 whitespace-nowrap"
-                                  >
-                                    {header}
+                {/* Document Action Buttons (Tight, Unified Toolbar) */}
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {/* Copy Entire Data */}
+                  <button
+                    onClick={handleCopyPreview}
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 text-zinc-200 hover:text-white border border-zinc-800 hover:border-zinc-700 text-xs font-semibold transition-all shadow-sm"
+                    title="Copy entire document content or table rows to clipboard"
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        <span className="text-emerald-400 font-bold">
+                          Copied!
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5 text-zinc-400" />
+                        <span>Copy All</span>
+                      </>
+                    )}
+                  </button>
+
+                  {/* Print / Export A4 PDF */}
+                  <button
+                    onClick={handlePrintA4}
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 text-zinc-200 hover:text-white border border-zinc-800 hover:border-zinc-700 text-xs font-semibold transition-all shadow-sm"
+                    title="Print or export as standardized A4 document"
+                  >
+                    <Printer className="w-3.5 h-3.5 text-zinc-400" />
+                    <span>Export PDF (A4)</span>
+                  </button>
+
+                  {/* Download Original File or Open Cloud Sheet */}
+                  {currentFile && currentFile.type === "sheet" ? (
+                    <a
+                      href={
+                        previewData?.spreadsheet_url ||
+                        `http://127.0.0.1:8000${currentFile.download_url}`
+                      }
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-zinc-950 font-bold text-xs shadow-md transition-all"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>Open Google Sheet</span>
+                    </a>
+                  ) : currentFile ? (
+                    <a
+                      href={`http://127.0.0.1:8000${currentFile.download_url}`}
+                      download
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs shadow-glowEmerald transition-all"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Download File</span>
+                    </a>
+                  ) : null}
+                </div>
+              </div>
+
+              {/* Preview Content Area (Fills Full Height Till Edge) */}
+              {previewLoading ? (
+                <div className="flex-1 flex flex-col items-center justify-center gap-2 text-zinc-500 font-mono text-xs">
+                  <div className="w-6 h-6 border-2 border-emerald-500/20 border-t-emerald-400 rounded-full animate-spin" />
+                  <span>Loading Office Preview...</span>
+                </div>
+              ) : !previewData ? (
+                <div className="flex-1 flex flex-col items-center justify-center gap-2 text-zinc-500 font-mono text-xs">
+                  <FileText className="w-7 h-7 text-zinc-600" />
+                  <span>No preview data available for this deliverable.</span>
+                </div>
+              ) : (
+                <div className="flex-1 min-h-0 flex flex-col space-y-2">
+                  {/* ==================== 1. EXCEL WORKBOOK PREVIEW ==================== */}
+                  {previewData.type === "xlsx" && (
+                    <div className="flex-1 min-h-0 flex flex-col space-y-2">
+                      {/* Sheet Selector Tabs & In-Sheet Search */}
+                      <div className="flex items-center justify-between gap-2 shrink-0">
+                        <div className="flex items-center gap-1 overflow-x-auto pb-0.5">
+                          {previewData.sheets?.map((sname: string) => (
+                            <button
+                              key={sname}
+                              onClick={() => setActiveSheet(sname)}
+                              className={`px-2.5 py-1 rounded-lg text-xs font-mono font-semibold transition-all shrink-0 border ${
+                                activeSheet === sname
+                                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/40"
+                                  : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-zinc-200"
+                              }`}
+                            >
+                              📄 {sname}
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* Filter Inside Spreadsheet */}
+                        <div className="relative w-44 shrink-0">
+                          <Search className="w-3 h-3 text-zinc-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                          <input
+                            type="text"
+                            value={previewSearch}
+                            onChange={(e) => setPreviewSearch(e.target.value)}
+                            placeholder="Search sheet..."
+                            className="w-full pl-7 pr-2 py-1 rounded-lg bg-zinc-900 border border-zinc-800 text-[11px] font-mono text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-emerald-500 transition-all"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Spreadsheet Data Grid (Stretches to Bottom Edge) */}
+                      {previewData.sheet_data &&
+                      previewData.sheet_data[activeSheet] ? (
+                        <div className="flex-1 min-h-0 rounded-xl border border-zinc-800 bg-zinc-950 flex flex-col overflow-hidden shadow-inner">
+                          <div className="flex-1 min-h-0 overflow-auto">
+                            <table className="w-full text-left border-collapse text-[11px] font-mono">
+                              <thead className="sticky top-0 bg-[#141418] border-b border-zinc-800 z-10">
+                                <tr>
+                                  <th className="py-2 px-2 text-zinc-500 border-r border-zinc-800/80 w-10 text-center select-none bg-zinc-900/60">
+                                    #
                                   </th>
-                                ),
-                              )}
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-zinc-850">
-                            {previewData.sheet_data[activeSheet].rows
-                              .filter((row: string[]) => {
-                                if (!previewSearch) return true;
-                                return row.some((cell) =>
-                                  String(cell)
-                                    .toLowerCase()
-                                    .includes(previewSearch.toLowerCase()),
-                                );
-                              })
-                              .map((row: string[], rIdx: number) => (
-                                <tr
-                                  key={rIdx}
-                                  className="hover:bg-zinc-900/80 transition-colors"
-                                >
-                                  <td className="py-1.5 px-2 text-zinc-500 border-r border-zinc-850 text-center select-none bg-zinc-950/80">
-                                    {rIdx + 1}
-                                  </td>
-                                  {row.map((cell: string, cIdx: number) => {
-                                    const isScore =
-                                      cIdx === 2 &&
-                                      !isNaN(Number(cell)) &&
-                                      Number(cell) > 0;
-                                    const isTier =
-                                      String(cell).includes("Tier");
+                                  {previewData.sheet_data[
+                                    activeSheet
+                                  ].headers.map(
+                                    (header: string, idx: number) => (
+                                      <th
+                                        key={idx}
+                                        className="py-2 px-2.5 text-zinc-300 font-bold border-r border-zinc-800/80 whitespace-nowrap"
+                                      >
+                                        {header}
+                                      </th>
+                                    ),
+                                  )}
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-zinc-850">
+                                {previewData.sheet_data[activeSheet].rows
+                                  .filter((row: string[]) => {
+                                    if (!previewSearch) return true;
+                                    return row.some((cell) =>
+                                      String(cell)
+                                        .toLowerCase()
+                                        .includes(previewSearch.toLowerCase()),
+                                    );
+                                  })
+                                  .map((row: string[], rIdx: number) => (
+                                    <tr
+                                      key={rIdx}
+                                      className="hover:bg-zinc-900/80 transition-colors"
+                                    >
+                                      <td className="py-1.5 px-2 text-zinc-500 border-r border-zinc-850 text-center select-none bg-zinc-950/80">
+                                        {rIdx + 1}
+                                      </td>
+                                      {row.map((cell: string, cIdx: number) => {
+                                        const isScore =
+                                          cIdx === 2 &&
+                                          !isNaN(Number(cell)) &&
+                                          Number(cell) > 0;
+                                        const isTier =
+                                          String(cell).includes("Tier");
 
-                                    return (
+                                        return (
+                                          <td
+                                            key={cIdx}
+                                            className="py-1.5 px-2.5 border-r border-zinc-850/60 whitespace-nowrap text-zinc-300"
+                                          >
+                                            {isTier ? (
+                                              <span
+                                                className={`px-1.5 py-0.2 rounded text-[10px] font-bold ${
+                                                  String(cell).includes(
+                                                    "Tier A",
+                                                  )
+                                                    ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
+                                                    : String(cell).includes(
+                                                          "Tier B",
+                                                        )
+                                                      ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                                                      : "bg-zinc-800 text-zinc-400"
+                                                }`}
+                                              >
+                                                {cell}
+                                              </span>
+                                            ) : isScore ? (
+                                              <span className="font-bold text-emerald-400">
+                                                {cell}
+                                              </span>
+                                            ) : (
+                                              cell
+                                            )}
+                                          </td>
+                                        );
+                                      })}
+                                    </tr>
+                                  ))}
+                              </tbody>
+                            </table>
+                          </div>
+
+                          <div className="p-2 bg-[#141418] border-t border-zinc-800 flex items-center justify-between text-[10px] font-mono text-zinc-400 shrink-0">
+                            <span>
+                              Showing preview of{" "}
+                              {
+                                previewData.sheet_data[activeSheet]
+                                  .preview_rows_count
+                              }{" "}
+                              of{" "}
+                              {previewData.sheet_data[activeSheet].total_rows}{" "}
+                              total rows
+                            </span>
+                            <span className="text-emerald-400 font-semibold">
+                              {previewData.cloud_mirror
+                                ? "Live Cloud 4-Tab Google Sheet Mirror"
+                                : "Full 4-Tab Dataset in .xlsx"}
+                            </span>
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
+
+                  {/* ==================== 2. CSV FILE PREVIEW ==================== */}
+                  {previewData.type === "csv" && (
+                    <div className="flex-1 min-h-0 flex flex-col space-y-2">
+                      <div className="flex items-center justify-between gap-2 text-xs font-mono shrink-0">
+                        <span className="px-2 py-0.5 rounded-lg bg-sky-500/10 border border-sky-500/30 text-sky-400 text-[11px]">
+                          Standard RFC-4180 CSV • UTF-8 BOM • 31 Columns
+                        </span>
+
+                        <div className="relative w-44 shrink-0">
+                          <Search className="w-3 h-3 text-zinc-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                          <input
+                            type="text"
+                            value={previewSearch}
+                            onChange={(e) => setPreviewSearch(e.target.value)}
+                            placeholder="Search CSV..."
+                            className="w-full pl-7 pr-2 py-1 rounded-lg bg-zinc-900 border border-zinc-800 text-[11px] font-mono text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-emerald-500 transition-all"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex-1 min-h-0 rounded-xl border border-zinc-800 bg-zinc-950 flex flex-col overflow-hidden shadow-inner">
+                        <div className="flex-1 min-h-0 overflow-auto">
+                          <table className="w-full text-left border-collapse text-[11px] font-mono">
+                            <thead className="sticky top-0 bg-[#141418] border-b border-zinc-800 z-10">
+                              <tr>
+                                <th className="py-2 px-2 text-zinc-500 border-r border-zinc-800/80 w-10 text-center select-none bg-zinc-900/60">
+                                  #
+                                </th>
+                                {previewData.headers?.map(
+                                  (h: string, idx: number) => (
+                                    <th
+                                      key={idx}
+                                      className="py-2 px-2.5 text-zinc-300 font-bold border-r border-zinc-800/80 whitespace-nowrap"
+                                    >
+                                      {h}
+                                    </th>
+                                  ),
+                                )}
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-zinc-850">
+                              {previewData.rows
+                                ?.filter((row: string[]) => {
+                                  if (!previewSearch) return true;
+                                  return row.some((cell) =>
+                                    String(cell)
+                                      .toLowerCase()
+                                      .includes(previewSearch.toLowerCase()),
+                                  );
+                                })
+                                .map((row: string[], rIdx: number) => (
+                                  <tr
+                                    key={rIdx}
+                                    className="hover:bg-zinc-900/80 transition-colors"
+                                  >
+                                    <td className="py-1.5 px-2 text-zinc-500 border-r border-zinc-850 text-center select-none bg-zinc-950/80">
+                                      {rIdx + 1}
+                                    </td>
+                                    {row.map((cell: string, cIdx: number) => (
                                       <td
                                         key={cIdx}
                                         className="py-1.5 px-2.5 border-r border-zinc-850/60 whitespace-nowrap text-zinc-300"
                                       >
-                                        {isTier ? (
-                                          <span
-                                            className={`px-1.5 py-0.2 rounded text-[10px] font-bold ${
-                                              String(cell).includes("Tier A")
-                                                ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
-                                                : String(cell).includes(
-                                                      "Tier B",
-                                                    )
-                                                  ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
-                                                  : "bg-zinc-800 text-zinc-400"
-                                            }`}
-                                          >
-                                            {cell}
-                                          </span>
-                                        ) : isScore ? (
-                                          <span className="font-bold text-emerald-400">
-                                            {cell}
-                                          </span>
-                                        ) : (
-                                          cell
-                                        )}
+                                        {cell}
                                       </td>
-                                    );
-                                  })}
-                                </tr>
-                              ))}
-                          </tbody>
-                        </table>
-                      </div>
-
-                      <div className="p-2 bg-[#141418] border-t border-zinc-800 flex items-center justify-between text-[10px] font-mono text-zinc-400 shrink-0">
-                        <span>
-                          Showing preview of{" "}
-                          {
-                            previewData.sheet_data[activeSheet]
-                              .preview_rows_count
-                          }{" "}
-                          of {previewData.sheet_data[activeSheet].total_rows}{" "}
-                          total rows
-                        </span>
-                        <span className="text-emerald-400 font-semibold">
-                          {previewData.cloud_mirror
-                            ? "Live Cloud 4-Tab Google Sheet Mirror"
-                            : "Full 4-Tab Dataset in .xlsx"}
-                        </span>
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
-              )}
-
-              {/* ==================== 2. CSV FILE PREVIEW ==================== */}
-              {previewData.type === "csv" && (
-                <div className="flex-1 min-h-0 flex flex-col space-y-2">
-                  <div className="flex items-center justify-between gap-2 text-xs font-mono shrink-0">
-                    <span className="px-2 py-0.5 rounded-lg bg-sky-500/10 border border-sky-500/30 text-sky-400 text-[11px]">
-                      Standard RFC-4180 CSV • UTF-8 BOM • 31 Columns
-                    </span>
-
-                    <div className="relative w-44 shrink-0">
-                      <Search className="w-3 h-3 text-zinc-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="text"
-                        value={previewSearch}
-                        onChange={(e) => setPreviewSearch(e.target.value)}
-                        placeholder="Search CSV..."
-                        className="w-full pl-7 pr-2 py-1 rounded-lg bg-zinc-900 border border-zinc-800 text-[11px] font-mono text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-emerald-500 transition-all"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex-1 min-h-0 rounded-xl border border-zinc-800 bg-zinc-950 flex flex-col overflow-hidden shadow-inner">
-                    <div className="flex-1 min-h-0 overflow-auto">
-                      <table className="w-full text-left border-collapse text-[11px] font-mono">
-                        <thead className="sticky top-0 bg-[#141418] border-b border-zinc-800 z-10">
-                          <tr>
-                            <th className="py-2 px-2 text-zinc-500 border-r border-zinc-800/80 w-10 text-center select-none bg-zinc-900/60">
-                              #
-                            </th>
-                            {previewData.headers?.map(
-                              (h: string, idx: number) => (
-                                <th
-                                  key={idx}
-                                  className="py-2 px-2.5 text-zinc-300 font-bold border-r border-zinc-800/80 whitespace-nowrap"
-                                >
-                                  {h}
-                                </th>
-                              ),
-                            )}
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-zinc-850">
-                          {previewData.rows
-                            ?.filter((row: string[]) => {
-                              if (!previewSearch) return true;
-                              return row.some((cell) =>
-                                String(cell)
-                                  .toLowerCase()
-                                  .includes(previewSearch.toLowerCase()),
-                              );
-                            })
-                            .map((row: string[], rIdx: number) => (
-                              <tr
-                                key={rIdx}
-                                className="hover:bg-zinc-900/80 transition-colors"
-                              >
-                                <td className="py-1.5 px-2 text-zinc-500 border-r border-zinc-850 text-center select-none bg-zinc-950/80">
-                                  {rIdx + 1}
-                                </td>
-                                {row.map((cell: string, cIdx: number) => (
-                                  <td
-                                    key={cIdx}
-                                    className="py-1.5 px-2.5 border-r border-zinc-850/60 whitespace-nowrap text-zinc-300"
-                                  >
-                                    {cell}
-                                  </td>
+                                    ))}
+                                  </tr>
                                 ))}
-                              </tr>
-                            ))}
-                        </tbody>
-                      </table>
-                    </div>
+                            </tbody>
+                          </table>
+                        </div>
 
-                    <div className="p-2 bg-[#141418] border-t border-zinc-800 flex items-center justify-between text-[10px] font-mono text-zinc-400 shrink-0">
-                      <span>
-                        Total Records: {previewData.total_rows} Qualified Berlin
-                        Leads
-                      </span>
-                      <span className="text-sky-400">
-                        Salesforce & HubSpot Import Ready
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* ==================== 3. MARKDOWN & REPORT PREVIEW ==================== */}
-              {(previewData.type === "md" || previewData.type === "pdf") && (
-                <div className="flex-1 min-h-0 flex flex-col space-y-2">
-                  <div className="flex items-center justify-between pb-1.5 border-b border-zinc-800 text-xs font-mono shrink-0">
-                    <span className="text-zinc-400 text-[11px]">
-                      Lines: {previewData.lines_count || 120} • Formatted
-                      Markdown Document
-                    </span>
-                    <button
-                      onClick={() => setShowRawMarkdown(!showRawMarkdown)}
-                      className="px-2 py-0.5 rounded-lg bg-zinc-900 hover:bg-zinc-850 text-zinc-300 border border-zinc-800 text-[11px] font-semibold"
-                    >
-                      {showRawMarkdown ? "Rendered View" : "Raw Source View"}
-                    </button>
-                  </div>
-
-                  {showRawMarkdown ? (
-                    <pre className="flex-1 min-h-0 p-4 rounded-xl bg-zinc-950 border border-zinc-850 font-mono text-xs text-zinc-300 overflow-auto whitespace-pre leading-relaxed">
-                      {previewData.content}
-                    </pre>
-                  ) : (
-                    <div className="flex-1 min-h-0 p-5 rounded-xl bg-zinc-950 border border-zinc-850 text-zinc-200 text-xs leading-relaxed overflow-auto space-y-3 print:max-h-none print:p-0 print:border-none">
-                      <div className="prose prose-invert max-w-none text-zinc-300">
-                        {previewData.content
-                          ?.split("\n\n")
-                          .map((block: string, idx: number) => {
-                            if (block.startsWith("# ")) {
-                              return (
-                                <h1
-                                  key={idx}
-                                  className="text-lg font-bold text-zinc-100 pb-1.5 border-b border-zinc-800 mb-2"
-                                >
-                                  {block.replace("# ", "")}
-                                </h1>
-                              );
-                            }
-                            if (block.startsWith("## ")) {
-                              return (
-                                <h2
-                                  key={idx}
-                                  className="text-sm font-bold text-emerald-400 mt-3 mb-1.5"
-                                >
-                                  {block.replace("## ", "")}
-                                </h2>
-                              );
-                            }
-                            if (block.startsWith("|")) {
-                              const lines = block.split("\n");
-                              const headers = lines[0]
-                                .split("|")
-                                .slice(1, -1)
-                                .map((h) => h.trim());
-                              const bodyRows = lines.slice(2).map((line) =>
-                                line
-                                  .split("|")
-                                  .slice(1, -1)
-                                  .map((c) => c.trim()),
-                              );
-
-                              return (
-                                <div
-                                  key={idx}
-                                  className="overflow-x-auto rounded-lg border border-zinc-800 my-2"
-                                >
-                                  <table className="w-full text-left text-[11px] font-mono">
-                                    <thead className="bg-zinc-900 text-zinc-200">
-                                      <tr>
-                                        {headers.map((h, hIdx) => (
-                                          <th
-                                            key={hIdx}
-                                            className="p-1.5 border-b border-zinc-800 font-bold"
-                                          >
-                                            {h}
-                                          </th>
-                                        ))}
-                                      </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-zinc-850">
-                                      {bodyRows.map((row, rIdx) => (
-                                        <tr
-                                          key={rIdx}
-                                          className="hover:bg-zinc-900/40"
-                                        >
-                                          {row.map((cell, cIdx) => (
-                                            <td
-                                              key={cIdx}
-                                              className="p-1.5 text-zinc-300 whitespace-nowrap"
-                                            >
-                                              {cell}
-                                            </td>
-                                          ))}
-                                        </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
-                                </div>
-                              );
-                            }
-                            return (
-                              <p
-                                key={idx}
-                                className="text-zinc-300 leading-relaxed font-sans text-xs"
-                              >
-                                {block}
-                              </p>
-                            );
-                          })}
+                        <div className="p-2 bg-[#141418] border-t border-zinc-800 flex items-center justify-between text-[10px] font-mono text-zinc-400 shrink-0">
+                          <span>
+                            Total Records: {previewData.total_rows} Qualified
+                            Berlin Leads
+                          </span>
+                          <span className="text-sky-400">
+                            Salesforce & HubSpot Import Ready
+                          </span>
+                        </div>
                       </div>
+                    </div>
+                  )}
+
+                  {/* ==================== 3. MARKDOWN & REPORT PREVIEW ==================== */}
+                  {(previewData.type === "md" ||
+                    previewData.type === "pdf") && (
+                    <div className="flex-1 min-h-0 flex flex-col space-y-2">
+                      <div className="flex items-center justify-between pb-1.5 border-b border-zinc-800 text-xs font-mono shrink-0">
+                        <span className="text-zinc-400 text-[11px]">
+                          Lines: {previewData.lines_count || 120} • Formatted
+                          Markdown Document
+                        </span>
+                        <button
+                          onClick={() => setShowRawMarkdown(!showRawMarkdown)}
+                          className="px-2 py-0.5 rounded-lg bg-zinc-900 hover:bg-zinc-850 text-zinc-300 border border-zinc-800 text-[11px] font-semibold"
+                        >
+                          {showRawMarkdown
+                            ? "Rendered View"
+                            : "Raw Source View"}
+                        </button>
+                      </div>
+
+                      {showRawMarkdown ? (
+                        <pre className="flex-1 min-h-0 p-4 rounded-xl bg-zinc-950 border border-zinc-850 font-mono text-xs text-zinc-300 overflow-auto whitespace-pre leading-relaxed">
+                          {previewData.content}
+                        </pre>
+                      ) : (
+                        <div className="flex-1 min-h-0 p-5 rounded-xl bg-zinc-950 border border-zinc-850 text-zinc-200 text-xs leading-relaxed overflow-auto space-y-3 print:max-h-none print:p-0 print:border-none">
+                          <div className="prose prose-invert max-w-none text-zinc-300">
+                            {previewData.content
+                              ?.split("\n\n")
+                              .map((block: string, idx: number) => {
+                                if (block.startsWith("# ")) {
+                                  return (
+                                    <h1
+                                      key={idx}
+                                      className="text-lg font-bold text-zinc-100 pb-1.5 border-b border-zinc-800 mb-2"
+                                    >
+                                      {block.replace("# ", "")}
+                                    </h1>
+                                  );
+                                }
+                                if (block.startsWith("## ")) {
+                                  return (
+                                    <h2
+                                      key={idx}
+                                      className="text-sm font-bold text-emerald-400 mt-3 mb-1.5"
+                                    >
+                                      {block.replace("## ", "")}
+                                    </h2>
+                                  );
+                                }
+                                if (block.startsWith("|")) {
+                                  const lines = block.split("\n");
+                                  const headers = lines[0]
+                                    .split("|")
+                                    .slice(1, -1)
+                                    .map((h) => h.trim());
+                                  const bodyRows = lines.slice(2).map((line) =>
+                                    line
+                                      .split("|")
+                                      .slice(1, -1)
+                                      .map((c) => c.trim()),
+                                  );
+
+                                  return (
+                                    <div
+                                      key={idx}
+                                      className="overflow-x-auto rounded-lg border border-zinc-800 my-2"
+                                    >
+                                      <table className="w-full text-left text-[11px] font-mono">
+                                        <thead className="bg-zinc-900 text-zinc-200">
+                                          <tr>
+                                            {headers.map((h, hIdx) => (
+                                              <th
+                                                key={hIdx}
+                                                className="p-1.5 border-b border-zinc-800 font-bold"
+                                              >
+                                                {h}
+                                              </th>
+                                            ))}
+                                          </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-zinc-850">
+                                          {bodyRows.map((row, rIdx) => (
+                                            <tr
+                                              key={rIdx}
+                                              className="hover:bg-zinc-900/40"
+                                            >
+                                              {row.map((cell, cIdx) => (
+                                                <td
+                                                  key={cIdx}
+                                                  className="p-1.5 text-zinc-300 whitespace-nowrap"
+                                                >
+                                                  {cell}
+                                                </td>
+                                              ))}
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  );
+                                }
+                                return (
+                                  <p
+                                    key={idx}
+                                    className="text-zinc-300 leading-relaxed font-sans text-xs"
+                                  >
+                                    {block}
+                                  </p>
+                                );
+                              })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* ==================== 4. DATABASE EXPLORER PREVIEW ==================== */}
+                  {previewData.type === "db" && (
+                    <div className="flex-1 min-h-0 flex flex-col space-y-3 overflow-auto">
+                      <div className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 flex flex-wrap items-center justify-between gap-2 text-xs font-mono shrink-0">
+                        <span className="text-zinc-300">
+                          SQLite Relational Engine • Journal Mode:{" "}
+                          {previewData.journal_mode} • Total Rows:{" "}
+                          <strong className="text-emerald-400">
+                            {(previewData.total_db_rows || 0).toLocaleString()}
+                          </strong>
+                        </span>
+                        <span className="text-zinc-400">
+                          Latest DB Write:{" "}
+                          <strong className="text-emerald-400">
+                            {formatExactDateTime(
+                              previewData.latest_write_at ||
+                                previewData.updated_at,
+                            )}
+                          </strong>
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 shrink-0">
+                        {previewData.tables?.map((table: any, idx: number) => (
+                          <div
+                            key={idx}
+                            className="p-3 rounded-xl bg-zinc-950 border border-zinc-850 space-y-1.5"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold text-zinc-100 font-mono">
+                                {table.name}
+                              </span>
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-900 text-emerald-400 border border-zinc-800">
+                                {(table.count || 0).toLocaleString()} rows
+                              </span>
+                            </div>
+                            <div className="flex flex-wrap gap-1">
+                              {table.columns
+                                ?.slice(0, 6)
+                                .map((col: string, cIdx: number) => (
+                                  <span
+                                    key={cIdx}
+                                    className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-zinc-900 text-zinc-500"
+                                  >
+                                    {col}
+                                  </span>
+                                ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {previewData.recent_records &&
+                        previewData.recent_records.length > 0 && (
+                          <div className="rounded-xl border border-zinc-800 bg-zinc-950 overflow-hidden shrink-0">
+                            <div className="px-3 py-2 bg-[#141418] border-b border-zinc-800 flex items-center justify-between text-xs font-mono">
+                              <span className="font-bold text-zinc-200">
+                                Live SQLite Golden Records (Most Recent Writes)
+                              </span>
+                              <span className="text-[10px] text-emerald-400">
+                                companies_golden (ACID Verified)
+                              </span>
+                            </div>
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-left border-collapse text-[11px] font-mono">
+                                <thead className="bg-zinc-900/80 text-zinc-400 border-b border-zinc-800">
+                                  <tr>
+                                    <th className="py-1.5 px-2.5">
+                                      Canonical ID
+                                    </th>
+                                    <th className="py-1.5 px-2.5">
+                                      Company Name
+                                    </th>
+                                    <th className="py-1.5 px-2.5">
+                                      PLZ / District
+                                    </th>
+                                    <th className="py-1.5 px-2.5">Score</th>
+                                    <th className="py-1.5 px-2.5">Tier</th>
+                                    <th className="py-1.5 px-2.5">
+                                      Updated Timestamp
+                                    </th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-zinc-850">
+                                  {previewData.recent_records.map(
+                                    (r: any, idx: number) => (
+                                      <tr
+                                        key={idx}
+                                        className="hover:bg-zinc-900/60"
+                                      >
+                                        <td className="py-1.5 px-2.5 text-emerald-400 font-bold whitespace-nowrap">
+                                          {r.canonical_id}
+                                        </td>
+                                        <td className="py-1.5 px-2.5 text-zinc-200 truncate max-w-[220px]">
+                                          {r.company_name}
+                                        </td>
+                                        <td className="py-1.5 px-2.5 text-zinc-400 whitespace-nowrap">
+                                          {r.postal_code} {r.district}
+                                        </td>
+                                        <td className="py-1.5 px-2.5 text-emerald-400 font-bold">
+                                          {r.lead_score || r.metrixa_lead_score}
+                                        </td>
+                                        <td className="py-1.5 px-2.5 text-zinc-300 whitespace-nowrap">
+                                          {r.lead_tier}
+                                        </td>
+                                        <td className="py-1.5 px-2.5 text-zinc-400 whitespace-nowrap">
+                                          {formatExactDateTime(r.updated_at)}
+                                        </td>
+                                      </tr>
+                                    ),
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        )}
+
+                      {previewData.recent_records &&
+                        previewData.recent_records.length > 0 && (
+                          <div className="rounded-xl border border-zinc-800 bg-zinc-950 overflow-hidden shrink-0">
+                            <div className="px-3 py-2 bg-[#141418] border-b border-zinc-800 flex items-center justify-between text-xs font-mono">
+                              <span className="font-bold text-zinc-200">
+                                Live SQLite Golden Records (Most Recent Writes)
+                              </span>
+                              <span className="text-[10px] text-emerald-400">
+                                companies_golden (ACID Verified)
+                              </span>
+                            </div>
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-left border-collapse text-[11px] font-mono">
+                                <thead className="bg-zinc-900/80 text-zinc-400 border-b border-zinc-800">
+                                  <tr>
+                                    <th className="py-1.5 px-2.5">
+                                      Canonical ID
+                                    </th>
+                                    <th className="py-1.5 px-2.5">
+                                      Company Name
+                                    </th>
+                                    <th className="py-1.5 px-2.5">
+                                      PLZ / District
+                                    </th>
+                                    <th className="py-1.5 px-2.5">Score</th>
+                                    <th className="py-1.5 px-2.5">Tier</th>
+                                    <th className="py-1.5 px-2.5">
+                                      Updated Timestamp
+                                    </th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-zinc-850">
+                                  {previewData.recent_records.map(
+                                    (r: any, idx: number) => (
+                                      <tr
+                                        key={idx}
+                                        className="hover:bg-zinc-900/60"
+                                      >
+                                        <td className="py-1.5 px-2.5 text-emerald-400 font-bold whitespace-nowrap">
+                                          {r.canonical_id}
+                                        </td>
+                                        <td className="py-1.5 px-2.5 text-zinc-200 truncate max-w-[220px]">
+                                          {r.company_name}
+                                        </td>
+                                        <td className="py-1.5 px-2.5 text-zinc-400 whitespace-nowrap">
+                                          {r.postal_code} {r.district}
+                                        </td>
+                                        <td className="py-1.5 px-2.5 text-emerald-400 font-bold">
+                                          {r.lead_score || r.metrixa_lead_score}
+                                        </td>
+                                        <td className="py-1.5 px-2.5 text-zinc-300 whitespace-nowrap">
+                                          {r.lead_tier}
+                                        </td>
+                                        <td className="py-1.5 px-2.5 text-zinc-400 whitespace-nowrap">
+                                          {formatExactDateTime(r.updated_at)}
+                                        </td>
+                                      </tr>
+                                    ),
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        )}
                     </div>
                   )}
                 </div>
               )}
-
-              {/* ==================== 4. DATABASE EXPLORER PREVIEW ==================== */}
-              {previewData.type === "db" && (
-                <div className="flex-1 min-h-0 flex flex-col space-y-3 overflow-auto">
-                  <div className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 flex flex-wrap items-center justify-between gap-2 text-xs font-mono shrink-0">
-                    <span className="text-zinc-300">
-                      SQLite Relational Engine • Journal Mode:{" "}
-                      {previewData.journal_mode} • Total Rows:{" "}
-                      <strong className="text-emerald-400">
-                        {(previewData.total_db_rows || 0).toLocaleString()}
-                      </strong>
-                    </span>
-                    <span className="text-zinc-400">
-                      Latest DB Write:{" "}
-                      <strong className="text-emerald-400">
-                        {formatExactDateTime(
-                          previewData.latest_write_at || previewData.updated_at,
-                        )}
-                      </strong>
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 shrink-0">
-                    {previewData.tables?.map((table: any, idx: number) => (
-                      <div
-                        key={idx}
-                        className="p-3 rounded-xl bg-zinc-950 border border-zinc-850 space-y-1.5"
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-zinc-100 font-mono">
-                            {table.name}
-                          </span>
-                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-900 text-emerald-400 border border-zinc-800">
-                            {(table.count || 0).toLocaleString()} rows
-                          </span>
-                        </div>
-                        <div className="flex flex-wrap gap-1">
-                          {table.columns
-                            ?.slice(0, 6)
-                            .map((col: string, cIdx: number) => (
-                              <span
-                                key={cIdx}
-                                className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-zinc-900 text-zinc-500"
-                              >
-                                {col}
-                              </span>
-                            ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {previewData.recent_records &&
-                    previewData.recent_records.length > 0 && (
-                      <div className="rounded-xl border border-zinc-800 bg-zinc-950 overflow-hidden shrink-0">
-                        <div className="px-3 py-2 bg-[#141418] border-b border-zinc-800 flex items-center justify-between text-xs font-mono">
-                          <span className="font-bold text-zinc-200">
-                            Live SQLite Golden Records (Most Recent Writes)
-                          </span>
-                          <span className="text-[10px] text-emerald-400">
-                            companies_golden (ACID Verified)
-                          </span>
-                        </div>
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-left border-collapse text-[11px] font-mono">
-                            <thead className="bg-zinc-900/80 text-zinc-400 border-b border-zinc-800">
-                              <tr>
-                                <th className="py-1.5 px-2.5">Canonical ID</th>
-                                <th className="py-1.5 px-2.5">Company Name</th>
-                                <th className="py-1.5 px-2.5">
-                                  PLZ / District
-                                </th>
-                                <th className="py-1.5 px-2.5">Score</th>
-                                <th className="py-1.5 px-2.5">Tier</th>
-                                <th className="py-1.5 px-2.5">
-                                  Updated Timestamp
-                                </th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-zinc-850">
-                              {previewData.recent_records.map(
-                                (r: any, idx: number) => (
-                                  <tr
-                                    key={idx}
-                                    className="hover:bg-zinc-900/60"
-                                  >
-                                    <td className="py-1.5 px-2.5 text-emerald-400 font-bold whitespace-nowrap">
-                                      {r.canonical_id}
-                                    </td>
-                                    <td className="py-1.5 px-2.5 text-zinc-200 truncate max-w-[220px]">
-                                      {r.company_name}
-                                    </td>
-                                    <td className="py-1.5 px-2.5 text-zinc-400 whitespace-nowrap">
-                                      {r.postal_code} {r.district}
-                                    </td>
-                                    <td className="py-1.5 px-2.5 text-emerald-400 font-bold">
-                                      {r.lead_score || r.metrixa_lead_score}
-                                    </td>
-                                    <td className="py-1.5 px-2.5 text-zinc-300 whitespace-nowrap">
-                                      {r.lead_tier}
-                                    </td>
-                                    <td className="py-1.5 px-2.5 text-zinc-400 whitespace-nowrap">
-                                      {formatExactDateTime(r.updated_at)}
-                                    </td>
-                                  </tr>
-                                ),
-                              )}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    )}
-
-                  {previewData.recent_records &&
-                    previewData.recent_records.length > 0 && (
-                      <div className="rounded-xl border border-zinc-800 bg-zinc-950 overflow-hidden shrink-0">
-                        <div className="px-3 py-2 bg-[#141418] border-b border-zinc-800 flex items-center justify-between text-xs font-mono">
-                          <span className="font-bold text-zinc-200">
-                            Live SQLite Golden Records (Most Recent Writes)
-                          </span>
-                          <span className="text-[10px] text-emerald-400">
-                            companies_golden (ACID Verified)
-                          </span>
-                        </div>
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-left border-collapse text-[11px] font-mono">
-                            <thead className="bg-zinc-900/80 text-zinc-400 border-b border-zinc-800">
-                              <tr>
-                                <th className="py-1.5 px-2.5">Canonical ID</th>
-                                <th className="py-1.5 px-2.5">Company Name</th>
-                                <th className="py-1.5 px-2.5">
-                                  PLZ / District
-                                </th>
-                                <th className="py-1.5 px-2.5">Score</th>
-                                <th className="py-1.5 px-2.5">Tier</th>
-                                <th className="py-1.5 px-2.5">
-                                  Updated Timestamp
-                                </th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-zinc-850">
-                              {previewData.recent_records.map(
-                                (r: any, idx: number) => (
-                                  <tr
-                                    key={idx}
-                                    className="hover:bg-zinc-900/60"
-                                  >
-                                    <td className="py-1.5 px-2.5 text-emerald-400 font-bold whitespace-nowrap">
-                                      {r.canonical_id}
-                                    </td>
-                                    <td className="py-1.5 px-2.5 text-zinc-200 truncate max-w-[220px]">
-                                      {r.company_name}
-                                    </td>
-                                    <td className="py-1.5 px-2.5 text-zinc-400 whitespace-nowrap">
-                                      {r.postal_code} {r.district}
-                                    </td>
-                                    <td className="py-1.5 px-2.5 text-emerald-400 font-bold">
-                                      {r.lead_score || r.metrixa_lead_score}
-                                    </td>
-                                    <td className="py-1.5 px-2.5 text-zinc-300 whitespace-nowrap">
-                                      {r.lead_tier}
-                                    </td>
-                                    <td className="py-1.5 px-2.5 text-zinc-400 whitespace-nowrap">
-                                      {formatExactDateTime(r.updated_at)}
-                                    </td>
-                                  </tr>
-                                ),
-                              )}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    )}
-                </div>
-              )}
-            </div>
+            </>
           )}
         </div>
       </div>

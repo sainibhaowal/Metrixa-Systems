@@ -6,7 +6,6 @@ and SSE event delivery.
 
 from __future__ import annotations
 
-import asyncio
 import pytest
 from fastapi.testclient import TestClient
 
@@ -95,3 +94,20 @@ def test_pipeline_stage_export_execution(client: TestClient) -> None:
     data = resp.json()
     assert data["status"] == "started"
     assert data["stage"] == "export"
+
+    # Teardown test execution so test artifacts do not pollute clean workspace
+    client.post("/api/pipeline/cancel")
+    from metrixa_engine.api.server import db
+    from metrixa_engine.config import settings
+
+    with db.connect() as conn:
+        conn.execute(
+            "DELETE FROM pipeline_runs WHERE active_stage = 'EXPORT' OR active_stage = 'export'"
+        )
+        conn.commit()
+    for f in settings.export_dir.glob("*"):
+        if f.is_file() and not f.name.startswith("."):
+            try:
+                f.unlink()
+            except Exception:
+                pass

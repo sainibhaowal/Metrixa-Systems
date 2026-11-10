@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import csv
 import json
+import shutil
 import time
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
@@ -1739,6 +1740,19 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                 evaluator = PipelineEvaluator(db)
                 exp_res = exporter.export_all()
 
+                brief_src = Path("docs/Working Docs/07_TASK3_EXECUTIVE_PRESENTATION.md")
+                if brief_src.exists():
+                    shutil.copy2(
+                        brief_src,
+                        settings.export_dir / "metrixa_executive_presentation.md",
+                    )
+
+                pdf_src = Path("docs/Case Study/Case_Study_Metrixa_Systems.pdf")
+                if pdf_src.exists():
+                    shutil.copy2(
+                        pdf_src, settings.export_dir / "Case_Study_Metrixa_Systems.pdf"
+                    )
+
                 await _log(
                     "EXPORT",
                     "OpenpyxlDataPopulation",
@@ -2394,19 +2408,6 @@ _artifact_store: dict[str, dict[str, Any]] = {
         ],
         "download_url": "/api/artifacts/download/exec-brief",
     },
-    "db-snapshot": {
-        "id": "db-snapshot",
-        "name": "metrixa_leads.db",
-        "type": "db",
-        "title": "Production SQLite WAL Relational Database",
-        "desc": "Production SQLite WAL database containing all 6 normalized relational tables (raw_listings, companies_golden, kpi_extractions, decision_makers, crawled_pages, llm_audit_logs).",
-        "status": "active",
-        "retention_days": 30,
-        "trashed_at": None,
-        "archived_at": None,
-        "tags": ["SQLite WAL", "ACID Compliant", "Full Normalized Schema", "6 Tables"],
-        "download_url": "/api/artifacts/download/database",
-    },
     "pdf-casestudy": {
         "id": "pdf-casestudy",
         "name": "Case_Study_Metrixa_Systems.pdf",
@@ -2478,19 +2479,14 @@ def _resolve_artifact_path(art_id: str) -> Path | None:
         )
     elif art_id == "exec-brief":
         return settings.export_dir / "metrixa_executive_presentation.md"
-    elif art_id == "db-snapshot":
-        return settings.database_path
     elif art_id == "pdf-casestudy":
-        p = settings.export_dir / "Case_Study_Metrixa_Systems.pdf"
-        if p.exists():
-            return p
-        return Path("docs/Case Study/Case_Study_Metrixa_Systems.pdf")
+        return settings.export_dir / "Case_Study_Metrixa_Systems.pdf"
     return None
 
 
 @app.get("/api/artifacts/files")
 async def get_artifact_files():
-    """List all deliverables with real-time disk metadata, SHA-256 checksums, live DB counts, and timestamps."""
+    """List real deliverables present on disk or active cloud mirror. Empty if not generated."""
     with db.connect() as conn:
         golden_cnt = conn.execute(
             "SELECT COUNT(*) FROM companies_golden WHERE pipeline_stage != 'DISQUALIFIED'"
@@ -2503,62 +2499,49 @@ async def get_artifact_files():
 
     items = []
     for art_id, item in _artifact_store.items():
-        entry = dict(item)
+        if art_id == "google-sheets-live":
+            # Only list live Google Sheets mirror if qualified leads exist
+            if golden_cnt > 0:
+                entry = dict(item)
+                now_dt = datetime.now(UTC)
+                entry["size_bytes"] = 0
+                entry["size_formatted"] = "4 Cloud Tabs"
+                entry["updated_at"] = now_dt.isoformat()
+                entry["created_at"] = now_dt.isoformat()
+                entry["mtime_epoch"] = round(now_dt.timestamp(), 3)
+                entry["sha256_short"] = "live-cloud"
+                entry["records_count"] = golden_cnt
+                entry["desc"] = (
+                    f"Real-time Google Sheets API cloud mirror with 4 canonical tabs containing all {golden_cnt:,} "
+                    f"Berlin Hausverwaltungen leads, {dm_cnt:,} decision makers, and {pages_cnt:,} crawl evidence records."
+                )
+                entry["tags"] = [
+                    "Google Sheets API",
+                    "4 Cloud Tabs",
+                    f"{golden_cnt:,} Leads",
+                    "OAuth2 / Webhook",
+                ]
+                items.append(entry)
+            continue
+
         file_path = _resolve_artifact_path(art_id)
-
-        # Dynamic live descriptions & tags from SQLite
-        if art_id == "xlsx-master":
-            entry["desc"] = (
-                f"4-Tab formatted workbook containing all {golden_cnt:,} Berlin Hausverwaltungen "
-                f"ranked by Metrixa Lead Score (0 to 100), {dm_cnt:,} decision-makers, and {pages_cnt:,} crawled evidence logs."
+        # CRITICAL: Only include if the file physically exists in settings.export_dir!
+        if (
+            file_path
+            and file_path.exists()
+            and (
+                settings.export_dir in file_path.parents
+                or file_path.parent == settings.export_dir
             )
-            entry["tags"] = [
-                "Preferred Format",
-                "4 Sheets",
-                f"{golden_cnt:,} Leads",
-                "Salesforce Ready",
-            ]
-            entry["records_count"] = golden_cnt
-        elif art_id == "csv-master":
-            entry["desc"] = (
-                f"Standardized CSV with UTF-8 BOM encoding for seamless import into Salesforce, HubSpot, "
-                f"or Google Sheets. 31 columns, {golden_cnt:,} deduplicated Berlin records."
-            )
-            entry["tags"] = [
-                "UTF-8 BOM",
-                "Salesforce / HubSpot",
-                f"{golden_cnt:,} Leads",
-                "RFC-4180",
-            ]
-            entry["records_count"] = golden_cnt
-        elif art_id == "db-snapshot":
-            entry["records_count"] = golden_cnt
-        elif art_id == "google-sheets-live":
-            entry["desc"] = (
-                f"Real-time Google Sheets API cloud mirror with 4 canonical tabs containing all {golden_cnt:,} "
-                f"Berlin Hausverwaltungen leads, {dm_cnt:,} decision makers, and {pages_cnt:,} crawl evidence records."
-            )
-            entry["tags"] = [
-                "Google Sheets API",
-                "4 Cloud Tabs",
-                f"{golden_cnt:,} Leads",
-                "OAuth2 / Webhook",
-            ]
-            entry["records_count"] = golden_cnt
-
-        if file_path and file_path.exists():
+        ):
             stat = file_path.stat()
+            # Do not list empty stub files if database has 0 leads
+            if stat.st_size == 0 and golden_cnt == 0:
+                continue
+
+            entry = dict(item)
             total_bytes = stat.st_size
             latest_mtime = stat.st_mtime
-
-            # Include WAL file size & modification time for SQLite DB
-            if art_id == "db-snapshot":
-                wal_path = Path(f"{file_path}-wal")
-                if wal_path.exists():
-                    wal_stat = wal_path.stat()
-                    total_bytes += wal_stat.st_size
-                    latest_mtime = max(latest_mtime, wal_stat.st_mtime)
-
             size_kb = round(total_bytes / 1024, 1)
             entry["size_bytes"] = total_bytes
             entry["size_formatted"] = (
@@ -2574,24 +2557,32 @@ async def get_artifact_files():
             entry["sha256_short"] = _compute_sha256_short(
                 file_path, stat.st_mtime, stat.st_size
             )
-        elif art_id == "google-sheets-live":
-            now_dt = datetime.now(UTC)
-            entry["size_bytes"] = 0
-            entry["size_formatted"] = "4 Cloud Tabs"
-            entry["updated_at"] = now_dt.isoformat()
-            entry["created_at"] = now_dt.isoformat()
-            entry["mtime_epoch"] = round(now_dt.timestamp(), 3)
-            entry["sha256_short"] = "live-cloud"
-        else:
-            now_dt = datetime.now(UTC)
-            entry["size_bytes"] = 0
-            entry["size_formatted"] = "Ready to generate"
-            entry["updated_at"] = now_dt.isoformat()
-            entry["created_at"] = now_dt.isoformat()
-            entry["mtime_epoch"] = round(now_dt.timestamp(), 3)
-            entry["sha256_short"] = "pending"
+            entry["records_count"] = golden_cnt
 
-        items.append(entry)
+            if art_id == "xlsx-master":
+                entry["desc"] = (
+                    f"4-Tab formatted workbook containing all {golden_cnt:,} Berlin Hausverwaltungen "
+                    f"ranked by Metrixa Lead Score (0 to 100), {dm_cnt:,} decision-makers, and {pages_cnt:,} crawled evidence logs."
+                )
+                entry["tags"] = [
+                    "Preferred Format",
+                    "4 Sheets",
+                    f"{golden_cnt:,} Leads",
+                    "Salesforce Ready",
+                ]
+            elif art_id == "csv-master":
+                entry["desc"] = (
+                    f"Standardized CSV with UTF-8 BOM encoding for seamless import into Salesforce, HubSpot, "
+                    f"or Google Sheets. 31 columns, {golden_cnt:,} deduplicated Berlin records."
+                )
+                entry["tags"] = [
+                    "UTF-8 BOM",
+                    "Salesforce / HubSpot",
+                    f"{golden_cnt:,} Leads",
+                    "RFC-4180",
+                ]
+
+            items.append(entry)
 
     active_cnt = sum(1 for i in items if i["status"] == "active")
     archived_cnt = sum(1 for i in items if i["status"] == "archived")
@@ -2613,13 +2604,18 @@ async def get_artifact_files():
 
 @app.post("/api/artifacts/sync")
 async def sync_artifacts_from_db():
-    """Regenerate Excel, CSV, Google Sheets, and Markdown deliverables directly from live SQLite DB."""
-    ExcelExporter(db).export_all()
-    PipelineEvaluator(db).generate_markdown_report()
-    try:
-        GoogleSheetsSync(db).sync_to_google_sheet()
-    except Exception:
-        pass
+    """Regenerate deliverables directly from live SQLite DB only if leads exist."""
+    with db.connect() as conn:
+        cnt = conn.execute(
+            "SELECT COUNT(*) FROM companies_golden WHERE pipeline_stage != 'DISQUALIFIED'"
+        ).fetchone()[0]
+    if cnt > 0:
+        ExcelExporter(db).export_all()
+        PipelineEvaluator(db).generate_markdown_report()
+        try:
+            GoogleSheetsSync(db).sync_to_google_sheet()
+        except Exception:
+            pass
     _preview_cache.clear()
     _sha256_cache.clear()
     return await get_artifact_files()
@@ -2633,12 +2629,22 @@ async def get_artifact_preview(artifact_id: str):
         file_path.stat().st_mtime if (file_path and file_path.exists()) else 0.0
     )
 
-    if artifact_id != "db-snapshot" and artifact_id in _preview_cache:
+    if artifact_id in _preview_cache:
         cached_mtime, cached_res = _preview_cache[artifact_id]
         if cached_mtime == current_mtime and current_mtime > 0:
             return cached_res
 
     if artifact_id == "google-sheets-live":
+        with db.connect() as conn:
+            g_cnt = conn.execute(
+                "SELECT COUNT(*) FROM companies_golden WHERE pipeline_stage != 'DISQUALIFIED'"
+            ).fetchone()[0]
+        if g_cnt == 0:
+            raise HTTPException(
+                status_code=404,
+                detail="Google Sheets mirror not generated yet. Please run the pipeline first.",
+            )
+
         sync_engine = GoogleSheetsSync(db)
         tabs = sync_engine.extract_all_tabs_data()
         sheets_data: dict[str, Any] = {}
@@ -2672,7 +2678,10 @@ async def get_artifact_preview(artifact_id: str):
     if artifact_id == "xlsx-master":
         xlsx_path = settings.export_dir / "metrixa_berlin_hausverwaltungen.xlsx"
         if not xlsx_path.exists():
-            ExcelExporter(db).export_all()
+            raise HTTPException(
+                status_code=404,
+                detail="Excel deliverable not generated yet. Please run Stage 06 (Export) from Mission Control.",
+            )
         stat = xlsx_path.stat()
 
         wb = openpyxl.load_workbook(str(xlsx_path), data_only=True)
@@ -2712,7 +2721,10 @@ async def get_artifact_preview(artifact_id: str):
     elif artifact_id == "csv-master":
         csv_path = settings.export_dir / "metrixa_berlin_leads_master.csv"
         if not csv_path.exists():
-            ExcelExporter(db).export_all()
+            raise HTTPException(
+                status_code=404,
+                detail="CSV deliverable not generated yet. Please run Stage 06 (Export) from Mission Control.",
+            )
         stat = csv_path.stat()
 
         with open(csv_path, "r", encoding="utf-8-sig") as f:
@@ -2744,24 +2756,21 @@ async def get_artifact_preview(artifact_id: str):
             if not path.exists():
                 path = settings.export_dir / "evaluation_ablation_report.md"
             if not path.exists():
-                PipelineEvaluator(db).generate_markdown_report()
+                raise HTTPException(
+                    status_code=404,
+                    detail="Evaluation report not generated yet. Please run Stage 06 (Export) from Mission Control.",
+                )
             text = path.read_text(encoding="utf-8")
             name = "metrixa_evaluation_ablation_report.md"
             title = "Task 3 Quantitative Evaluation & Ablation Report"
         else:
             path = settings.export_dir / "metrixa_executive_presentation.md"
             if not path.exists():
-                brief_path = Path(
-                    "docs/Working Docs/07_TASK3_EXECUTIVE_PRESENTATION.md"
+                raise HTTPException(
+                    status_code=404,
+                    detail="Executive presentation not generated yet. Please run Stage 06 (Export) from Mission Control.",
                 )
-                text = (
-                    brief_path.read_text(encoding="utf-8")
-                    if brief_path.exists()
-                    else "# Metrixa Systems Executive Presentation\n\nSubmetering Intelligence Suite."
-                )
-                path.write_text(text, encoding="utf-8")
-            else:
-                text = path.read_text(encoding="utf-8")
+            text = path.read_text(encoding="utf-8")
             name = "metrixa_executive_presentation.md"
             title = "Executive Presentation & Submetering TAM Brief"
 
@@ -2780,75 +2789,20 @@ async def get_artifact_preview(artifact_id: str):
         _preview_cache[artifact_id] = (stat.st_mtime, res)
         return res
 
-    elif artifact_id == "db-snapshot":
-        db_stat = settings.database_path.stat()
-        with db.connect() as conn:
-            tbl_rows = conn.execute(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name ASC"
-            ).fetchall()
-            tables = []
-            total_db_rows = 0
-            for tr in tbl_rows:
-                tname = tr["name"]
-                cnt = conn.execute(f"SELECT COUNT(*) FROM {tname}").fetchone()[0]
-                total_db_rows += cnt
-                cols = [
-                    dict(c)
-                    for c in conn.execute(f"PRAGMA table_info({tname})").fetchall()
-                ]
-                tables.append(
-                    {"name": tname, "count": cnt, "columns": [c["name"] for c in cols]}
-                )
-
-            recent_rows = conn.execute(
-                """
-                SELECT company_id as canonical_id,
-                       display_name as company_name, postal_code, district,
-                       metrixa_lead_score as lead_score, lead_tier, updated_at
-                FROM companies_golden
-                WHERE pipeline_stage != 'DISQUALIFIED'
-                ORDER BY updated_at DESC, metrixa_lead_score DESC
-                LIMIT 8
-                """
-            ).fetchall()
-            recent_records = [dict(r) for r in recent_rows]
-            latest_write = conn.execute(
-                "SELECT MAX(updated_at) FROM companies_golden"
-            ).fetchone()[0]
-
-        res = {
-            "id": artifact_id,
-            "type": "db",
-            "name": "metrixa_leads.db",
-            "tables": tables,
-            "total_db_rows": total_db_rows,
-            "recent_records": recent_records,
-            "latest_write_at": latest_write,
-            "journal_mode": "WAL",
-            "synchronous": "NORMAL",
-            "updated_at": datetime.fromtimestamp(db_stat.st_mtime, tz=UTC).isoformat(),
-            "size_bytes": db_stat.st_size,
-            "sha256_short": _compute_sha256_short(
-                settings.database_path, db_stat.st_mtime, db_stat.st_size
-            ),
-        }
-        return res
-
     elif artifact_id == "pdf-casestudy":
-        md_path = Path("docs/Case Study/Case Study.md")
-        pdf_path = Path("docs/Case Study/Case_Study_Metrixa_Systems.pdf")
+        pdf_path = settings.export_dir / "Case_Study_Metrixa_Systems.pdf"
+        if not pdf_path.exists():
+            raise HTTPException(
+                status_code=404,
+                detail="Case study PDF not generated yet. Please run Stage 06 (Export) from Mission Control.",
+            )
+        stat = pdf_path.stat()
+        md_source = Path("docs/Case Study/Case Study.md")
         text = (
-            md_path.read_text(encoding="utf-8")
-            if md_path.exists()
+            md_source.read_text(encoding="utf-8")
+            if md_source.exists()
             else "# Metrixa Systems Case Study\n\nAutonomous B2B Lead Intelligence Enterprise Whitepaper."
         )
-        stat = (
-            pdf_path.stat()
-            if pdf_path.exists()
-            else (md_path.stat() if md_path.exists() else None)
-        )
-        mtime = stat.st_mtime if stat else time.time()
-        size = stat.st_size if stat else len(text.encode("utf-8"))
         res = {
             "id": artifact_id,
             "type": "pdf",
@@ -2856,17 +2810,13 @@ async def get_artifact_preview(artifact_id: str):
             "title": "Autonomous B2B Lead Intelligence Enterprise Whitepaper (PDF)",
             "content": text,
             "lines_count": len(text.splitlines()),
-            "updated_at": datetime.fromtimestamp(mtime, tz=UTC).isoformat(),
-            "size_bytes": size,
-            "sha256_short": (
-                _compute_sha256_short(
-                    pdf_path if pdf_path.exists() else md_path, mtime, size
-                )
-                if stat
-                else "pending"
+            "updated_at": datetime.fromtimestamp(stat.st_mtime, tz=UTC).isoformat(),
+            "size_bytes": stat.st_size,
+            "sha256_short": _compute_sha256_short(
+                pdf_path, stat.st_mtime, stat.st_size
             ),
         }
-        _preview_cache[artifact_id] = (mtime, res)
+        _preview_cache[artifact_id] = (stat.st_mtime, res)
         return res
 
     raise HTTPException(status_code=404, detail="Artifact preview not found")
@@ -2928,6 +2878,11 @@ async def download_artifact_by_id(artifact_id: str):
         path = settings.export_dir / "metrixa_evaluation_ablation_report.md"
         if not path.exists():
             path = settings.export_dir / "evaluation_ablation_report.md"
+        if not path.exists():
+            raise HTTPException(
+                status_code=404,
+                detail="Evaluation report not generated yet. Please run Stage 06 (Export) from Mission Control.",
+            )
         return FileResponse(
             path=path,
             filename="metrixa_evaluation_ablation_report.md",
@@ -2935,6 +2890,11 @@ async def download_artifact_by_id(artifact_id: str):
         )
     elif artifact_id in ("exec-brief", "presentation"):
         path = settings.export_dir / "metrixa_executive_presentation.md"
+        if not path.exists():
+            raise HTTPException(
+                status_code=404,
+                detail="Executive presentation not generated yet. Please run Stage 06 (Export) from Mission Control.",
+            )
         return FileResponse(
             path=path,
             filename="metrixa_executive_presentation.md",
@@ -2949,13 +2909,25 @@ async def download_artifact_by_id(artifact_id: str):
     elif artifact_id in ("pdf-casestudy", "casestudy", "pdf"):
         path = settings.export_dir / "Case_Study_Metrixa_Systems.pdf"
         if not path.exists():
-            path = Path("docs/Case Study/Case_Study_Metrixa_Systems.pdf")
+            raise HTTPException(
+                status_code=404,
+                detail="Case study PDF not generated yet. Please run Stage 06 (Export) from Mission Control.",
+            )
         return FileResponse(
             path=path,
             filename="Case_Study_Metrixa_Systems.pdf",
             media_type="application/pdf",
         )
     elif artifact_id in ("google-sheets-live", "sheet", "google-sheets"):
+        with db.connect() as conn:
+            g_cnt = conn.execute(
+                "SELECT COUNT(*) FROM companies_golden WHERE pipeline_stage != 'DISQUALIFIED'"
+            ).fetchone()[0]
+        if g_cnt == 0:
+            raise HTTPException(
+                status_code=404,
+                detail="Google Sheets mirror not generated yet. Please run the pipeline first.",
+            )
         sheet_id_val = settings.google_sheet_id or "metrixa-master-leads"
         return {
             "url": f"https://docs.google.com/spreadsheets/d/{sheet_id_val}",
@@ -2970,7 +2942,10 @@ async def download_excel():
     """Download styled 4-Tab Master Excel (.xlsx) file."""
     path = settings.export_dir / "metrixa_berlin_hausverwaltungen.xlsx"
     if not path.exists():
-        ExcelExporter(db).export_all()
+        raise HTTPException(
+            status_code=404,
+            detail="Excel deliverable not generated yet. Please run Stage 06 (Export) from Mission Control.",
+        )
     return FileResponse(
         path=path,
         filename="metrixa_berlin_hausverwaltungen.xlsx",
@@ -2983,7 +2958,10 @@ async def download_csv():
     """Download Master CSV file."""
     path = settings.export_dir / "metrixa_berlin_leads_master.csv"
     if not path.exists():
-        ExcelExporter(db).export_all()
+        raise HTTPException(
+            status_code=404,
+            detail="CSV deliverable not generated yet. Please run Stage 06 (Export) from Mission Control.",
+        )
     return FileResponse(
         path=path,
         filename="metrixa_berlin_leads_master.csv",
@@ -2998,7 +2976,10 @@ async def get_evaluation_report():
     if not path.exists():
         path = settings.export_dir / "evaluation_ablation_report.md"
     if not path.exists():
-        PipelineEvaluator(db).generate_markdown_report()
+        raise HTTPException(
+            status_code=404,
+            detail="Evaluation report not generated yet. Please run Stage 06 (Export) from Mission Control.",
+        )
     return path.read_text(encoding="utf-8")
 
 
@@ -3017,6 +2998,19 @@ async def get_deliverables_status():
 @app.post("/api/deliverables/sync-all")
 async def sync_all_deliverables_endpoint():
     """Synchronize all deliverables across Excel, CSV, and Google Sheets."""
+    with db.connect() as conn:
+        cnt = conn.execute(
+            "SELECT COUNT(*) FROM companies_golden WHERE pipeline_stage != 'DISQUALIFIED'"
+        ).fetchone()[0]
+    if cnt == 0:
+        return {
+            "success": True,
+            "duration_ms": 0,
+            "excel": None,
+            "google_sheets": None,
+            "live_status": {},
+            "message": "No qualified leads in database. Run pipeline to generate deliverables.",
+        }
     sync_engine = GoogleSheetsSync(db)
     res = sync_engine.sync_all_deliverables()
     _preview_cache.clear()
