@@ -7,6 +7,7 @@ detects DOM PropTech/ERP & Metering signatures, and extracts clean Markdown text
 from __future__ import annotations
 
 import asyncio
+from concurrent.futures import ProcessPoolExecutor
 import ipaddress
 import random
 import re
@@ -22,6 +23,22 @@ from metrixa_engine.config import settings
 from metrixa_engine.crawler.tech_detector import scan_html_for_tech_and_contacts
 from metrixa_engine.db import Database
 from metrixa_engine.scrapers.base import USER_AGENTS
+
+MAX_CRAWL_HTML_BYTES = 512 * 1024
+TRAFILATURA_MAX_HTML_CHARS = 32_768
+DNS_RESOLUTION_TIMEOUT_SECONDS = 3.0
+MAX_PARALLEL_HTML_PARSERS = 2
+_HTML_PARSE_PROCESS_POOL: ProcessPoolExecutor | None = None
+
+
+def _get_html_parse_process_pool() -> ProcessPoolExecutor:
+    global _HTML_PARSE_PROCESS_POOL
+    if _HTML_PARSE_PROCESS_POOL is None:
+        _HTML_PARSE_PROCESS_POOL = ProcessPoolExecutor(
+            max_workers=MAX_PARALLEL_HTML_PARSERS
+        )
+    return _HTML_PARSE_PROCESS_POOL
+
 
 SUBPAGE_PRIORITY_RULES: List[Tuple[str, List[str]]] = [
     (
@@ -90,6 +107,9 @@ class AsyncWebsiteCrawler:
         self.db = db
         self.concurrency = concurrency or settings.max_concurrent_crawls
         self.semaphore = asyncio.Semaphore(self.concurrency)
+        self.parse_semaphore = asyncio.Semaphore(
+            min(self.concurrency, MAX_PARALLEL_HTML_PARSERS)
+        )
 
     @staticmethod
     async def _is_safe_url(url: str) -> bool:
@@ -111,8 +131,11 @@ class AsyncWebsiteCrawler:
                 addresses = {ipaddress.ip_address(host)}
             except ValueError:
                 port = parsed.port or (443 if parsed.scheme.lower() == "https" else 80)
-                results = await asyncio.get_running_loop().getaddrinfo(
-                    host, port, type=socket.SOCK_STREAM
+                results = await asyncio.wait_for(
+                    asyncio.get_running_loop().getaddrinfo(
+                        host, port, type=socket.SOCK_STREAM
+                    ),
+                    timeout=DNS_RESOLUTION_TIMEOUT_SECONDS,
                 )
                 addresses = {ipaddress.ip_address(result[4][0]) for result in results}
             return bool(addresses) and all(address.is_global for address in addresses)
@@ -130,17 +153,19 @@ class AsyncWebsiteCrawler:
             return ""
 
         traf_md = ""
-        try:
-            extracted = trafilatura.extract(
-                raw_html,
-                include_links=False,
-                include_tables=True,
-                no_fallback=False,
-            )
-            if extracted:
-                traf_md = extracted.strip()
-        except Exception:
-            pass
+        if len(raw_html) <= TRAFILATURA_MAX_HTML_CHARS:
+            try:
+                extracted = trafilatura.extract(
+                    raw_html,
+                    include_links=False,
+                    include_tables=True,
+                    no_fallback=False,
+                    fast=True,
+                )
+                if extracted:
+                    traf_md = extracted.strip()
+            except Exception:
+                pass
 
         # Always extract clean visible DOM text for impressum/team or when trafilatura is short
         if page_type in ("impressum", "team") or len(traf_md) < 400:
@@ -227,6 +252,43 @@ class AsyncWebsiteCrawler:
 
         return selected[:max_subpages]
 
+    @staticmethod
+    def _parse_html_page(
+        raw_html: str,
+        page_type: str,
+        base_url: str,
+        max_subpages: int,
+    ) -> Tuple[Dict[str, Any], str, List[Tuple[str, str]]]:
+        """Run CPU-heavy HTML, DOM, and text extraction outside the API event loop."""
+        tech = scan_html_for_tech_and_contacts(raw_html)
+        clean_markdown = AsyncWebsiteCrawler.html_to_clean_markdown(raw_html, page_type)
+        subpages = (
+            AsyncWebsiteCrawler.discover_priority_subpages(
+                raw_html, base_url, max_subpages
+            )
+            if base_url
+            else []
+        )
+        return tech, clean_markdown, subpages
+
+    async def _parse_html_page_off_loop(
+        self,
+        raw_html: str,
+        page_type: str,
+        base_url: str = "",
+        max_subpages: int = 0,
+    ) -> Tuple[Dict[str, Any], str, List[Tuple[str, str]]]:
+        async with self.parse_semaphore:
+            loop = asyncio.get_running_loop()
+            return await loop.run_in_executor(
+                _get_html_parse_process_pool(),
+                _parse_html_page_in_process,
+                raw_html,
+                page_type,
+                base_url,
+                max_subpages,
+            )
+
     async def _fetch_page(
         self, client: httpx.AsyncClient, url: str
     ) -> Tuple[int, str, str]:
@@ -260,6 +322,8 @@ class AsyncWebsiteCrawler:
                     or "application/xhtml" in content_type
                     or not content_type
                 ):
+                    if len(resp.content) > MAX_CRAWL_HTML_BYTES:
+                        return 413, str(resp.url), ""
                     return resp.status_code, str(resp.url), resp.text
                 return resp.status_code, str(resp.url), ""
             return 0, current_url, ""
@@ -277,8 +341,12 @@ class AsyncWebsiteCrawler:
             pages_to_save: List[Dict[str, Any]] = []
 
             if status == 200 and home_html:
-                tech = scan_html_for_tech_and_contacts(home_html)
-                clean_md = self.html_to_clean_markdown(home_html, "homepage")
+                tech, clean_md, subpages = await self._parse_html_page_off_loop(
+                    home_html,
+                    "homepage",
+                    final_home_url,
+                    settings.max_subpages_per_company,
+                )
                 pages_to_save.append(
                     {
                         "company_id": company_id,
@@ -295,18 +363,14 @@ class AsyncWebsiteCrawler:
                     }
                 )
 
-                subpages = self.discover_priority_subpages(
-                    home_html,
-                    final_home_url,
-                    max_subpages=settings.max_subpages_per_company,
-                )
                 for page_type, sub_url in subpages:
                     s_code, s_final_url, s_html = await self._fetch_page(
                         client, sub_url
                     )
                     if s_code == 200 and s_html:
-                        s_tech = scan_html_for_tech_and_contacts(s_html)
-                        s_md = self.html_to_clean_markdown(s_html, page_type)
+                        s_tech, s_md, _ = await self._parse_html_page_off_loop(
+                            s_html, page_type
+                        )
                         pages_to_save.append(
                             {
                                 "company_id": company_id,
@@ -344,11 +408,38 @@ class AsyncWebsiteCrawler:
                     }
                 )
 
-            with self.db.connect() as conn:
-                conn.execute(
-                    "DELETE FROM crawled_pages WHERE company_id = ?", (company_id,)
+            refreshed_with_evidence = status == 200 and any(
+                p["http_status"] == 200
+                and (
+                    (p["clean_markdown"] or "").strip()
+                    or p["detected_erp_csv"]
+                    or p["detected_metering_csv"]
+                    or p["has_portal_link"]
+                    or p["social_linkedin_csv"]
+                    or p["extracted_emails_csv"]
                 )
-                for p in pages_to_save:
+                for p in pages_to_save
+            )
+
+            with self.db.connect() as conn:
+                old_good_pages = conn.execute(
+                    """
+                    SELECT COUNT(*) FROM crawled_pages
+                    WHERE company_id = ? AND http_status = 200
+                      AND length(trim(coalesce(clean_markdown, ''))) > 0
+                    """,
+                    (company_id,),
+                ).fetchone()[0]
+                # A failed or empty refresh must not erase previously retrieved evidence.
+                if refreshed_with_evidence or not old_good_pages:
+                    conn.execute(
+                        "DELETE FROM crawled_pages WHERE company_id = ?", (company_id,)
+                    )
+                for p in (
+                    pages_to_save
+                    if (refreshed_with_evidence or not old_good_pages)
+                    else []
+                ):
                     conn.execute(
                         """
                         INSERT INTO crawled_pages (
@@ -371,31 +462,48 @@ class AsyncWebsiteCrawler:
                             p["crawled_at"],
                         ),
                     )
-                conn.execute(
-                    "UPDATE companies_golden SET pipeline_stage = 'CRAWLED', updated_at = ? WHERE company_id = ?",
-                    (now_iso, company_id),
-                )
+                if refreshed_with_evidence or not old_good_pages:
+                    conn.execute(
+                        "UPDATE companies_golden SET pipeline_stage = 'CRAWLED', updated_at = ? WHERE company_id = ?",
+                        (now_iso, company_id),
+                    )
 
             return {
                 "company_id": company_id,
-                "pages_crawled": len(
-                    [p for p in pages_to_save if p["http_status"] == 200]
+                "pages_crawled": (
+                    len([p for p in pages_to_save if p["http_status"] == 200])
+                    if refreshed_with_evidence
+                    else 0
                 ),
                 "reachable": status == 200,
+                "evidence_refreshed": refreshed_with_evidence,
+                "previous_evidence_preserved": bool(
+                    old_good_pages and not refreshed_with_evidence
+                ),
             }
 
     async def crawl_batch(
         self,
         limit: Optional[int] = None,
         progress_callback: Optional[Callable[[int, int], None]] = None,
+        reprocess_all: bool = False,
     ) -> Dict[str, int]:
         with self.db.connect() as conn:
-            query = """
-                SELECT company_id, website_url
-                FROM companies_golden
-                WHERE pipeline_stage = 'DEDUPED'
-                ORDER BY is_vdiv_member DESC, source_count DESC, company_id ASC
-            """
+            if reprocess_all:
+                query = """
+                    SELECT company_id, website_url
+                    FROM companies_golden
+                    WHERE pipeline_stage != 'DISQUALIFIED'
+                      AND website_url IS NOT NULL AND trim(website_url) != ''
+                    ORDER BY is_vdiv_member DESC, source_count DESC, company_id ASC
+                """
+            else:
+                query = """
+                    SELECT company_id, website_url
+                    FROM companies_golden
+                    WHERE pipeline_stage = 'DEDUPED'
+                    ORDER BY is_vdiv_member DESC, source_count DESC, company_id ASC
+                """
             if limit:
                 query += f" LIMIT {int(limit)}"
             rows = conn.execute(query).fetchall()
@@ -406,10 +514,12 @@ class AsyncWebsiteCrawler:
                 "companies_processed": 0,
                 "reachable_websites": 0,
                 "total_pages_saved": 0,
+                "previous_evidence_preserved": 0,
             }
 
         reachable = 0
         pages_saved = 0
+        preserved = 0
         completed = 0
 
         async with httpx.AsyncClient(http2=True, trust_env=False) as client:
@@ -438,6 +548,8 @@ class AsyncWebsiteCrawler:
                 if res["reachable"]:
                     reachable += 1
                 pages_saved += res["pages_crawled"]
+                if res.get("previous_evidence_preserved"):
+                    preserved += 1
                 if progress_callback:
                     progress_callback(completed, total)
 
@@ -445,4 +557,17 @@ class AsyncWebsiteCrawler:
             "companies_processed": total,
             "reachable_websites": reachable,
             "total_pages_saved": pages_saved,
+            "previous_evidence_preserved": preserved,
         }
+
+
+def _parse_html_page_in_process(
+    raw_html: str,
+    page_type: str,
+    base_url: str,
+    max_subpages: int,
+) -> Tuple[Dict[str, Any], str, List[Tuple[str, str]]]:
+    """Picklable process-pool entry point for CPU-heavy HTML parsing."""
+    return AsyncWebsiteCrawler._parse_html_page(
+        raw_html, page_type, base_url, max_subpages
+    )

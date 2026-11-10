@@ -39,7 +39,7 @@ class ContactEnricher:
         if director_name:
             query = f'site:linkedin.com "{director_name}" "{company_name}" Berlin'
         else:
-            query = f'"{company_name}" Berlin "Geschäftsführer" OR site:linkedin.com'
+            query = f'"{company_name}" Berlin Gesch\u00e4ftsf\u00fchrer'
 
         results = await search_router.search(
             query, max_results=5, allow_tavily_fallback=True
@@ -47,15 +47,47 @@ class ContactEnricher:
         pers_li = None
         comp_li = None
         disc_director = None
+        company_tokens = [
+            token
+            for token in re.findall(r"[a-z0-9]+", company_name.casefold())
+            if len(token) >= 4
+            and token
+            not in {
+                "hausverwaltung",
+                "verwaltung",
+                "immobilien",
+                "berlin",
+                "gmbh",
+                "gesellschaft",
+                "aktiengesellschaft",
+                "co",
+                "kg",
+            }
+        ]
 
         for item in results:
             u_low = item.url.lower()
-            if "linkedin.com/in/" in u_low and not pers_li:
+            result_text = f"{item.title} {item.snippet}".casefold()
+            company_slug = u_low.split("linkedin.com/company/", 1)[-1].split("/", 1)[0]
+            company_match = bool(company_tokens) and all(
+                token in result_text or token in company_slug
+                for token in company_tokens
+            )
+            if (
+                "linkedin.com/in/" in u_low
+                and director_name
+                and not pers_li
+                and all(
+                    token in result_text
+                    for token in re.findall(r"[a-z0-9]+", director_name.casefold())
+                    if len(token) >= 2
+                )
+            ):
                 pers_li = item.url.split("?")[0]
-            elif "linkedin.com/company/" in u_low and not comp_li:
+            if "linkedin.com/company/" in u_low and company_match and not comp_li:
                 comp_li = item.url.split("?")[0]
 
-            if not director_name and not disc_director:
+            if not director_name and company_match and not disc_director:
                 m = re.search(
                     r"(?:Gesch[aä]ftsf[uü]hrer(?:in)?|Inhaber(?:in)?)\s*[:\--]?\s*([A-ZÄÖÜ][a-zäöüß\-]+\s+[A-ZÄÖÜ][a-zäöüß\-]+)",
                     item.snippet + " " + item.title,
@@ -83,7 +115,20 @@ class ContactEnricher:
                 dms = [
                     dict(r)
                     for r in conn.execute(
-                        "SELECT * FROM decision_makers WHERE company_id = ? ORDER BY is_primary_contact DESC, contact_id ASC",
+                        """
+                        SELECT d.*,
+                            EXISTS (
+                                SELECT 1 FROM crawled_pages p
+                                WHERE p.company_id = d.company_id AND p.http_status = 200
+                                  AND instr(
+                                      lower(coalesce(p.clean_markdown, '') || ' ' || coalesce(p.extracted_emails_csv, '')),
+                                      lower(coalesce(d.personal_email, ''))
+                                  ) > 0
+                            ) AS email_present_in_source
+                        FROM decision_makers d
+                        WHERE d.company_id = ?
+                        ORDER BY d.is_primary_contact DESC, d.contact_id ASC
+                        """,
                         (comp_id,),
                     ).fetchall()
                 ]
@@ -104,27 +149,8 @@ class ContactEnricher:
                     comp_li = s_comp_li
                 if s_pers_li and not pers_li_found:
                     pers_li_found = s_pers_li
-                if not dms and s_dir_name:
-                    parts = s_dir_name.split()
-                    dms.append(
-                        {
-                            "contact_id": None,
-                            "company_id": comp_id,
-                            "full_name": s_dir_name,
-                            "first_name": parts[0],
-                            "last_name": parts[-1],
-                            "role": "Geschäftsführer",
-                            "personal_email": None,
-                            "email_status": "NONE",
-                            "mx_valid": 1 if mx_valid else 0,
-                            "mx_host": mx_host,
-                            "direct_phone": company_row["phone_e164"],
-                            "linkedin_url": pers_li_found,
-                            "source_url": "search_enrichment",
-                            "evidence_quote": f"Search verified: {s_dir_name} ({comp_name})",
-                            "is_primary_contact": 1,
-                        }
-                    )
+                # Search snippets are discovery hints, not primary-source evidence.
+                # Do not create a decision-maker record from a snippet alone.
 
             # 3. Verify or infer personal emails for each Decision Maker
             has_public_email = False
@@ -141,6 +167,7 @@ class ContactEnricher:
                         p_email
                         and email_verifier.is_personal_email(p_email)
                         and e_status in ("PUBLIC_DIRECT_VERIFIED", "PUBLIC_LISTED")
+                        and dm["email_present_in_source"]
                     ):
                         e_status = "PUBLIC_LISTED"
                         has_public_email = True
@@ -178,33 +205,6 @@ class ContactEnricher:
                                 dm["contact_id"],
                             ),
                         )
-                    else:
-                        conn.execute(
-                            """
-                            INSERT INTO decision_makers (
-                                company_id, full_name, first_name, last_name, role,
-                                personal_email, email_status, mx_valid, mx_host,
-                                direct_phone, linkedin_url, source_url, evidence_quote, is_primary_contact
-                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                            """,
-                            (
-                                comp_id,
-                                dm["full_name"],
-                                dm["first_name"],
-                                dm["last_name"],
-                                dm["role"],
-                                p_email,
-                                e_status,
-                                1 if mx_valid else 0,
-                                mx_host,
-                                dm["direct_phone"],
-                                li_url,
-                                dm["source_url"],
-                                dm["evidence_quote"],
-                                dm["is_primary_contact"],
-                            ),
-                        )
-
                 conn.execute(
                     """
                     UPDATE companies_golden

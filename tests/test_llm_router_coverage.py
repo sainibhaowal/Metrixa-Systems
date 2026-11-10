@@ -106,6 +106,8 @@ async def _false():
 
 def test_person_name_cleaning_and_deterministic_default_assumptions():
     assert clean_extracted_person_name("") is None
+    assert clean_extracted_person_name("Unsere Werte") is None
+    assert clean_extracted_person_name("Ihre Immobilie") is None
     assert (
         clean_extracted_person_name("Herr Max Mustermann, Tel: 030123")
         == "Max Mustermann"
@@ -120,6 +122,21 @@ def test_person_name_cleaning_and_deterministic_default_assumptions():
         is None
     )
     assert clean_extracted_person_name("Max") is None
+    grounded = extract_deterministic_german_kpis(
+        "Beispiel GmbH",
+        "Geschäftsführer Unsere Werte. Geschäftsführer Max Mustermann. Wir verwalten 2.000 Einheiten.",
+        [],
+        [],
+        False,
+        [],
+        [],
+    )
+    assert grounded.exact_units_managed == 2000
+    assert [person.full_name for person in grounded.decision_makers] == [
+        "Max Mustermann"
+    ]
+    assert "source-listed decision maker" in grounded.qualification_reasoning
+    assert "verified decision maker" not in grounded.qualification_reasoning
     result = extract_deterministic_german_kpis(
         company_name="Berliner Verwaltung GmbH",
         combined_text="Berliner Verwaltung GmbH",
@@ -129,8 +146,8 @@ def test_person_name_cleaning_and_deterministic_default_assumptions():
         dom_emails=[],
         dom_linkedin_urls=[],
     )
-    assert result.manages_weg and result.manages_miet
-    assert "Qualified Berlin Hausverwaltung" in result.qualification_reasoning
+    assert not result.manages_weg and not result.manages_miet
+    assert "Active Berlin property management company" in result.qualification_reasoning
     no_reason = extract_deterministic_german_kpis(
         "Gewerbeverwaltung GmbH", "Gewerbeverwaltung", [], [], False, [], []
     )
@@ -144,6 +161,47 @@ def test_person_name_cleaning_and_deterministic_default_assumptions():
         ).is_actual_hausverwaltung
         is True
     )
+
+
+def test_team_page_roles_belong_to_the_preceding_person():
+    text = (
+        "Martin Thurnbacher\nInhaber und Geschäftsführer\n"
+        "Michael Wolf\nProkurist\nAnnika Hauß-Thurnbacher\nProkuristin\n"
+        "Jacqueline Spitzner\n\u00adAssistentin der Geschäftsführung\n"
+        "Juliane Seifert\nLeiterin Buchhaltung"
+    )
+    result = extract_deterministic_german_kpis(
+        "Firma GmbH", text, [], [], False, [], []
+    )
+    people = {person.full_name: person.role for person in result.decision_makers}
+    assert people == {
+        "Martin Thurnbacher": "Geschäftsführer",
+        "Michael Wolf": "Prokurist",
+        "Annika Hauß-Thurnbacher": "Prokurist",
+    }
+    repeated = extract_deterministic_german_kpis(
+        "Firma GmbH",
+        "Geschäftsführer: Max Mustermann\nMax Mustermann\nGeschäftsführer",
+        [],
+        [],
+        False,
+        [],
+        [],
+    )
+    assert [person.full_name for person in repeated.decision_makers] == [
+        "Max Mustermann"
+    ]
+
+
+def test_generic_hausverwaltung_is_not_a_rental_management_signal():
+    no_rental = extract_deterministic_german_kpis(
+        "Firma GmbH", "Hausverwaltung und WEG-Verwaltung", [], [], False, [], []
+    )
+    assert no_rental.manages_weg and not no_rental.manages_miet
+    rental = extract_deterministic_german_kpis(
+        "Firma GmbH", "Wir übernehmen die Mietobjektverwaltung.", [], [], False, [], []
+    )
+    assert rental.manages_miet
 
 
 @pytest.mark.asyncio

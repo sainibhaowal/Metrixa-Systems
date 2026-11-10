@@ -23,7 +23,7 @@
 
 <br />
 
-[Live Web Cockpit](http://localhost:3000) â€¢ [OpenAPI Docs](http://127.0.0.1:8000/docs) â€¢ [Master Excel Deliverable](./data/exports/metrixa_berlin_hausverwaltungen.xlsx) â€¢ [Case Study PDF](./docs/Case%20Study/Case_Study_Metrixa_Systems.pdf) â€¢ [Documentation Index](#-master-engineering-documentation-index)
+[Live Web Cockpit](http://localhost:3000) â€¢ [OpenAPI Docs](http://127.0.0.1:8000/docs) â€¢ [Master Excel Deliverable](./data/exports/metrixa_berlin_hausverwaltungen.xlsx) | [Current Verification Report](./output/pdf/Metrixa_Current_End_to_End_Quality_Report.pdf) â€¢ [Historical Case Study PDF (review required)](./docs/Case%20Study/Case_Study_Metrixa_Systems.pdf) â€¢ [Documentation Index](#-master-engineering-documentation-index)
 
 </div>
 
@@ -45,43 +45,43 @@ Metrixa Systems operates as a next-generation submetering technology provider (_
 
 ## ðŸ›ï¸ High-Level System Architecture
 
-The system operates as a 5-tier pipeline connecting multi-source ingestion to an asynchronous HTTP/2 crawler, deterministic legal parser, RFC 5321 DNS MX verifier, and multi-channel delivery suite.
+The local pilot runs six stages: source ingestion, entity resolution, website crawling, deterministic evidence extraction, scoring/enrichment, and export. DNS MX checks are domain-level signals and do not verify mailboxes.
 
 ```mermaid
 flowchart TD
     subgraph L1["Layer 1: Multi-Source Sharded Ingestion"]
-        S1["Gelbe Seiten Scraper\n(405 Records)"]
-        S2["11880.com Scraper\n(843 Records)"]
+        S1["Gelbe Seiten Scraper\n(405 stored records)"]
+        S2["11880.com Scraper\n(843 stored records)"]
         S3["VDIV live-source scraper\n(no embedded fallback; 30 legacy rows quarantined)"]
-        S4["OSM Overpass API\n(100 Geo-tagged)"]
-        S5["Search Discovery\n(3 Records)"]
+        S4["OSM Overpass API\n(100 stored records; latest live run returned 0)"]
+        S5["Search Discovery\n(4 stored records; latest live run returned 0)"]
     end
 
     subgraph L2["Layer 2: Entity Resolution & Deduplication"]
         NORM["Normalizer: German Suffix Stripping & E.164"]
         UF["Tarjan Disjoint-Set Union-Find Clustering\n(Canonical Domain, Clean Phone, Token Sort >= 90)"]
-        GOLD["Canonical Golden Registry\n(1,180 Active Berlin Leads)"]
+        GOLD["Canonical Golden Registry\n(1,379 Active Berlin Leads)"]
     end
 
     subgraph L3["Layer 3: Asynchronous HTTP/2 Deep Crawler"]
         CRAWL["Async httpx Crawler (Configured concurrency: 20, Timeout: 15s)"]
         SUBP["Multi-Subpage Discovery (/impressum, /team, /portal)"]
         DOM["DOM PropTech ERP Signature Engine (Casavi, Domus, etc.)"]
-        STORE["Stored crawl output (890 Pages across 243 Domains)"]
+        STORE["Stored crawl output (1,757 page records; 1,657 HTTP 200)"]
     end
 
     subgraph L4["Layer 4: Statutory Legal Parsing & Quality Gates"]
-        PARSER["Section 5 DDG Impressum Regex & NLP Parser"]
+        PARSER["Deterministic Stage 3 Evidence Parser"]
         GATE["Evidence checks for selected claims; overall accuracy not measured"]
-        CONTACTS["Contact export (118 records across 100 active companies)"]
+        CONTACTS["Contact export (279 records across 224 active companies)"]
     end
 
     subgraph L5["Layer 5: Scoring, Enrichment & Real-Time Delivery"]
-        MX["RFC 5321 Live DNS MX Server Verification"]
+        MX["Optional domain DNS MX lookup; mailbox not verified"]
         SCORE["5-Pillar Scorecard Engine (Metrixa Score 0 to 100)"]
         XLSX["Master 4-Tab Excel (.xlsx)"]
         CSV["Master Clean CSV (UTF-8 BOM)"]
-        SHEETS["Google Sheets API v4 Cloud Sync (4 Live Tabs)"]
+        SHEETS["Optional Google Sheets connector (not configured locally)"]
         COCKPIT["Next.js 14 Cockpit & Mission Control (:3000)"]
     end
 
@@ -106,7 +106,7 @@ flowchart TD
     <td width="33%" valign="top">
       <h3>1. Sharded Directory Ingestion</h3>
       <ul>
-        <li><strong>1,381 Raw Records</strong> stored across 5 source categories.</li>
+        <li><strong>1,675 Raw Records</strong> stored across 5 source categories.</li>
         <li>Parallel sharding across 12 Berlin <em>Bezirke</em> (PLZ 10115 to 14199).</li>
         <li>Eliminates single-directory pagination caps and niche provider blindspots.</li>
       </ul>
@@ -114,7 +114,7 @@ flowchart TD
     <td width="33%" valign="top">
       <h3>2. Graph Entity Resolution</h3>
       <ul>
-        <li><strong>1,180 Active Leads</strong> currently exported from the local database.</li>
+        <li><strong>1,379 Active Leads</strong> currently exported from the local database.</li>
         <li>Deduplication uses canonical domain, phone, and name similarity signals.</li>
         <li>Raw-to-canonical mapping is retained in the local database.</li>
       </ul>
@@ -122,9 +122,9 @@ flowchart TD
     <td width="33%" valign="top">
       <h3>3. Asynchronous Web Crawler</h3>
       <ul>
-        <li><strong>890 Stored Crawl Records</strong>; this count is not a live reachability rate.</li>
+        <li><strong>1,757 Stored Crawl Page Records</strong>; this count is not a live reachability rate.</li>
         <li>Prioritizes <code>/impressum</code>, <code>/team</code>, <code>/leistungen</code>, <code>/kundenportal</code>.</li>
-        <li>Extracts clean markdown; stored records contain 40 portal signals and 15 ERP signals.</li>
+        <li>Extracts clean markdown; current extracted coverage includes 99 customer-portal signals and 45 ERP signals.</li>
       </ul>
     </td>
   </tr>
@@ -134,21 +134,21 @@ flowchart TD
       <ul>
         <li>Evidence quotes are retained for selected extracted claims; overall error rates are not measured.</li>
         <li>Parses statutory disclosures under Section 5 DDG (former Section 5 TMG).</li>
-        <li>Exports <strong>118 contact records across 100 active companies</strong>, linked to source pages and evidence text.</li>
+        <li>Exports <strong>279 contact records across 224 active companies</strong>, linked to source pages and evidence text.</li>
       </ul>
     </td>
     <td width="33%" valign="top">
       <h3>5. Executive Reachability</h3>
       <ul>
-        <li><strong>12 active companies</strong> have a publicly listed personal email; mailbox status is unverified.</li>
-        <li><strong>87 active companies</strong> have inferred email-pattern candidates.</li>
+        <li><strong>24 active companies</strong> have a publicly listed personal email; mailbox status is unverified.</li>
+        <li><strong>202 active companies</strong> have inferred email-pattern candidates.</li>
         <li>DNS MX checks apply to the company domain; they do not verify individual mailboxes.</li>
       </ul>
     </td>
     <td width="33%" valign="top">
       <h3>6. Real-Time Cloud Deliverables</h3>
       <ul>
-        <li>Optional <strong>Google Sheets API v4</strong> synchronization across 4 tabs when credentials are configured.</li>
+        <li>Google Sheets is <strong>not configured</strong> in the current local snapshot.</li>
         <li>Master 4-Tab styled Excel (<code>.xlsx</code>) with frozen headers and formulas.</li>
         <li>Next.js Cockpit with live in-browser multi-sheet preview and copy.</li>
       </ul>
@@ -160,57 +160,43 @@ flowchart TD
 
 ---
 
-## Current Local Database Snapshot (2026-11-10)
+## Current Local Database Snapshot (verified 2026-11-10)
 
-Counts below were read from the existing SQLite database and exports. They describe stored records, not independently verified market truth. Accuracy, precision, recall, F1, and an overall hallucination rate have not been measured.
+These counts describe the local SQLite snapshot and the latest recorded run. They describe stored records and evidence presence, not independently verified market truth. Overall accuracy, precision, recall, F1, and lead conversion have not been measured.
 
-| Data item | Current count | Interpretation |
+| Data item | Current value | Interpretation |
 | :--- | ---: | :--- |
-| Raw source records | 1,381 | 843 from 11880, 405 Gelbe Seiten, 100 OSM, 30 legacy VDIV registry entries, and 3 search-discovery records |
-| Active canonical companies | 1,180 | Legacy VDIV-only companies are preserved but excluded from active leads |
-| Tier A / Tier B / Tier C | 28 / 384 / 768 | Stored score-tier counts; scores have not been independently validated |
-| Active companies with a website/domain | 213 | 967 active companies have no stored company website |
-| Crawl records | 890 | Stored attempts include blocked, unavailable, and error responses |
-| Portal signals / ERP signals | 40 / 15 | Distinct company counts from stored extraction records |
-| Exported contact records / companies with a named contact | 118 / 100 | Contact records include source page URLs and evidence text |
-| Active companies with a publicly listed personal email | 12 | Source presence does not verify mailbox existence or deliverability |
-| Active companies with inferred email-pattern candidates | 87 | Derived from names/domains; candidates are not confirmed addresses |
-| Explicit managed-unit claims with a stored quote | 35 | Quote presence is an evidence signal, not a correctness benchmark |
-| Overall extraction accuracy | Not measured | Requires independent human labels and review |
-| Pipeline runs recorded | 4 | Includes two full runs and two export-only verification runs |
+| Raw listings | 1,675 | 843 from 11880, 405 Gelbe Seiten, 100 OSM, 323 VDIV (including 30 legacy rows), and 4 Search Discovery |
+| Latest live ingestion | VDIV 293; Gelbe Seiten 403; 11880 833; OSM 0; Search Discovery 0 | Counts returned in run #23; a zero means no rows returned in that run, not that stored rows were deleted |
+| Active canonical companies | 1,379 | 58 other canonical rows are disqualified: 30 legacy VDIV-only and 28 stale/unmatched rows |
+| Source lineage and deduplication | 1,669 raw rows mapped; 260 duplicate listings merged; 6 raw rows unmapped | No raw listing maps to multiple companies; no duplicate active canonical domain or normalized name+postal-code group was found |
+| Tier A / Tier B / Tier C | 76 / 202 / 1,101 | Deterministic score distribution; tiers are not a validated sales-conversion model |
+| Active companies with a website | 458 / 1,379 (33.2%) | 921 eligible companies have no stored company website |
+| Latest crawl | 458 attempted; 288 reachable; 1,235 pages saved; 90 earlier evidence sets preserved | Reachability was 62.9% for that run; failed sites may be temporary or block automated requests |
+| Stored crawl pages | 1,757 total; 1,657 HTTP 200 | Historical page records across runs; not the latest-run reachability denominator |
+| Companies with Stage 4 KPI rows | 373 / 1,379 (27.0%) | 71 explicit managed-unit claims have evidence quotes; 71/71 quotes occur in stored successful page text |
+| Customer-portal / ERP signals | 99 / 45 | Current extracted company counts; a technology signal is not an independently verified purchase or deployment |
+| Decision-maker contact rows / companies | 279 / 224 | All 279 stored evidence quotes occur in successful stored page text after whitespace normalization |
+| Source-listed personal email rows / companies | 28 / 24 | All 28 addresses occur in stored successful page text; mailbox existence and deliverability are not verified |
+| Inferred email candidates / companies | 250 / 202 | Derived candidates, not published addresses and not verified for mailbox existence |
+| LinkedIn | 5 decision-maker profile URLs; 58 companies with a company or person URL | Profile identity and current validity have not been independently verified |
+| Recorded pipeline runs | 23 | Latest full run completed with warnings |
 
-The current Excel and CSV exports contain 1,180 active lead rows each. Google Sheets is not configured. No external LLM key or local model service was available, so the local deterministic parser is the available extraction path. The 30 VDIV-only records from an older embedded registry remain in raw storage, but their companies are quarantined from active leads until live-source review.
+The latest six-stage run completed in 521.5 seconds: ingestion 160.45s, deduplication 1.44s, crawling 271.92s, extraction 9.81s, scoring/enrichment 73.44s, and export 4.35s. Its warnings were zero live rows from OSM and Search Discovery and partial website reachability. Stage 4 used deterministic factual extraction; no LLM case-study writer is wired into this build. The current local Excel and CSV contain 1,379 active leads; Google Sheets is not configured. The historical case-study PDF remains review-required because its claims do not match this snapshot.
 
-## ðŸ“ Deterministic 5-Pillar Qualification Formula
+## Deterministic 5-Pillar Qualification Formula
 
-Metrixa Engine discards unexplainable black-box lead scoring in favor of an auditable, deterministic scoring formula ($S \in [0, 100]$):
+The current scorer is deterministic and explainable. It uses source-backed fields and produces a score from 0 to 100. Missing information does not count as a positive signal.
 
-$$\text{Metrixa Lead Score} = S_{\text{scale}} + S_{\text{focus}} + S_{\text{digital}} + S_{\text{trust}} + S_{\text{contact}}$$
+| Pillar | Maximum | Implemented scoring logic |
+| :--- | ---: | :--- |
+| Portfolio scale | 35 | 35 for >=2,500 exact units or enterprise tier; 28 for >=1,000 or large tier; 20 for >=300, medium tier, or >=5 employees; otherwise legal-form/website fallback earns 12 or 16; baseline 6 |
+| Management focus | 25 | WEG and rental management: 25; either: 20; commercial management: 12; SEV: 4; no positive source-backed signal: 0 |
+| Digital maturity | 20 | Detected ERP: +12; customer portal: +5; HTTPS website: +3; other website: +1 |
+| Credibility and source support | 10 | VDIV membership: +5; register ID or founding year by 2020: +3; two or more sources: +2, one source: +1 |
+| Decision-maker reachability | 10 | Evidence-backed named decision maker: +4; source-listed personal email: +4; evidence-backed LinkedIn URL or direct phone: +2. Inferred email patterns earn no email points. |
 
-```
-+---------------------------------------------------------------------------------------------------+
-|                                 5-PILLAR LEAD SCORING BREAKDOWN                                   |
-+------------------------------------+-----------+--------------------------------------------------+
-| Scoring Pillar                     | Max Pts   | Empirical Scoring Signals                        |
-+------------------------------------+-----------+--------------------------------------------------+
-| 1. Scale & Portfolio Size          | 30 Pts    | Stated units: >5,000 (30 pts) | 1k-5k (22 pts)   |
-|                                    |           | Team size proxy: >=15 (20 pts) | 5-14 (12 pts)    |
-| 2. Business Focus Alignment        | 25 Pts    | WEG Management: +15 pts (metering hardware target)|
-|                                    |           | Mietverwaltung: +10 pts (heating cost accounting)|
-| 3. Digital Maturity & PropTech ERP | 20 Pts    | Detected ERP (Casavi, Domus, Haufe): +12 pts     |
-|                                    |           | Tenant / Owner Web Portal: +8 pts                |
-| 4. Institutional Trust & Stability | 15 Pts    | VDIV Certified Member: +10 pts                   |
-|                                    |           | Founding Year <= 2010 (>=15 yrs in business): +5 |
-| 5. Executive Contact Directness    | 10 Pts    | Publicly listed personal contact can contribute points; inferred email patterns do not |
-|                                    |           | Direct phone (+4 pts) | LinkedIn profile (+2 pts)|
-+------------------------------------+-----------+--------------------------------------------------+
-| TOTAL SCORE RANGE                  | 100 Pts   | Tier A (70 to 100) | Tier B (45 to 69) | Tier C  |
-+------------------------------------+-----------+--------------------------------------------------+
-```
-
-<br />
-
----
+The implemented tiers are Tier A at 70-100, Tier B at 45-69, and Tier C below 45. These are prioritization rules, not calibrated probabilities or proven conversion predictions. The latest snapshot contains 76 Tier A, 202 Tier B, and 1,101 Tier C companies.
 
 ## ðŸ“¦ Deliverables Vault (Multi-Channel Export Suite)
 
@@ -348,7 +334,7 @@ The test suite runs against a temporary database and export directory. It does n
 .venv\Scripts\python.exe -m pytest -q --cov=metrixa_engine --cov-report=term-missing
 ```
 
-Latest local verification: 46 tests passed; Python statement coverage is 53%, with one Starlette/httpx deprecation warning. Frontend lint, TypeScript checking, and the optimized Next.js production build passed. Coverage is not 100%; external-provider behavior and many crawler/search branches still need focused tests.
+Latest local verification: 170 tests passed with 100% measured Python statement coverage. The optimized Next.js production build passed. One Starlette/httpx deprecation warning remains. Test coverage does not measure real-world data accuracy or external-source availability.
 ## ðŸ“š Master Engineering Documentation Index
 
 The documentation directory contains implementation plans and case study materials. Planning documents may describe intended features; use the current code and measured data for implementation status.

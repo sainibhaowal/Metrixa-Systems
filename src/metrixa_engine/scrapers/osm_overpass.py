@@ -15,6 +15,8 @@ from metrixa_engine.scrapers.base import BaseAsyncScraper
 
 OVERPASS_ENDPOINTS = [
     "https://overpass-api.de/api/interpreter",
+    # Europe extract, updated daily; fallback for primary public-server load shedding.
+    "https://ovp.dresel.systems/api/interpreter",
     "https://overpass.kumi.systems/api/interpreter",
 ]
 
@@ -38,9 +40,13 @@ class OSMOverpassScraper(BaseAsyncScraper):
     async def scrape_berlin(self, max_pages: int = 1) -> List[RawListing]:
         listings: List[RawListing] = []
         seen_ids: Set[str] = set()
+        endpoint_results: List[str] = []
+        successful_responses = 0
+        successful_endpoint = None
 
         async with httpx.AsyncClient(timeout=45.0) as client:
             for endpoint in OVERPASS_ENDPOINTS:
+                host = endpoint.split("/")[2]
                 try:
                     resp = await client.post(
                         endpoint,
@@ -48,9 +54,16 @@ class OSMOverpassScraper(BaseAsyncScraper):
                         headers={"User-Agent": "MetrixaEngine-BerlinResearch/1.0"},
                     )
                     if resp.status_code != 200:
+                        endpoint_results.append(
+                            f"{host} returned HTTP {resp.status_code}"
+                        )
                         continue
                     payload = resp.json()
                     elements = payload.get("elements", [])
+                    successful_responses += 1
+                    endpoint_results.append(
+                        f"{host} returned {len(elements)} map elements"
+                    )
                     for el in elements:
                         osm_id = f"{el.get('type', 'node')}_{el.get('id')}"
                         if osm_id in seen_ids:
@@ -106,8 +119,24 @@ class OSMOverpassScraper(BaseAsyncScraper):
                             )
                         )
                     if listings:
+                        successful_endpoint = host
                         break
-                except Exception:
+                except Exception as exc:
+                    endpoint_results.append(
+                        f"{host} request failed ({type(exc).__name__})"
+                    )
                     continue
 
+        if listings:
+            self.last_diagnostic = f"Overpass returned {len(listings)} named Berlin company records via {successful_endpoint}."
+        elif successful_responses:
+            self.last_diagnostic = (
+                "Overpass responded, but no matching named company records were found. "
+                + "; ".join(endpoint_results)
+            )
+        else:
+            self.last_diagnostic = (
+                "No Overpass endpoint returned a usable response. "
+                + "; ".join(endpoint_results)
+            )
         return listings

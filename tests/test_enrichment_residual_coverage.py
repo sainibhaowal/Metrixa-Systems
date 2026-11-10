@@ -7,7 +7,7 @@ from metrixa_engine.enrichment.search_router import SearchResultItem
 
 
 @pytest.mark.asyncio
-async def test_contact_search_with_known_director_and_insert_generic_only_contact(
+async def test_contact_search_with_known_director_and_refresh_generic_only_contact(
     tmp_path, monkeypatch
 ):
     import metrixa_engine.enrichment.contact_finder as module
@@ -17,6 +17,10 @@ async def test_contact_search_with_known_director_and_insert_generic_only_contac
         company_id = conn.execute(
             "INSERT INTO companies_golden (canonical_name,display_name,canonical_domain,general_email,phone_e164,sources_csv,pipeline_stage,updated_at) VALUES ('alpha','Alpha GmbH','alpha.de','info@alpha.de','+4930555','test','EXTRACTED','now')"
         ).lastrowid
+        conn.execute(
+            "INSERT INTO decision_makers (company_id,full_name,first_name,last_name,role,email_status,source_url,evidence_quote,is_primary_contact) VALUES (?, 'Max Mustermann','Max','Mustermann','Geschäftsführer','NONE','https://alpha.de/impressum','Geschäftsführer Max Mustermann',1)",
+            (company_id,),
+        )
 
     queries = []
 
@@ -64,10 +68,11 @@ async def test_contact_search_with_known_director_and_insert_generic_only_contac
     assert enriched["has_linkedin"] and not enriched["has_pattern_email_candidate"]
     with db.connect() as conn:
         row = conn.execute(
-            "SELECT personal_email,email_status FROM decision_makers WHERE company_id=?",
+            "SELECT personal_email,email_status,linkedin_url FROM decision_makers WHERE company_id=?",
             (company_id,),
         ).fetchone()
     assert row["personal_email"] is None and row["email_status"] == "GENERIC_ONLY"
+    assert row["linkedin_url"] == "https://linkedin.com/in/max"
 
 
 @pytest.mark.asyncio

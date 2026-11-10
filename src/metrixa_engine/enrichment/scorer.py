@@ -37,7 +37,8 @@ def calculate_metrixa_lead_score(
     has_named_decision_maker: bool,
     has_personal_email: bool,
     has_linkedin_or_direct_phone: bool,
-) -> Tuple[int, str]:
+    return_components: bool = False,
+) -> Tuple[int, str] | Tuple[Dict[str, int], str]:
     """
     Compute deterministic 0-100 Metrixa Lead Score and assign Qualification Tier (A / B / C).
     Returns (score_int, lead_tier_str).
@@ -73,7 +74,9 @@ def calculate_metrixa_lead_score(
     elif manages_sev:
         s_focus = 4
     else:
-        s_focus = 15
+        # No positive source-backed focus signal earns no focus points.
+        # Missing evidence must not become an assumed WEG/Miet fit.
+        s_focus = 0
 
     # --- PILLAR 3: DIGITAL MATURITY & PROPTECH STACK (Max 20 pts) ---
     s_digital = 0
@@ -118,6 +121,16 @@ def calculate_metrixa_lead_score(
     else:
         tier = LeadTier.TIER_C.value
 
+    components = {
+        "scale_pts": s_scale,
+        "focus_pts": s_focus,
+        "digital_pts": s_digital,
+        "trust_pts": s_trust,
+        "contact_pts": s_contact,
+        "total_score": total_score,
+    }
+    if return_components:
+        return components, tier
     return total_score, tier
 
 
@@ -155,20 +168,53 @@ class LeadScorer:
             for r in rows:
                 cid = r["company_id"]
                 dms = conn.execute(
-                    "SELECT full_name, personal_email, email_status, linkedin_url, direct_phone FROM decision_makers WHERE company_id = ?",
+                    """
+                    SELECT d.full_name, d.personal_email, d.email_status,
+                           d.linkedin_url, d.direct_phone, d.source_url, d.evidence_quote,
+                           EXISTS (
+                               SELECT 1 FROM crawled_pages p
+                               WHERE p.company_id = d.company_id AND p.http_status = 200
+                                 AND instr(
+                                     lower(coalesce(p.clean_markdown, '') || ' ' || coalesce(p.extracted_emails_csv, '')),
+                                     lower(coalesce(d.personal_email, ''))
+                                 ) > 0
+                           ) AS email_present_in_source
+                    FROM decision_makers d WHERE d.company_id = ?
+                    """,
                     (cid,),
                 ).fetchall()
 
-                has_dm = len(dms) > 0
+                sourced_dms = [
+                    d
+                    for d in dms
+                    if d["full_name"]
+                    and d["source_url"]
+                    and str(d["source_url"]).lower().startswith(("http://", "https://"))
+                    and d["evidence_quote"]
+                    and str(d["evidence_quote"]).strip()
+                ]
+                has_dm = bool(sourced_dms)
                 has_pers_email = any(
                     bool(d["personal_email"])
                     and d["email_status"] in ("PUBLIC_LISTED", "PUBLIC_DIRECT_VERIFIED")
+                    and d["email_present_in_source"]
+                    and d["source_url"]
+                    and str(d["source_url"]).lower().startswith(("http://", "https://"))
+                    and d["evidence_quote"]
+                    and str(d["evidence_quote"]).strip()
                     for d in dms
                 )
                 has_li_or_phone = bool(
-                    r["company_linkedin_url"]
-                    or r["phone_e164"]
-                    or any(bool(d["linkedin_url"] or d["direct_phone"]) for d in dms)
+                    any(
+                        (d["linkedin_url"] or d["direct_phone"])
+                        and d["source_url"]
+                        and str(d["source_url"])
+                        .lower()
+                        .startswith(("http://", "https://"))
+                        and d["evidence_quote"]
+                        and str(d["evidence_quote"]).strip()
+                        for d in sourced_dms
+                    )
                 )
 
                 web = r["website_url"] or ""
@@ -183,14 +229,10 @@ class LeadScorer:
                     employee_count=r["employee_count_est"],
                     legal_form=r["legal_form"],
                     has_website=bool(web),
-                    manages_weg=(
-                        bool(r["manages_weg"]) if r["manages_weg"] is not None else True
-                    ),
-                    manages_miet=(
-                        bool(r["manages_miet"])
-                        if r["manages_miet"] is not None
-                        else True
-                    ),
+                    # A missing KPI row or a NULL field is unknown, not positive
+                    # evidence of WEG or rental-management fit.
+                    manages_weg=bool(r["manages_weg"]),
+                    manages_miet=bool(r["manages_miet"]),
                     manages_gewerbe=bool(r["manages_gewerbe"]),
                     manages_sev=bool(r["manages_sev"]),
                     detected_erp_proptech=r["detected_erp_proptech"],

@@ -208,9 +208,23 @@ class EntityDeduplicator:
             clusters[root].append(rec)
 
         now_iso = datetime.now(timezone.utc).isoformat()
-        golden_created_or_updated = 0
+        current_company_ids: Set[int] = set()
 
         with self.db.connect() as conn:
+            # Rebuild the current source-to-company lineage on every full
+            # deduplication. Old mappings survive merges and splits otherwise,
+            # causing one raw listing to appear under multiple companies.
+            conn.execute(
+                """
+                DELETE FROM company_sources_map
+                WHERE raw_listing_id IN (
+                    SELECT id FROM raw_listings
+                    WHERE COALESCE(raw_json_payload, '') NOT LIKE
+                        '%legacy_curated_vdiv_registry_requires_review%'
+                )
+                """
+            )
+
             for cluster_members in clusters.values():
                 # Sort members by trust_score descending, then completeness
                 cluster_members.sort(
@@ -284,11 +298,12 @@ class EntityDeduplicator:
                         "SELECT 1 FROM crawled_pages WHERE company_id = ? AND http_status = 200 LIMIT 1",
                         (comp_id,),
                     ).fetchone()
-                    new_stage = (
-                        "DEDUPED"
-                        if (website and not has_crawled)
-                        else existing_row["pipeline_stage"]
-                    )
+                    if existing_row["pipeline_stage"] == "DISQUALIFIED":
+                        new_stage = "CRAWLED" if has_crawled else "DEDUPED"
+                    elif website and not has_crawled:
+                        new_stage = "DEDUPED"
+                    else:
+                        new_stage = existing_row["pipeline_stage"]
                     conn.execute(
                         """
                         UPDATE companies_golden
@@ -305,6 +320,7 @@ class EntityDeduplicator:
                             source_count = ?,
                             sources_csv = ?,
                             pipeline_stage = ?,
+                            disqualification_reason = NULL,
                             updated_at = ?
                         WHERE company_id = ?
                         """,
@@ -370,14 +386,39 @@ class EntityDeduplicator:
                         "INSERT OR IGNORE INTO company_sources_map (company_id, raw_listing_id) VALUES (?, ?)",
                         (comp_id, m["id"]),
                     )
-                golden_created_or_updated += 1
+                current_company_ids.add(int(comp_id))
 
-        duplicates_merged = max(0, len(eligible_records) - len(clusters))
+            # Keep historical golden rows for traceability, but take rows with
+            # no eligible source lineage out of the active sales population.
+            stale_update = conn.execute(
+                """
+                UPDATE companies_golden
+                SET pipeline_stage = 'DISQUALIFIED',
+                    disqualification_reason = 'no_current_eligible_source_cluster',
+                    updated_at = ?
+                WHERE pipeline_stage != 'DISQUALIFIED'
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM company_sources_map AS source_map
+                      JOIN raw_listings AS source
+                        ON source.id = source_map.raw_listing_id
+                      WHERE source_map.company_id = companies_golden.company_id
+                        AND COALESCE(source.raw_json_payload, '') NOT LIKE
+                            '%legacy_curated_vdiv_registry_requires_review%'
+                  )
+                """,
+                (now_iso,),
+            )
+            stale_golden_excluded = max(0, stale_update.rowcount)
+
+        golden_clusters = len(current_company_ids)
+        duplicates_merged = max(0, len(eligible_records) - golden_clusters)
         return {
             "raw_total": len(all_raw_rows),
             "eligible_count": len(eligible_records),
             "disqualified_count": len(disqualified_records),
-            "golden_clusters": len(clusters),
+            "golden_clusters": golden_clusters,
             "duplicates_merged": duplicates_merged,
             "source_review_excluded": source_review_excluded,
+            "stale_golden_excluded": stale_golden_excluded,
         }

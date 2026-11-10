@@ -290,12 +290,14 @@ export function EvidenceDrawer({ companyId, onClose }: EvidenceDrawerProps) {
                     <div className="grid grid-cols-2 gap-3 text-xs">
                       <div>
                         <span className="text-zinc-400 block text-[11px]">
-                          Reported Units:
+                          Portfolio Size:
                         </span>
                         <strong className="text-zinc-100 font-mono">
                           {kpi?.exact_units_managed
                             ? `${formatNumber(kpi.exact_units_managed)} Units`
-                            : kpi?.estimated_units_tier || "<250"}
+                            : kpi?.estimated_units_tier
+                              ? `Estimated ${kpi.estimated_units_tier}`
+                              : "Not estimated"}
                         </strong>
                       </div>
                       <div>
@@ -312,7 +314,7 @@ export function EvidenceDrawer({ companyId, onClose }: EvidenceDrawerProps) {
                         </span>
                         <strong className="text-zinc-200 font-mono">
                           {comp?.commercial_register_id ||
-                            "Amtsgericht Charlottenburg"}
+                            "Not found in saved source pages"}
                         </strong>
                       </div>
                       <div>
@@ -328,7 +330,7 @@ export function EvidenceDrawer({ companyId, onClose }: EvidenceDrawerProps) {
                         >
                           {comp?.is_vdiv_member
                             ? "Yes (Association Member)"
-                            : "No"}
+                            : "Not confirmed"}
                         </strong>
                       </div>
                     </div>
@@ -345,7 +347,7 @@ export function EvidenceDrawer({ companyId, onClose }: EvidenceDrawerProps) {
                     </span>
                     <blockquote className="text-xs font-mono text-zinc-200 p-3 rounded-lg bg-zinc-950 border border-zinc-850 leading-relaxed">
                       {dms[0]?.evidence_quote ||
-                        "Extracted from German legal notice (§ 5 DDG)."}
+                        "No verbatim decision-maker quote is stored."}
                     </blockquote>
                   </div>
 

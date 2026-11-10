@@ -227,6 +227,14 @@ def test_extract_batch_uses_default_provider_when_none(
                 "2026-11-10T00:00:00Z",
             ),
         )
+        company_id = conn.execute(
+            "SELECT company_id FROM companies_golden WHERE canonical_name=?",
+            ("Test Hausverwaltung GmbH",),
+        ).fetchone()[0]
+        conn.execute(
+            "INSERT INTO crawled_pages (company_id,page_type,url,http_status,clean_markdown,crawled_at) VALUES (?, 'homepage', 'https://test.example/', 200, 'Source evidence for a property manager', 'now')",
+            (company_id,),
+        )
 
     pipeline = KPIExtractionPipeline(db)
 
@@ -241,7 +249,14 @@ def test_extract_batch_uses_default_provider_when_none(
     monkeypatch.setattr(pipeline, "extract_single_company", fake_extract)
     result = asyncio.run(pipeline.extract_batch(requested_provider=None))
 
-    assert result == {"processed": 1, "with_decision_maker": 0, "with_erp": 0}
+    assert result == {
+        "processed": 1,
+        "with_decision_maker": 0,
+        "with_erp": 0,
+        "failed": 0,
+        "unverified_kpis_removed": 0,
+        "unverified_contacts_removed": 0,
+    }
 
 
 @pytest.mark.asyncio
@@ -291,13 +306,50 @@ async def test_vdiv_scraper_returns_no_registry_fallback_when_site_is_unavailabl
     monkeypatch,
 ) -> None:
     scraper = VDIVScraper()
+    urls = []
 
     async def unavailable(client, url):
+        urls.append(url)
         return ""
 
     monkeypatch.setattr(scraper, "fetch_text", unavailable)
 
     assert await scraper.scrape_berlin() == []
+    assert urls == ["https://vdiv-bb.de/mitglieder/"]
+
+
+@pytest.mark.asyncio
+async def test_vdiv_scraper_parses_and_deduplicates_current_directory(monkeypatch):
+    scraper = VDIVScraper()
+    urls = []
+    html = """
+    <div class="contact-list-contact-container">
+      <span class="contact-list-contact-name">Alpha Hausverwaltung GmbH</span>
+      <div class="contact-list-address"><span>10115 Berlin</span></div>
+    </div>
+    <div class="contact-list-contact-container">
+      <span class="contact-list-contact-name">Alpha Hausverwaltung GmbH</span>
+      <div class="contact-list-address"><span>10719 Berlin</span></div>
+    </div>
+    <div class="contact-list-contact-container">
+      <span class="contact-list-contact-name">Alpha Hausverwaltung GmbH</span>
+      <div class="contact-list-address"><span>10115 Berlin</span></div>
+    </div>
+    """
+
+    async def live_page(client, url):
+        urls.append(url)
+        return html
+
+    monkeypatch.setattr(scraper, "fetch_text", live_page)
+
+    rows = await scraper.scrape_berlin()
+
+    assert urls == ["https://vdiv-bb.de/mitglieder/"]
+    assert len(rows) == 2
+    assert rows[0].raw_company_name == "Alpha Hausverwaltung GmbH"
+    assert rows[0].is_vdiv_member is True
+    assert rows[1].raw_postal_code == "10719"
 
 
 def test_legacy_vdiv_registry_is_preserved_but_excluded_from_active_leads(

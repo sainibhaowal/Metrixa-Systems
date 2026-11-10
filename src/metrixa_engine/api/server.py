@@ -32,8 +32,15 @@ from metrixa_engine.config import settings
 from metrixa_engine.crawler.web_crawler import AsyncWebsiteCrawler
 from metrixa_engine.db import Database
 from metrixa_engine.enrichment.contact_finder import ContactEnricher
-from metrixa_engine.enrichment.scorer import LeadScorer
+from metrixa_engine.enrichment.scorer import LeadScorer, calculate_metrixa_lead_score
 from metrixa_engine.entity_resolution.deduplicator import EntityDeduplicator
+from metrixa_engine.llm.case_study_writer import (
+    CaseStudyEvidenceUnavailable,
+    CaseStudyNarrativeRejected,
+    CaseStudyProviderUnavailable,
+    CaseStudyWriter,
+    CaseStudyWriterError,
+)
 from metrixa_engine.llm.extractor import KPIExtractionPipeline
 from metrixa_engine.models import email_status_label, normalize_email_status
 from metrixa_engine.scrapers.dir_11880 import Dir11880Scraper
@@ -113,20 +120,8 @@ _metrics_cache_time: float = 0.0
 METRICS_CACHE_TTL = 4.0  # seconds in-memory TTL for sub-millisecond responses
 
 
-@app.get("/api/metrics")
-async def get_metrics():
-    """Return live aggregate KPI metrics, tier distribution, ERP counts, and district shares."""
-    global _metrics_cache, _metrics_cache_time
-    import time
-
-    now = time.time()
-    if _metrics_cache and (now - _metrics_cache_time < METRICS_CACHE_TTL):
-        _metrics_cache["pipeline_state"] = {
-            "is_running": event_bus.is_running,
-            "current_stage": event_bus.current_stage,
-        }
-        return _metrics_cache
-
+def _load_metrics_from_db():
+    """Run SQLite aggregation away from the ASGI event loop."""
     tel = db.get_pipeline_telemetry()
     with db.connect() as conn:
         erp_rows = conn.execute(
@@ -158,6 +153,24 @@ async def get_metrics():
             {"district": r["district"] or "Berlin", "count": r["cnt"]}
             for r in dist_rows
         ]
+    return tel, erp_counts, district_breakdown
+
+
+@app.get("/api/metrics")
+async def get_metrics():
+    """Return live aggregate KPI metrics, tier distribution, ERP counts, and district shares."""
+    global _metrics_cache, _metrics_cache_time
+    import time
+
+    now = time.time()
+    if _metrics_cache and (now - _metrics_cache_time < METRICS_CACHE_TTL):
+        _metrics_cache["pipeline_state"] = {
+            "is_running": event_bus.is_running,
+            "current_stage": event_bus.current_stage,
+        }
+        return _metrics_cache
+
+    tel, erp_counts, district_breakdown = await asyncio.to_thread(_load_metrics_from_db)
 
     data = {
         "status": "online",
@@ -347,7 +360,20 @@ async def get_lead_evidence(company_id: int):
         dms = [
             dict(r)
             for r in conn.execute(
-                "SELECT * FROM decision_makers WHERE company_id = ? ORDER BY is_primary_contact DESC",
+                """
+                SELECT d.*,
+                    EXISTS (
+                        SELECT 1 FROM crawled_pages p
+                        WHERE p.company_id = d.company_id AND p.http_status = 200
+                          AND instr(
+                              lower(coalesce(p.clean_markdown, '') || ' ' || coalesce(p.extracted_emails_csv, '')),
+                              lower(coalesce(d.personal_email, ''))
+                          ) > 0
+                    ) AS email_present_in_source
+                FROM decision_makers d
+                WHERE d.company_id = ?
+                ORDER BY d.is_primary_contact DESC
+                """,
                 (company_id,),
             ).fetchall()
         ]
@@ -367,62 +393,53 @@ async def get_lead_evidence(company_id: int):
             ).fetchall()
         ]
 
-        # Calculate exact 5-pillar points for the scorecard
+        # Recompute the same scoring formula used by Stage 5 so the evidence
+        # drawer cannot drift from the stored score or show made-up pillar totals.
         comp_d = dict(company)
         kpi_d = dict(kpi) if kpi else {}
-
-        exact_u = kpi_d.get("exact_units_managed")
-        tier_u = kpi_d.get("estimated_units_tier")
-        s_scale = 6
-        if (exact_u and exact_u >= 2500) or tier_u == "5,000+":
-            s_scale = 35
-        elif (exact_u and exact_u >= 1000) or tier_u == "1,000-5,000":
-            s_scale = 28
-        elif (exact_u and exact_u >= 300) or tier_u == "250-1,000":
-            s_scale = 20
-        elif comp_d.get("legal_form") in ("GmbH", "AG", "GmbH & Co. KG"):
-            s_scale = 16
-
-        m_weg = bool(kpi_d.get("manages_weg"))
-        m_miet = bool(kpi_d.get("manages_miet"))
-        s_focus = 25 if (m_weg and m_miet) else (20 if (m_weg or m_miet) else 15)
-
-        s_digital = 0
-        if kpi_d.get("detected_erp_proptech"):
-            s_digital += 12
-        if kpi_d.get("has_customer_portal"):
-            s_digital += 5
-        if comp_d.get("website_url"):
-            s_digital += 3
-
-        s_trust = (
-            (5 if comp_d.get("is_vdiv_member") else 0)
-            + (3 if comp_d.get("commercial_register_id") else 0)
-            + 2
+        sourced_dms = [
+            d
+            for d in dms
+            if d.get("full_name")
+            and str(d.get("source_url") or "")
+            .lower()
+            .startswith(("http://", "https://"))
+            and str(d.get("evidence_quote") or "").strip()
+        ]
+        scorecard, _tier = calculate_metrixa_lead_score(
+            exact_units=kpi_d.get("exact_units_managed"),
+            estimated_units_tier=kpi_d.get("estimated_units_tier"),
+            employee_count=kpi_d.get("employee_count_est"),
+            legal_form=comp_d.get("legal_form"),
+            has_website=bool(comp_d.get("website_url")),
+            manages_weg=bool(kpi_d.get("manages_weg")),
+            manages_miet=bool(kpi_d.get("manages_miet")),
+            manages_gewerbe=bool(kpi_d.get("manages_gewerbe")),
+            manages_sev=bool(kpi_d.get("manages_sev")),
+            detected_erp_proptech=kpi_d.get("detected_erp_proptech"),
+            has_customer_portal=bool(kpi_d.get("has_customer_portal")),
+            website_is_https=str(comp_d.get("website_url") or "").startswith(
+                "https://"
+            ),
+            is_vdiv_member=bool(comp_d.get("is_vdiv_member")),
+            has_hrb_or_established_year=bool(
+                comp_d.get("commercial_register_id")
+                or (kpi_d.get("founding_year") and kpi_d["founding_year"] <= 2020)
+            ),
+            source_count=int(comp_d.get("source_count") or 1),
+            has_named_decision_maker=bool(sourced_dms),
+            has_personal_email=any(
+                d.get("personal_email")
+                and d.get("email_present_in_source")
+                and normalize_email_status(d.get("email_status"))
+                in ("PUBLIC_LISTED", "PUBLIC_DIRECT_VERIFIED")
+                for d in sourced_dms
+            ),
+            has_linkedin_or_direct_phone=any(
+                d.get("linkedin_url") or d.get("direct_phone") for d in sourced_dms
+            ),
+            return_components=True,
         )
-        s_contact = (
-            (4 if dms else 0)
-            + (
-                4
-                if any(
-                    d.get("personal_email")
-                    and normalize_email_status(d.get("email_status")) == "PUBLIC_LISTED"
-                    for d in dms
-                )
-                else 0
-            )
-            + 2
-        )
-
-        scorecard = {
-            "scale_pts": min(35, s_scale),
-            "focus_pts": min(25, s_focus),
-            "digital_pts": min(20, s_digital),
-            "trust_pts": min(10, s_trust),
-            "contact_pts": min(10, s_contact),
-            "total_score": comp_d.get("metrixa_lead_score")
-            or comp_d.get("metrixa_lead_score", 0),
-        }
 
     return {
         "company": comp_d,
@@ -450,7 +467,10 @@ class PipelineRunRequest(BaseModel):
         default="full",
         description="full | ingest | deduplicate | crawl | extract | enrich | export",
     )
-    provider: str | None = Field(default="auto_fallback")
+    provider: str | None = Field(
+        default="auto_fallback",
+        description="Stage 4 factual extraction is deterministic; the optional LLM writer is only for case-study prose.",
+    )
     city: str | None = Field(default="Berlin")
     limit: int | None = Field(default=None)
     reprocess_all: bool = Field(default=False)
@@ -583,6 +603,7 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
         t_start = time.perf_counter()
         initial_golden_count = 0
         stage_durations: dict[str, float] = {}
+        stage_warnings: list[str] = []
         seq_counter = 0
 
         async def _log(
@@ -713,9 +734,10 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                 ):
                     t_sc_start = time.perf_counter()
                     items = await sc.scrape_berlin(max_pages=4)
-                    ins = db.insert_raw_listings(items)
+                    ingestion_result = db.upsert_raw_listings(items)
                     dur_sc_ms = int((time.perf_counter() - t_sc_start) * 1000)
                     pct = round((idx / len(scrapers)) * 100, 1)
+                    source_diagnostic = getattr(sc, "last_diagnostic", None)
 
                     await event_bus.emit(
                         "PROGRESS",
@@ -732,14 +754,23 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                         ev_type,
                         "TOOL" if items else "WARN",
                         dur_sc_ms,
-                        f"Scraped {len(items)} records from {label} ({ins} new entries staged).",
+                        f"Scraped {len(items)} live records from {label} ({ingestion_result['inserted']} newly inserted; {ingestion_result['refreshed']} existing records refreshed)."
+                        + (
+                            f" Diagnostic: {source_diagnostic}"
+                            if not items and source_diagnostic
+                            else ""
+                        ),
                         {
                             "source": label,
                             "records_count": len(items),
-                            "new_inserted": ins,
+                            "new_inserted": ingestion_result["inserted"],
+                            "existing_refreshed": ingestion_result["refreshed"],
                             "progress_pct": pct,
+                            "diagnostic": source_diagnostic,
                         },
                     )
+                    if not items:
+                        stage_warnings.append(f"INGEST_EMPTY:{stp_name}")
 
                 with db.connect() as conn:
                     total_raw = conn.execute(
@@ -814,13 +845,14 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                     "STAGE_SUMMARY",
                     "SUCCESS",
                     int(stage_durations["deduplicate"] * 1000),
-                    f"Stage 02 Deduplication complete: {stats['golden_clusters']} unique companies ({stats['duplicates_merged']} duplicates merged; {stats.get('source_review_excluded', 0)} unverified legacy source rows excluded).",
+                    f"Stage 02 Deduplication complete: {stats['golden_clusters']} current companies ({stats['duplicates_merged']} duplicate listings merged; {stats.get('source_review_excluded', 0)} unverified legacy source rows and {stats.get('stale_golden_excluded', 0)} stale unmatched company rows excluded from active leads).",
                     {
                         "golden_records": stats["golden_clusters"],
                         "duplicates_merged": stats["duplicates_merged"],
                         "source_review_excluded": stats.get(
                             "source_review_excluded", 0
                         ),
+                        "stale_golden_excluded": stats.get("stale_golden_excluded", 0),
                         "stage_duration_seconds": stage_durations["deduplicate"],
                     },
                 )
@@ -867,8 +899,15 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                     )
 
                 res = await crawler.crawl_batch(
-                    limit=req.limit, progress_callback=_crawl_cb
+                    limit=req.limit,
+                    progress_callback=_crawl_cb,
+                    reprocess_all=req.reprocess_all,
                 )
+                if (
+                    res["companies_processed"]
+                    and res["reachable_websites"] < res["companies_processed"]
+                ):
+                    stage_warnings.append("CRAWL_PARTIAL_UNREACHABLE")
 
                 stage_durations["crawl"] = round(time.perf_counter() - t_crawl_start, 2)
                 event_bus.stage_durations = dict(stage_durations)
@@ -884,13 +923,22 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                     "CRAWL",
                     "CrawlSummary",
                     "STAGE_SUMMARY",
-                    "SUCCESS" if res["total_pages_saved"] else "WARN",
+                    (
+                        "WARN"
+                        if res["companies_processed"]
+                        and res["reachable_websites"] < res["companies_processed"]
+                        else "SUCCESS" if res["total_pages_saved"] else "WARN"
+                    ),
                     int(stage_durations["crawl"] * 1000),
                     f"Stage 03 Crawler complete: {res['companies_processed']} companies attempted, {res.get('reachable_websites', 0)} websites reachable, {res['total_pages_saved']} pages saved into SQLite WAL.",
                     {
                         "companies_processed": res["companies_processed"],
                         "reachable_websites": res.get("reachable_websites", 0),
                         "subpages_saved": res["total_pages_saved"],
+                        "previous_evidence_preserved": res.get(
+                            "previous_evidence_preserved", 0
+                        ),
+                        "reprocess_all": req.reprocess_all,
                         "stage_duration_seconds": stage_durations["crawl"],
                     },
                 )
@@ -923,10 +971,14 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
 
                 res = await pipeline.extract_batch(
                     limit=req.limit,
-                    requested_provider=req.provider,
+                    # Factual KPI/contact claims must come from retrieved Stage 3
+                    # evidence. Keep model use for natural-language narrative work.
+                    requested_provider="deterministic",
                     reprocess_all=req.reprocess_all,
                     progress_callback=_extract_cb,
                 )
+                if res.get("failed", 0):
+                    stage_warnings.append("EXTRACTION_FAILURES")
 
                 stage_durations["extract"] = round(
                     time.perf_counter() - t_extract_start, 2
@@ -944,13 +996,22 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                     "EXTRACT",
                     "ExtractionSummary",
                     "STAGE_SUMMARY",
-                    "SUCCESS",
+                    "WARN" if res.get("failed", 0) else "SUCCESS",
                     int(stage_durations["extract"] * 1000),
-                    f"Stage 04 Extraction complete: {res.get('processed', 0)} companies processed; {res['with_decision_maker']} with decision makers and {res['with_erp']} with ERP stacks identified.",
+                    f"Stage 04 deterministic extraction complete: {res.get('processed', 0)} source-backed companies processed; {res['with_decision_maker']} with evidence-backed decision makers and {res['with_erp']} with ERP stacks identified; {res.get('failed', 0)} extraction errors. Removed {res.get('unverified_kpis_removed', 0)} KPI rows and {res.get('unverified_contacts_removed', 0)} contact rows without current Stage 3 evidence. LLM is not used for factual extraction; the separate case-study writer only generates source-cited prose.",
                     {
                         "processed": res.get("processed", 0),
+                        "factual_extraction_provider": "deterministic",
+                        "llm_used_for_factual_extraction": False,
                         "decision_makers": res["with_decision_maker"],
                         "erps": res["with_erp"],
+                        "failed": res.get("failed", 0),
+                        "unverified_kpis_removed": res.get(
+                            "unverified_kpis_removed", 0
+                        ),
+                        "unverified_contacts_removed": res.get(
+                            "unverified_contacts_removed", 0
+                        ),
                         "stage_duration_seconds": stage_durations["extract"],
                     },
                 )
@@ -983,7 +1044,7 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                     )
 
                 en_res = await enricher.enrich_batch(
-                    web_search_top_n=5, progress_callback=_enrich_cb
+                    web_search_top_n=25, progress_callback=_enrich_cb
                 )
 
                 await _log(
@@ -1000,6 +1061,7 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                         ),
                         "mx_check_scope": "company domain only",
                         "mailbox_verified": False,
+                        "web_search_top_n": 25,
                     },
                 )
 
@@ -1139,21 +1201,6 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                     },
                 )
 
-            await event_bus.emit(
-                "COMPLETE",
-                {
-                    "run_id": run_id,
-                    "stage": req.stage,
-                    "stage_durations": dict(stage_durations),
-                },
-            )
-            await event_bus.emit(
-                "LOG",
-                {
-                    "level": "SUCCESS",
-                    "message": "Pipeline execution completed successfully.",
-                },
-            )
             # Update pipeline_runs to COMPLETED
             try:
                 finished_ts = datetime.now(timezone.utc).isoformat()
@@ -1166,7 +1213,7 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                     conn.execute(
                         """
                         UPDATE pipeline_runs
-                        SET status = 'COMPLETED',
+                        SET status = ?,
                             total_companies_out = ?,
                             new_companies_found = ?,
                             duration_seconds = ?,
@@ -1175,6 +1222,11 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                         WHERE run_id = ?
                         """,
                         (
+                            (
+                                "COMPLETED_WITH_WARNINGS"
+                                if stage_warnings
+                                else "COMPLETED"
+                            ),
                             final_golden_count,
                             new_leads,
                             dur_sec,
@@ -1182,6 +1234,7 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                             json.dumps(
                                 {
                                     "stage": req.stage,
+                                    "warnings": stage_warnings,
                                     "golden_companies": final_golden_count,
                                     "new_leads": new_leads,
                                     "duration_seconds": dur_sec,
@@ -1191,8 +1244,51 @@ async def trigger_pipeline_run(req: PipelineRunRequest):
                             run_id,
                         ),
                     )
-            except Exception:
-                pass
+            except Exception as error:
+                await event_bus.emit(
+                    "LOG",
+                    {
+                        "level": "ERROR",
+                        "message": f"Pipeline completed, but its run status could not be saved: {error!s}",
+                    },
+                )
+                raise
+
+            if req.stage in ("full", "export"):
+                try:
+                    # The earlier report was generated while the run was still
+                    # active. Refresh it after the final status is committed.
+                    evaluator.generate_markdown_report()
+                except Exception as error:
+                    await event_bus.emit(
+                        "LOG",
+                        {
+                            "level": "WARN",
+                            "message": f"Could not refresh final evaluation report: {error!s}",
+                        },
+                    )
+
+            await event_bus.emit(
+                "COMPLETE",
+                {
+                    "run_id": run_id,
+                    "stage": req.stage,
+                    "warnings": stage_warnings,
+                    "stage_durations": dict(stage_durations),
+                },
+            )
+            await event_bus.emit(
+                "LOG",
+                {
+                    "level": "WARN" if stage_warnings else "SUCCESS",
+                    "message": (
+                        "Pipeline finished with source/provider warnings: "
+                        + ", ".join(stage_warnings)
+                        if stage_warnings
+                        else "Pipeline execution completed successfully."
+                    ),
+                },
+            )
 
         except asyncio.CancelledError:
             await event_bus.emit(
@@ -1674,6 +1770,10 @@ class ArtifactActionRequest(BaseModel):
     retention_days: int | None = Field(default=30, ge=1, le=3650)
 
 
+class CaseStudyGenerateRequest(BaseModel):
+    provider: str | None = Field(default=None, max_length=40)
+
+
 # In-memory artifact state management
 _artifact_store: dict[str, dict[str, Any]] = {
     "xlsx-master": {
@@ -1723,6 +1823,24 @@ _artifact_store: dict[str, dict[str, Any]] = {
             "Limitations Included",
         ],
         "download_url": "/api/artifacts/download/eval-report",
+    },
+    "current-case-study": {
+        "id": "current-case-study",
+        "name": "metrixa_current_case_study.md",
+        "type": "md",
+        "title": "Current Source-Backed Case Study",
+        "desc": "LLM-assisted narrative generated from retrieved Stage 3 signals; measured figures come from SQLite.",
+        "status": "active",
+        "retention_days": 30,
+        "trashed_at": None,
+        "archived_at": None,
+        "tags": [
+            "LLM Narrative",
+            "Stage 3 Evidence",
+            "SQLite Metrics",
+            "Human Review Required",
+        ],
+        "download_url": "/api/artifacts/download/current-case-study",
     },
     "exec-brief": {
         "id": "exec-brief",
@@ -1810,6 +1928,8 @@ def _resolve_artifact_path(art_id: str) -> Path | None:
         return (
             p if p.exists() else settings.export_dir / "evaluation_ablation_report.md"
         )
+    elif art_id == "current-case-study":
+        return settings.export_dir / "metrixa_current_case_study.md"
     elif art_id == "exec-brief":
         return settings.export_dir / "metrixa_executive_presentation.md"
     elif art_id == "pdf-casestudy":
@@ -1974,6 +2094,21 @@ async def get_artifact_files():
     }
 
 
+@app.post("/api/case-study/generate")
+async def generate_current_case_study(req: CaseStudyGenerateRequest):
+    """Write a current case-study narrative from retrieved Stage 3 evidence and SQLite metrics."""
+    try:
+        return await CaseStudyWriter(db).generate(req.provider)
+    except CaseStudyProviderUnavailable as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except CaseStudyEvidenceUnavailable as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except CaseStudyNarrativeRejected as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except CaseStudyWriterError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
 @app.post("/api/artifacts/sync")
 async def sync_artifacts_from_db():
     """Regenerate deliverables directly from live SQLite DB only if leads exist."""
@@ -2127,7 +2262,7 @@ async def get_artifact_preview(artifact_id: str):
         _preview_cache[artifact_id] = (stat.st_mtime, res)
         return res
 
-    elif artifact_id in ("eval-report", "exec-brief"):
+    elif artifact_id in ("eval-report", "exec-brief", "current-case-study"):
         if artifact_id == "eval-report":
             path = settings.export_dir / "metrixa_evaluation_ablation_report.md"
             if not path.exists():
@@ -2140,7 +2275,7 @@ async def get_artifact_preview(artifact_id: str):
             text = path.read_text(encoding="utf-8")
             name = "metrixa_evaluation_ablation_report.md"
             title = "Live Data Coverage & Evidence Report"
-        else:
+        elif artifact_id == "exec-brief":
             path = settings.export_dir / "metrixa_executive_presentation.md"
             if not path.exists():
                 raise HTTPException(
@@ -2150,6 +2285,16 @@ async def get_artifact_preview(artifact_id: str):
             text = path.read_text(encoding="utf-8")
             name = "metrixa_executive_presentation.md"
             title = "Local Pilot Snapshot and Review"
+        else:
+            path = settings.export_dir / "metrixa_current_case_study.md"
+            if not path.exists():
+                raise HTTPException(
+                    status_code=404,
+                    detail="Current case study has not been generated yet.",
+                )
+            text = path.read_text(encoding="utf-8")
+            name = "metrixa_current_case_study.md"
+            title = "Current Source-Backed Case Study"
 
         stat = path.stat()
         res = {
@@ -2336,6 +2481,18 @@ async def download_artifact_by_id(artifact_id: str):
         return FileResponse(
             path=path,
             filename="metrixa_executive_presentation.md",
+            media_type="text/markdown",
+        )
+    elif artifact_id in ("current-case-study", "case-study-current"):
+        path = settings.export_dir / "metrixa_current_case_study.md"
+        if not path.exists():
+            raise HTTPException(
+                status_code=404,
+                detail="Current case study has not been generated yet.",
+            )
+        return FileResponse(
+            path=path,
+            filename="metrixa_current_case_study.md",
             media_type="text/markdown",
         )
     elif artifact_id in ("database", "db-snapshot"):

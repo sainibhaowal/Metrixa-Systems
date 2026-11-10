@@ -272,8 +272,12 @@ async def test_osm_overpass_retries_endpoint_and_parses_tag_variants(monkeypatch
             return response
 
     monkeypatch.setattr(module.httpx, "AsyncClient", FakeClient)
-    rows = await OSMOverpassScraper().scrape_berlin()
+    scraper = OSMOverpassScraper()
+    rows = await scraper.scrape_berlin()
     assert len(rows) == 2
+    assert scraper.last_diagnostic == (
+        "Overpass returned 2 named Berlin company records via ovp.dresel.systems."
+    )
     assert rows[0].raw_street == "Main 2"
     assert rows[0].raw_website == "https://x.de"
     assert rows[1].raw_company_name == "Beta Verwaltung GmbH"
@@ -298,17 +302,53 @@ async def test_search_discovery_filters_deduplicates_and_falls_back_to_host(
         SearchResultItem("directory", "https://gelbeseiten.de/x", "Berlin", "test"),
         SearchResultItem("x", "https://x.example", "no postcode", "test"),
         SearchResultItem("a", "https://short.example", "", "test"),
+        SearchResultItem("x", "https://www.wwww.example/path", "", "test"),
     ]
+
+    search_calls = []
+
+    async def search(*args, **kwargs):
+        search_calls.append((args, kwargs))
+        return answers
+
+    monkeypatch.setattr(module.search_router, "search", search)
+    scraper = SearchDiscoveryScraper()
+    rows = await scraper.scrape_berlin()
+    assert len(rows) == 4
+    assert "Accepted 4 unique company candidates" in scraper.last_diagnostic
+    assert rows[0].raw_company_name == "Good Verwaltung GmbH"
+    assert rows[0].raw_postal_code == "10719"
+    assert rows[2].raw_company_name == "short.example"
+    assert rows[3].raw_company_name == "wwww.example"
+    assert search_calls and all(
+        call[1]["allow_tavily_fallback"] is True for call in search_calls
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("answers", "expected"),
+    [
+        ([], "provider chain returned no results"),
+        (
+            [SearchResultItem("Directory", "https://gelbeseiten.de/x", "", "test")],
+            "no candidates remained",
+        ),
+    ],
+)
+async def test_search_discovery_reports_empty_and_excluded_results(
+    monkeypatch, answers, expected
+):
+    import metrixa_engine.scrapers.search_discovery as module
 
     async def search(*args, **kwargs):
         return answers
 
     monkeypatch.setattr(module.search_router, "search", search)
-    rows = await SearchDiscoveryScraper().scrape_berlin()
-    assert len(rows) == 3
-    assert rows[0].raw_company_name == "Good Verwaltung GmbH"
-    assert rows[0].raw_postal_code == "10719"
-    assert rows[2].raw_company_name == "short.example"
+    scraper = SearchDiscoveryScraper()
+
+    assert await scraper.scrape_berlin() == []
+    assert expected in scraper.last_diagnostic
 
 
 def test_vdiv_parse_live_cards_filters_bad_cards():
@@ -324,6 +364,60 @@ def test_vdiv_parse_live_cards_filters_bad_cards():
     assert rows[0].raw_email == "a@alpha.example"
     assert rows[0].raw_phone == "030123"
     assert rows[1].raw_website is None
+
+
+def test_vdiv_member_directory_parses_only_berlin_entries():
+    scraper = VDIVScraper()
+    html = """
+    <div class="contact-list-contact-container">
+      <span class="contact-list-contact-name">Alpha Hausverwaltung GmbH</span>
+      <div class="contact-list-address">
+        <span class="contact-list-address-line-1">Example Str. 1</span>
+        <span class="contact-list-address-country-and-state">10115 Berlin</span>
+      </div>
+      <span class="contact-list-email"><a href="mailto:info@alpha.example?subject=test">mail</a></span>
+      <span class="contact-list-phone"><a href="tel:+4930123456">phone</a></span>
+      <div class="contact-list-custom-field-1">
+        <span class="contact-list-custom-field-title">Internet</span>
+        <span class="contact-list-custom-field-value"><a href="https://alpha.example">web</a></span>
+      </div>
+    </div>
+    <div class="contact-list-contact-container">
+      <span class="contact-list-contact-name">Beta Hausverwaltung GmbH</span>
+      <div class="contact-list-address">
+        <span class="contact-list-address-country-and-state">10719 Berlin</span>
+      </div>
+      <div class="contact-list-custom-field-1">
+        <span class="contact-list-custom-field-title">Kontakt</span>
+      </div>
+      <div class="contact-list-custom-field-2">
+        <span class="contact-list-custom-field-title">Internet</span>
+        <span class="contact-list-custom-field-value"><a href="javascript:void(0)">invalid website</a></span>
+      </div>
+    </div>
+    <div class="contact-list-contact-container">
+      <span class="contact-list-contact-name">Brandenburg Hausverwaltung GmbH</span>
+      <div class="contact-list-address"><span>14513 Teltow</span></div>
+    </div>
+    <div class="contact-list-contact-container">
+      <div class="contact-list-address"><span>10115 Berlin</span></div>
+    </div>
+    """
+
+    rows = scraper.parse_vdiv_html(html, scraper.members_directory_url)
+
+    assert len(rows) == 2
+    assert rows[0].raw_company_name == "Alpha Hausverwaltung GmbH"
+    assert rows[0].raw_street == "Example Str. 1"
+    assert rows[0].raw_postal_code == "10115"
+    assert rows[0].raw_city == "Berlin"
+    assert rows[0].raw_phone == "+4930123456"
+    assert rows[0].raw_email == "info@alpha.example"
+    assert rows[0].raw_website == "https://alpha.example"
+    assert rows[0].is_vdiv_member is True
+    assert rows[1].raw_website is None
+    assert rows[1].raw_email is None
+    assert rows[1].raw_phone is None
 
 
 @pytest.mark.asyncio

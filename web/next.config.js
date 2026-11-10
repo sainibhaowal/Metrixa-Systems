@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
+const apiBaseUrl = (process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000").replace(/\/+$/, "");
 const nextConfig = {
+  distDir: process.env.METRIXA_NEXT_DIST_DIR || ".next",
   reactStrictMode: false,
   swcMinify: true,
   poweredByHeader: false,
@@ -7,7 +9,7 @@ const nextConfig = {
     return [
       {
         source: "/api/:path*",
-        destination: "http://127.0.0.1:8000/api/:path*",
+        destination: `${apiBaseUrl}/api/:path*`,
       },
     ];
   },

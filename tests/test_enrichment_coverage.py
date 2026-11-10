@@ -15,8 +15,8 @@ def test_email_validation_generation_and_mx_cache(monkeypatch):
     verifier = EmailVerifier()
     assert verifier.check_domain_mx_sync(None) == (False, None)
     monkeypatch.setattr(module.settings, "enable_dns_mx_check", False)
-    assert verifier.check_domain_mx_sync(" Example.DE ") == (True, "mx.example.de")
-    assert verifier.check_domain_mx_sync("example.de") == (True, "mx.example.de")
+    assert verifier.check_domain_mx_sync(" Example.DE ") == (False, None)
+    assert verifier.check_domain_mx_sync("example.de") == (False, None)
 
     class Answer:
         def __init__(self, preference, exchange):
@@ -95,7 +95,7 @@ def test_scoring_pillars_and_database_updates(tmp_path):
         args.update(overrides)
         return calculate_metrixa_lead_score(**args)
 
-    assert score()[1] == "Tier C (Long-Tail / Small)"
+    assert score() == (6, "Tier C (Long-Tail / Small)")
     assert score(exact_units=5000)[0] >= 35
     assert score(exact_units=1000)[0] >= 28
     assert score(exact_units=300)[0] >= 20
@@ -143,9 +143,55 @@ def test_scoring_pillars_and_database_updates(tmp_path):
     assert sum(result.values()) == 1
     with db.connect() as conn:
         row = conn.execute(
-            "SELECT pipeline_stage, lead_tier FROM companies_golden WHERE canonical_name='one'"
+            "SELECT pipeline_stage, lead_tier, metrixa_lead_score FROM companies_golden WHERE canonical_name='one'"
         ).fetchone()
     assert row["pipeline_stage"] == "SCORED"
+    assert row["metrixa_lead_score"] == 7
+
+
+@pytest.mark.asyncio
+async def test_contact_email_candidate_requires_named_source_contact(
+    tmp_path, monkeypatch
+):
+    import metrixa_engine.enrichment.contact_finder as module
+
+    db = Database(tmp_path / "email-candidate.db")
+    with db.connect() as conn:
+        company_id = conn.execute(
+            "INSERT INTO companies_golden (canonical_name,display_name,canonical_domain,general_email,sources_csv,pipeline_stage,updated_at) VALUES ('alpha','Alpha GmbH','alpha.de','info@alpha.de','directory','EXTRACTED','old')"
+        ).lastrowid
+        conn.execute(
+            "INSERT INTO crawled_pages (company_id,page_type,url,http_status,clean_markdown,crawled_at) VALUES (?, 'impressum', 'https://alpha.de/impressum', 200, 'Geschäftsführer Max Mustermann', 'now')",
+            (company_id,),
+        )
+        conn.execute(
+            "INSERT INTO decision_makers (company_id,full_name,first_name,last_name,role,email_status,source_url,evidence_quote,is_primary_contact) VALUES (?, 'Max Mustermann','Max','Mustermann','Geschäftsführer','NONE','https://alpha.de/impressum','Geschäftsführer Max Mustermann',1)",
+            (company_id,),
+        )
+
+    async def mx(domain):
+        return True, "mx.alpha.de"
+
+    monkeypatch.setattr(module.email_verifier, "check_domain_mx", mx)
+    result = await module.ContactEnricher(db).enrich_single_company(
+        {
+            "company_id": company_id,
+            "display_name": "Alpha GmbH",
+            "canonical_domain": "alpha.de",
+            "company_linkedin_url": None,
+            "phone_e164": None,
+            "general_email": "info@alpha.de",
+        }
+    )
+    assert result["has_pattern_email_candidate"] is True
+    with db.connect() as conn:
+        row = conn.execute(
+            "SELECT personal_email,email_status,mx_host FROM decision_makers WHERE company_id=?",
+            (company_id,),
+        ).fetchone()
+    assert row["personal_email"] == "max.mustermann@alpha.de"
+    assert row["email_status"] == "PATTERN_CANDIDATE_MX"
+    assert row["mx_host"] == "mx.alpha.de"
 
 
 @pytest.mark.asyncio
@@ -179,6 +225,9 @@ async def test_contact_enrichment_search_persistence_and_batch(tmp_path, monkeyp
                 "Alpha Company", "https://linkedin.com/company/alpha?trk=x", "", "test"
             ),
             SearchResultItem(
+                "Alpha Inhaber: Max Mustermann", "https://alpha.de/owner", "", "test"
+            ),
+            SearchResultItem(
                 "Geschäftsführer: Max Mustermann", "https://alpha.de/team", "", "test"
             ),
         ]
@@ -200,11 +249,8 @@ async def test_contact_enrichment_search_persistence_and_batch(tmp_path, monkeyp
         },
         enable_web_search_for_missing=True,
     )
-    assert (
-        result["mx_valid"]
-        and result["has_linkedin"]
-        and result["has_pattern_email_candidate"]
-    )
+    assert result["mx_valid"] and result["has_linkedin"]
+    assert not result["has_pattern_email_candidate"]
     with db.connect() as conn:
         dm = conn.execute(
             "SELECT * FROM decision_makers WHERE company_id=?", (cid,)
@@ -213,15 +259,17 @@ async def test_contact_enrichment_search_persistence_and_batch(tmp_path, monkeyp
             "SELECT pipeline_stage, company_linkedin_url FROM companies_golden WHERE company_id=?",
             (cid,),
         ).fetchone()
-    assert dm["full_name"] == "Max Mustermann"
-    assert dm["personal_email"] == "max.mustermann@alpha.de"
-    assert dm["email_status"] == "PATTERN_CANDIDATE_MX"
+    assert dm is None
+    assert company["company_linkedin_url"] == "https://linkedin.com/company/alpha"
     assert company["pipeline_stage"] == "ENRICHED"
 
     # Exercise explicit public email handling and batch progress on a second row.
     with db.connect() as conn:
         conn.execute(
             "INSERT INTO decision_makers (company_id, full_name, first_name, last_name, role, personal_email, email_status, is_primary_contact) VALUES (2,'Anna Schmidt','Anna','Schmidt','Director','anna@beta.de','PUBLIC_DIRECT_VERIFIED',1)"
+        )
+        conn.execute(
+            "INSERT INTO crawled_pages (company_id,page_type,url,http_status,clean_markdown,crawled_at) VALUES (2,'impressum','https://beta.de/impressum',200,'Anna Schmidt contact anna@beta.de','now')"
         )
 
     async def mx_false(domain):

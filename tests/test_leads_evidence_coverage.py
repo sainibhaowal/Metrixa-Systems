@@ -103,8 +103,8 @@ def test_lead_filter_sort_paging_and_evidence_scorecard(tmp_path, monkeypatch):
         "focus_pts": 25,
         "digital_pts": 20,
         "trust_pts": 10,
-        "contact_pts": 10,
-        "total_score": 91,
+        "contact_pts": 0,
+        "total_score": 90,
     }
     assert evidence["decision_makers"][0]["email_status_code"] == "PUBLIC_LISTED"
     assert len(evidence["crawled_pages"][0]["clean_markdown"]) == 2500
@@ -115,4 +115,4 @@ def test_lead_filter_sort_paging_and_evidence_scorecard(tmp_path, monkeypatch):
         and basic["decision_makers"] == []
         and basic["crawled_pages"] == []
     )
-    assert basic["scorecard"]["scale_pts"] == 16
+    assert basic["scorecard"]["scale_pts"] == 12

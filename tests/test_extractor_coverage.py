@@ -80,6 +80,65 @@ def _company(db: Database, name: str, stage: str, website: str | None = None) ->
         return dict(row)
 
 
+def _source_page(
+    db: Database, company_id: int, text: str = "Real company source text"
+) -> None:
+    with db.connect() as conn:
+        conn.execute(
+            "INSERT INTO crawled_pages (company_id,page_type,url,http_status,clean_markdown,crawled_at) VALUES (?, 'homepage', 'https://source.example/', 200, ?, 'now')",
+            (company_id, text),
+        )
+
+
+@pytest.mark.asyncio
+async def test_contact_source_url_points_to_the_page_with_its_quote(
+    tmp_path, monkeypatch
+):
+    import metrixa_engine.llm.extractor as module
+
+    db = Database(tmp_path / "contact-source.db")
+    company = _company(db, "Alpha GmbH", "CRAWLED", "https://alpha.example")
+    with db.connect() as conn:
+        conn.execute(
+            "INSERT INTO crawled_pages (company_id,page_type,url,http_status,clean_markdown,crawled_at) VALUES (?, 'impressum','https://alpha.example/impressum',200,'Legal notice','now')",
+            (company["company_id"],),
+        )
+        conn.execute(
+            "INSERT INTO crawled_pages (company_id,page_type,url,http_status,clean_markdown,crawled_at) VALUES (?, 'team','https://alpha.example/team',200,?,'now')",
+            (company["company_id"], "Michael Wolf\nProkurist"),
+        )
+
+    async def extracted(**kwargs):
+        return CompanyKPIExtraction(
+            decision_makers=[
+                DecisionMakerExtracted(
+                    full_name="Michael Wolf",
+                    role="Prokurist",
+                    source_quote="Michael Wolf Prokurist",
+                )
+            ]
+        ), {
+            "provider": "deterministic",
+            "model_name": "rules",
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "latency_ms": 1,
+            "schema_valid": True,
+            "hallucination_blocked": False,
+        }
+
+    monkeypatch.setattr(
+        module.llm_router, "extract_kpis_with_llm_and_deterministic_guard", extracted
+    )
+    await KPIExtractionPipeline(db).extract_single_company(company)
+    with db.connect() as conn:
+        source = conn.execute(
+            "SELECT source_url FROM decision_makers WHERE company_id=?",
+            (company["company_id"],),
+        ).fetchone()[0]
+    assert source == "https://alpha.example/team"
+
+
 @pytest.mark.asyncio
 async def test_extract_single_company_aggregates_pages_and_persists_every_output(
     tmp_path, monkeypatch
@@ -174,12 +233,19 @@ async def test_extract_single_company_aggregates_pages_and_persists_every_output
     assert dm["first_name"] == "Max" and dm["last_name"] == "Mustermann"
     assert dm["source_url"] == "https://alpha.example/impressum"
     assert dm["email_status"] == "PUBLIC_LISTED"
+    assert kpi["extraction_confidence"] is None
     assert updated["pipeline_stage"] == "EXTRACTED"
     assert updated["company_linkedin_url"] == "https://linkedin.com/company/alpha"
     assert updated["general_email"] == "info@example.de"
     assert audit["schema_valid"] == 1
 
-    # A second extraction takes the UPSERT branch and preserves the single KPI row.
+    # A second extraction takes the UPSERT branch, clears stale confidence, and
+    # preserves the single KPI row.
+    with db.connect() as conn:
+        conn.execute(
+            "UPDATE kpi_extractions SET extraction_confidence=0.92 WHERE company_id=?",
+            (company["company_id"],),
+        )
     await pipeline.extract_single_company(company, requested_provider="deterministic")
     with db.connect() as conn:
         assert (
@@ -189,6 +255,13 @@ async def test_extract_single_company_aggregates_pages_and_persists_every_output
             ).fetchone()[0]
             == 1
         )
+        assert (
+            conn.execute(
+                "SELECT extraction_confidence FROM kpi_extractions WHERE company_id=?",
+                (company["company_id"],),
+            ).fetchone()[0]
+            is None
+        )
 
 
 @pytest.mark.asyncio
@@ -196,7 +269,8 @@ async def test_extract_disqualified_and_batch_empty_limit_error_and_progress(
     tmp_path, monkeypatch
 ):
     db = Database(tmp_path / "extract-batch.db")
-    _company(db, "Disqualified GmbH", "CRAWLED")
+    disqualified = _company(db, "Disqualified GmbH", "CRAWLED")
+    _source_page(db, disqualified["company_id"])
     pipeline = KPIExtractionPipeline(db)
 
     async def invalid(**kwargs):
@@ -226,10 +300,14 @@ async def test_extract_disqualified_and_batch_empty_limit_error_and_progress(
         "processed": 0,
         "with_decision_maker": 0,
         "with_erp": 0,
+        "failed": 0,
+        "unverified_kpis_removed": 0,
+        "unverified_contacts_removed": 0,
     }
 
     # reprocess_all selects a broad batch; exceptions are counted safely and callbacks progress.
-    _company(db, "Retry GmbH", "SCORED")
+    retry = _company(db, "Retry GmbH", "SCORED")
+    _source_page(db, retry["company_id"])
     attempts = []
 
     async def raises(row, requested_provider=None):
@@ -243,13 +321,21 @@ async def test_extract_disqualified_and_batch_empty_limit_error_and_progress(
         reprocess_all=True,
         progress_callback=lambda n, t: progress.append((n, t)),
     )
-    assert result == {"processed": 1, "with_decision_maker": 0, "with_erp": 0}
+    assert result == {
+        "processed": 1,
+        "with_decision_maker": 0,
+        "with_erp": 0,
+        "failed": 1,
+        "unverified_kpis_removed": 0,
+        "unverified_contacts_removed": 0,
+    }
     assert attempts == ["ollama"] and progress == [(1, 1)]
 
     # The idle on-demand branch limits extraction to 10 unless the caller supplies a limit.
     db2 = Database(tmp_path / "extract-on-demand.db")
     for i in range(12):
-        _company(db2, f"Lead {i} GmbH", "SCORED")
+        lead = _company(db2, f"Lead {i} GmbH", "SCORED")
+        _source_page(db2, lead["company_id"])
     pipeline2 = KPIExtractionPipeline(db2)
     processed = []
 
@@ -264,4 +350,111 @@ async def test_extract_disqualified_and_batch_empty_limit_error_and_progress(
 
     monkeypatch.setattr(pipeline2, "extract_single_company", succeeds)
     result = await pipeline2.extract_batch(requested_provider=None)
-    assert result == {"processed": 10, "with_decision_maker": 10, "with_erp": 10}
+    assert result == {
+        "processed": 10,
+        "with_decision_maker": 10,
+        "with_erp": 10,
+        "failed": 0,
+        "unverified_kpis_removed": 0,
+        "unverified_contacts_removed": 0,
+    }
+
+
+@pytest.mark.asyncio
+async def test_extract_skips_company_without_source_evidence(tmp_path):
+    db = Database(tmp_path / "extract-no-evidence.db")
+    company = _company(db, "No Evidence GmbH", "CRAWLED")
+    with db.connect() as conn:
+        conn.execute(
+            "INSERT INTO kpi_extractions (company_id,exact_units_managed,manages_weg,manages_miet,extracted_at) VALUES (?,1200,1,1,'old')",
+            (company["company_id"],),
+        )
+        conn.execute(
+            "INSERT INTO decision_makers (company_id,full_name,personal_email,email_status,source_url,evidence_quote) VALUES (?, 'Max Mustermann','max@example.de','PUBLIC_LISTED','https://no-source.example/impressum','Director Max Mustermann')",
+            (company["company_id"],),
+        )
+    pipeline = KPIExtractionPipeline(db)
+
+    result = await pipeline.extract_single_company(company)
+    assert result == {
+        "company_id": company["company_id"],
+        "provider": "no_source_evidence",
+        "dms_found": 0,
+        "has_erp": False,
+    }
+    assert await pipeline.extract_batch(reprocess_all=True) == {
+        "processed": 0,
+        "with_decision_maker": 0,
+        "with_erp": 0,
+        "failed": 0,
+        "unverified_kpis_removed": 1,
+        "unverified_contacts_removed": 1,
+    }
+    with db.connect() as conn:
+        assert conn.execute("SELECT COUNT(*) FROM kpi_extractions").fetchone()[0] == 0
+        assert conn.execute("SELECT COUNT(*) FROM decision_makers").fetchone()[0] == 0
+
+
+@pytest.mark.asyncio
+async def test_extract_blocks_units_names_and_emails_without_source_quotes(
+    tmp_path, monkeypatch
+):
+    import metrixa_engine.llm.extractor as module
+
+    db = Database(tmp_path / "extract-quote-gates.db")
+    company = _company(db, "Alpha GmbH", "CRAWLED", "https://alpha.example")
+    _source_page(db, company["company_id"], "Owner Robin Sample")
+    extraction = CompanyKPIExtraction(
+        is_actual_hausverwaltung=True,
+        exact_units_managed=999,
+        units_evidence_quote="999 units at another company",
+        decision_makers=[
+            DecisionMakerExtracted(
+                full_name="Alex Example",
+                role="Director",
+                source_quote="Director Alex Example",
+            ),
+            DecisionMakerExtracted(
+                full_name="Robin Sample",
+                role="Owner",
+                direct_email="robin@unlisted.example",
+                source_quote="Owner Robin Sample",
+            ),
+        ],
+    )
+
+    async def fake_extract(**kwargs):
+        return extraction, {
+            "provider": "deterministic",
+            "model_name": "rules",
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "latency_ms": 1,
+            "schema_valid": True,
+            "hallucination_blocked": False,
+        }
+
+    monkeypatch.setattr(
+        module.llm_router, "extract_kpis_with_llm_and_deterministic_guard", fake_extract
+    )
+    await KPIExtractionPipeline(db).extract_single_company(company)
+
+    with db.connect() as conn:
+        kpi = conn.execute(
+            "SELECT exact_units_managed,units_evidence_quote FROM kpi_extractions WHERE company_id=?",
+            (company["company_id"],),
+        ).fetchone()
+        contacts = conn.execute(
+            "SELECT full_name,personal_email,email_status FROM decision_makers WHERE company_id=?",
+            (company["company_id"],),
+        ).fetchall()
+        audit = conn.execute(
+            "SELECT hallucination_blocked FROM llm_audit_logs WHERE company_id=?",
+            (company["company_id"],),
+        ).fetchone()
+    assert kpi["exact_units_managed"] is None and kpi["units_evidence_quote"] is None
+    assert len(contacts) == 1 and contacts[0]["full_name"] == "Robin Sample"
+    assert (
+        contacts[0]["personal_email"] is None and contacts[0]["email_status"] == "NONE"
+    )
+    assert audit["hallucination_blocked"] == 1

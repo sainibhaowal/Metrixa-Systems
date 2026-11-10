@@ -33,8 +33,10 @@ class EmailVerifier:
             return self._mx_cache[dom]
 
         if not settings.enable_dns_mx_check:
-            self._mx_cache[dom] = (True, f"mx.{dom}")
-            return True, f"mx.{dom}"
+            # A disabled lookup is not evidence that the domain has MX records.
+            # In particular, never synthesize an MX hostname that looks real.
+            self._mx_cache[dom] = (False, None)
+            return False, None
 
         try:
             resolver = dns.resolver.Resolver()

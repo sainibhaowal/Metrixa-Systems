@@ -62,6 +62,23 @@ DIRECTOR_PATTERNS = [
     ),
 ]
 
+# Some team pages put each person's job title on the following line. Do not
+# associate a preceding person's title with the next name in such a list.
+FOLLOWING_JOB_LINE = re.compile(
+    r"^[ \t]*\r?\n[ \t\u00ad]*(?:(?:Inhaber|Gründer)\s+und\s+)?"
+    r"(?:Geschäftsführer(?:in)?|Geschäftsführung|Prokurist(?:in)?|"
+    r"Assistent(?:in)?|Leiter(?:in)?)\b",
+    re.IGNORECASE,
+)
+PERSON_WITH_FOLLOWING_ROLE = re.compile(
+    r"^[ \t]*(?P<name>(?:(?:Dr\.|Prof\.)[ \t]+)?"
+    r"[A-ZÄÖÜ][a-zäöüß]+(?:-[A-ZÄÖÜa-zäöüß]+)*"
+    r"(?:[ \t]+[A-ZÄÖÜ][a-zäöüß]+(?:-[A-ZÄÖÜa-zäöüß]+)*){1,2})"
+    r"[ \t]*\r?\n[ \t]*(?P<role>(?i:(?:(?:Inhaber|Gründer)\s+und\s+)?"
+    r"(?:Geschäftsführer(?:in)?|Geschäftsführung|Prokurist(?:in)?)))\b",
+    re.MULTILINE,
+)
+
 INVALID_PERSON_TOKENS = {
     "berlin",
     "gmbh",
@@ -93,6 +110,23 @@ INVALID_PERSON_TOKENS = {
     "herr",
     "frau",
 }
+
+# Confirmed website headings that can follow a role label in combined page text.
+INVALID_PERSON_PHRASES = {"unsere werte", "ihre immobilie"}
+
+
+def has_rental_focus_signal(text: str) -> bool:
+    """Detect an actual rental-management term, not the generic word Hausverwaltung."""
+    return bool(
+        re.search(
+            r"miet[\-\s]*verwaltung|mietobjektverwaltung|zinshausverwaltung|"
+            r"miethausverwaltung|miets?h[aä]user|wohnungsverwaltung|"
+            r"verwaltung\s+(?:von|der|für)\s+miet(?:wohnungen|häuser|objekte)",
+            text or "",
+            re.IGNORECASE,
+        )
+    )
+
 
 UNITS_REGEX_PATTERNS = [
     re.compile(
@@ -174,7 +208,10 @@ def clean_extracted_person_name(raw_name: str) -> Optional[str]:
     if len(valid_words) < 2 or len(valid_words) > 4:
         return None
 
-    return " ".join(valid_words)
+    cleaned = " ".join(valid_words)
+    if cleaned.casefold() in INVALID_PERSON_PHRASES:
+        return None
+    return cleaned
 
 
 def extract_deterministic_german_kpis(
@@ -193,7 +230,6 @@ def extract_deterministic_german_kpis(
     """
     text = combined_text or ""
     lower_text = text.lower()
-    lower_name = company_name.lower()
 
     # 1. Legal form & HRB
     legal_form = extract_legal_form(company_name) or extract_legal_form(text[:3000])
@@ -219,9 +255,9 @@ def extract_deterministic_german_kpis(
             num_str = m.group(2).replace(".", "").strip()
             if num_str.isdigit():
                 val = int(num_str)
-                # Realistic property manager portfolio range (50 to 250,000 units)
-                # Exclude Berlin postal codes (10115-14199) or years (1900-2026) if ambiguous
-                if 80 <= val <= 250000 and not (1950 <= val <= 2026):
+                # The pattern requires a unit label, so values such as 2,000
+                # are legitimate portfolio figures even if they resemble years.
+                if 80 <= val <= 250000:
                     exact_units = val
                     units_quote = quote_str
                     break
@@ -242,32 +278,22 @@ def extract_deterministic_german_kpis(
     manages_weg = bool(
         re.search(
             r"weg[\-\s]*verwaltung|wohnungseigentumsverwaltung|wohnungseigentum|gemeinschaftseigentum|eigent[uü]mergemeinschaft",
-            lower_text + " " + lower_name,
+            lower_text,
         )
     )
-    manages_miet = bool(
-        re.search(
-            r"mietverwaltung|zinshausverwaltung|miethausverwaltung|mietsh[aä]user|wohnungsverwaltung|hausverwaltung",
-            lower_text + " " + lower_name,
-        )
-    )
+    manages_miet = has_rental_focus_signal(lower_text)
     manages_gewerbe = bool(
         re.search(
             r"gewerbeverwaltung|gewerbeimmobilien|gewerbeeinheiten|b[uü]roimmobilien",
-            lower_text + " " + lower_name,
+            lower_text,
         )
     )
     manages_sev = bool(
         re.search(
             r"sondereigentumsverwaltung|sondereigentum|sev[\-\s]*verwaltung",
-            lower_text + " " + lower_name,
+            lower_text,
         )
     )
-
-    # Default residential assumption for explicit Berlin Hausverwaltung
-    if not (manages_weg or manages_miet or manages_gewerbe):
-        manages_weg = True
-        manages_miet = True
 
     # 6. Decision Makers from Impressum & Team text
     decision_makers: List[DecisionMakerExtracted] = []
@@ -275,6 +301,15 @@ def extract_deterministic_german_kpis(
 
     for role_label, pat in DIRECTOR_PATTERNS:
         for m in pat.finditer(text):
+            # A capitalised suffix after a trailing hyphen means the regex only
+            # captured part of a surname. Leave it for the full-name pattern.
+            if (
+                m.group(1).rstrip().endswith("-")
+                and text[m.end() : m.end() + 1].isupper()
+            ):
+                continue
+            if FOLLOWING_JOB_LINE.match(text[m.end() :]):
+                continue
             cleaned_name = clean_extracted_person_name(m.group(1))
             if cleaned_name and cleaned_name.lower() not in seen_dm_names:
                 seen_dm_names.add(cleaned_name.lower())
@@ -286,6 +321,24 @@ def extract_deterministic_german_kpis(
                         source_quote=quote_snip,
                     )
                 )
+
+    for m in PERSON_WITH_FOLLOWING_ROLE.finditer(text):
+        cleaned_name = clean_extracted_person_name(m.group("name"))
+        if not cleaned_name or cleaned_name.lower() in seen_dm_names:
+            continue
+        seen_dm_names.add(cleaned_name.lower())
+        role_label = (
+            "Prokurist"
+            if "prokurist" in m.group("role").casefold()
+            else "Geschäftsführer"
+        )
+        decision_makers.append(
+            DecisionMakerExtracted(
+                full_name=cleaned_name,
+                role=role_label,
+                source_quote=re.sub(r"\s+", " ", m.group(0)).strip()[:180],
+            )
+        )
 
     # 7. Classify extracted emails into Personal Direct vs. General info@
     general_emails: List[str] = []
@@ -334,7 +387,7 @@ def extract_deterministic_german_kpis(
     # Build concise factual reasoning
     reasons = []
     if exact_units:
-        reasons.append(f"Manages {exact_units:,} explicit units")
+        reasons.append(f"Source reports {units_quote}")
     elif emp_count:
         reasons.append(f"Team of {emp_count} employees")
     if manages_weg and manages_miet:
@@ -348,7 +401,7 @@ def extract_deterministic_german_kpis(
     elif has_portal:
         reasons.append("provides an online customer portal")
     if decision_makers:
-        reasons.append(f"verified decision maker ({decision_makers[0].full_name})")
+        reasons.append(f"source-listed decision maker ({decision_makers[0].full_name})")
 
     reasoning_str = (
         f"Qualified Berlin Hausverwaltung ({legal_form or 'verified entity'}): "

@@ -149,6 +149,23 @@ class KPIExtractionPipeline:
                     has_portal = True
 
             combined_markdown = "\n\n".join(combined_parts)
+            has_source_evidence = bool(
+                combined_markdown.strip()
+                or erp_set
+                or metering_set
+                or emails_set
+                or linkedin_set
+                or has_portal
+            )
+            if not has_source_evidence:
+                # Do not create KPI or contact claims from a company name alone.
+                return {
+                    "company_id": comp_id,
+                    "provider": "no_source_evidence",
+                    "dms_found": 0,
+                    "has_erp": False,
+                }
+
             erp_list = sorted(erp_set)
             metering_list = sorted(metering_set)
             emails_list = sorted(emails_set)
@@ -167,6 +184,39 @@ class KPIExtractionPipeline:
                     requested_provider=requested_provider,
                 )
             )
+
+            normalized_source = " ".join(combined_markdown.split()).casefold()
+            if extraction.exact_units_managed is not None:
+                units_quote = " ".join(
+                    (extraction.units_evidence_quote or "").split()
+                ).casefold()
+                if not units_quote or units_quote not in normalized_source:
+                    extraction.exact_units_managed = None
+                    extraction.units_evidence_quote = None
+                    audit_meta["hallucination_blocked"] = True
+
+            grounded_decision_makers = []
+            for dm in extraction.decision_makers:
+                quote = " ".join((dm.source_quote or "").split()).casefold()
+                name = " ".join((dm.full_name or "").split()).casefold()
+                if (
+                    not quote
+                    or quote not in normalized_source
+                    or not name
+                    or name not in quote
+                ):
+                    audit_meta["hallucination_blocked"] = True
+                    continue
+                if (
+                    dm.direct_email
+                    and dm.direct_email.casefold() not in normalized_source
+                    and dm.direct_email.casefold()
+                    not in {email.casefold() for email in emails_set}
+                ):
+                    audit_meta["hallucination_blocked"] = True
+                    dm.direct_email = None
+                grounded_decision_makers.append(dm)
+            extraction.decision_makers = grounded_decision_makers
 
             final_legal_form = extraction.legal_form or company_row["legal_form"]
             final_has_portal = extraction.has_online_portal or has_portal
@@ -235,6 +285,7 @@ class KPIExtractionPipeline:
                         qualification_reasoning = excluded.qualification_reasoning,
                         llm_provider_used = excluded.llm_provider_used,
                         llm_model_used = excluded.llm_model_used,
+                        extraction_confidence = excluded.extraction_confidence,
                         extracted_at = excluded.extracted_at
                     """,
                     (
@@ -257,7 +308,7 @@ class KPIExtractionPipeline:
                         extraction.qualification_reasoning,
                         audit_meta["provider"],
                         audit_meta["model_name"],
-                        0.92 if pages else 0.65,
+                        None,
                         now_iso,
                     ),
                 )
@@ -271,6 +322,19 @@ class KPIExtractionPipeline:
                     first_name = parts[0] if parts else ""
                     last_name = parts[-1] if len(parts) > 1 else ""
                     email_stat = "PUBLIC_LISTED" if dm.direct_email else "NONE"
+                    normalized_quote = " ".join(
+                        (dm.source_quote or "").split()
+                    ).casefold()
+                    evidence_url = next(
+                        (
+                            p["url"]
+                            for p in pages
+                            if normalized_quote
+                            and normalized_quote
+                            in " ".join((p["clean_markdown"] or "").split()).casefold()
+                        ),
+                        impressum_url,
+                    )
                     conn.execute(
                         """
                         INSERT INTO decision_makers (
@@ -289,7 +353,7 @@ class KPIExtractionPipeline:
                             email_stat,
                             dm.direct_phone,
                             dm.linkedin_url,
-                            impressum_url,
+                            evidence_url,
                             dm.source_quote,
                             1 if idx == 0 else 0,
                         ),
@@ -353,13 +417,54 @@ class KPIExtractionPipeline:
         reprocess_all: bool = False,
         progress_callback: Optional[Callable[[int, int], None]] = None,
     ) -> Dict[str, int]:
+        unverified_kpis_removed = 0
+        unverified_contacts_removed = 0
         with self.db.connect() as conn:
+            if reprocess_all:
+                no_evidence_sql = """
+                    SELECT c.company_id FROM companies_golden c
+                    WHERE c.pipeline_stage != 'DISQUALIFIED'
+                      AND NOT EXISTS (
+                        SELECT 1 FROM crawled_pages p
+                        WHERE p.company_id = c.company_id AND p.http_status = 200
+                          AND (
+                            length(trim(coalesce(p.clean_markdown, ''))) > 0
+                            OR length(trim(coalesce(p.detected_erp_csv, ''))) > 0
+                            OR length(trim(coalesce(p.detected_metering_csv, ''))) > 0
+                            OR p.has_portal_link = 1
+                            OR length(trim(coalesce(p.social_linkedin_csv, ''))) > 0
+                            OR length(trim(coalesce(p.extracted_emails_csv, ''))) > 0
+                          )
+                      )
+                """
+                unverified_contacts_removed = conn.execute(
+                    f"DELETE FROM decision_makers WHERE company_id IN ({no_evidence_sql})"
+                ).rowcount
+                unverified_kpis_removed = conn.execute(
+                    f"DELETE FROM kpi_extractions WHERE company_id IN ({no_evidence_sql})"
+                ).rowcount
+
             crawled_count = conn.execute(
-                "SELECT COUNT(*) FROM companies_golden WHERE pipeline_stage = 'CRAWLED'"
+                """
+                SELECT COUNT(*) FROM companies_golden c
+                WHERE c.pipeline_stage = 'CRAWLED'
+                  AND EXISTS (
+                    SELECT 1 FROM crawled_pages p
+                    WHERE p.company_id = c.company_id AND p.http_status = 200
+                      AND (
+                        length(trim(coalesce(p.clean_markdown, ''))) > 0
+                        OR length(trim(coalesce(p.detected_erp_csv, ''))) > 0
+                        OR length(trim(coalesce(p.detected_metering_csv, ''))) > 0
+                        OR p.has_portal_link = 1
+                        OR length(trim(coalesce(p.social_linkedin_csv, ''))) > 0
+                        OR length(trim(coalesce(p.extracted_emails_csv, ''))) > 0
+                      )
+                  )
+                """
             ).fetchone()[0]
 
             if reprocess_all or crawled_count == 0:
-                stage_filter = "pipeline_stage != 'DISQUALIFIED'"
+                stage_filter = "c.pipeline_stage != 'DISQUALIFIED'"
                 # When all leads are already scored and user triggers extract on-demand without explicit limit, process a batch of 10
                 effective_limit = (
                     limit
@@ -367,25 +472,45 @@ class KPIExtractionPipeline:
                     else (10 if crawled_count == 0 and not reprocess_all else None)
                 )
             else:
-                stage_filter = "pipeline_stage = 'CRAWLED'"
+                stage_filter = "c.pipeline_stage = 'CRAWLED'"
                 effective_limit = limit
 
             query = f"""
-                SELECT * FROM companies_golden
+                SELECT c.* FROM companies_golden c
                 WHERE {stage_filter}
-                ORDER BY is_vdiv_member DESC, source_count DESC, company_id ASC
+                  AND EXISTS (
+                    SELECT 1 FROM crawled_pages p
+                    WHERE p.company_id = c.company_id AND p.http_status = 200
+                      AND (
+                        length(trim(coalesce(p.clean_markdown, ''))) > 0
+                        OR length(trim(coalesce(p.detected_erp_csv, ''))) > 0
+                        OR length(trim(coalesce(p.detected_metering_csv, ''))) > 0
+                        OR p.has_portal_link = 1
+                        OR length(trim(coalesce(p.social_linkedin_csv, ''))) > 0
+                        OR length(trim(coalesce(p.extracted_emails_csv, ''))) > 0
+                      )
+                  )
+                ORDER BY c.is_vdiv_member DESC, c.source_count DESC, c.company_id ASC
             """
-            if effective_limit:
+            if effective_limit is not None:
                 query += f" LIMIT {int(effective_limit)}"
             rows = [dict(r) for r in conn.execute(query).fetchall()]
 
         total = len(rows)
         if total == 0:
-            return {"processed": 0, "with_decision_maker": 0, "with_erp": 0}
+            return {
+                "processed": 0,
+                "with_decision_maker": 0,
+                "with_erp": 0,
+                "failed": 0,
+                "unverified_kpis_removed": unverified_kpis_removed,
+                "unverified_contacts_removed": unverified_contacts_removed,
+            }
 
         completed = 0
         with_dm = 0
         with_erp = 0
+        failed = 0
 
         # Concurrency throttle: local inference daemons (LM Studio, Ollama) require serial or max 2 concurrent requests
         prov_str = (requested_provider or settings.default_llm_provider or "").lower()
@@ -416,6 +541,8 @@ class KPIExtractionPipeline:
         for coro in asyncio.as_completed(tasks):
             res = await coro
             completed += 1
+            if res.get("provider") == "error":
+                failed += 1
             if res.get("dms_found", 0) > 0:
                 with_dm += 1
             if res.get("has_erp", False):
@@ -427,4 +554,7 @@ class KPIExtractionPipeline:
             "processed": total,
             "with_decision_maker": with_dm,
             "with_erp": with_erp,
+            "failed": failed,
+            "unverified_kpis_removed": unverified_kpis_removed,
+            "unverified_contacts_removed": unverified_contacts_removed,
         }

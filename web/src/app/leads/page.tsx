@@ -331,7 +331,7 @@ export default function LeadsExplorerPage() {
                         </span>
                       ) : (
                         <span className="text-zinc-400">
-                          {lead.estimated_units_tier || "<250"}
+                          {lead.estimated_units_tier || "Not estimated"}
                         </span>
                       )}
                     </td>

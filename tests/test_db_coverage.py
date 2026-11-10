@@ -4,6 +4,14 @@ from metrixa_engine.db import Database
 from metrixa_engine.models import RawListing
 
 
+def test_database_keeps_wal_mode_without_reissuing_mode_change(tmp_path):
+    db = Database(tmp_path / "wal-mode.db")
+    with db.connect() as first:
+        assert first.execute("PRAGMA journal_mode").fetchone()[0].lower() == "wal"
+    with db.connect() as second:
+        assert second.execute("PRAGMA journal_mode").fetchone()[0].lower() == "wal"
+
+
 def test_raw_listing_empty_duplicate_and_enrichment_update(tmp_path):
     db = Database(tmp_path / "raw-insert.db")
     assert db.insert_raw_listings([]) == 0
@@ -13,7 +21,7 @@ def test_raw_listing_empty_duplicate_and_enrichment_update(tmp_path):
     assert db.insert_raw_listings([base]) == 1
     # Exact duplicates with no new contact fields are skipped.
     assert db.insert_raw_listings([base]) == 0
-    # A duplicate with new contact details updates the existing row and increments the changed count.
+    # A fresh observation updates known fields without inflating the insert count.
     enriched = RawListing(
         source_name="directory",
         raw_company_name="Alpha GmbH",
@@ -21,8 +29,8 @@ def test_raw_listing_empty_duplicate_and_enrichment_update(tmp_path):
         raw_email="contact@alpha.de",
         raw_website="https://alpha.de",
     )
-    assert db.insert_raw_listings([enriched]) == 1
-    # Existing contact details are kept by COALESCE when later duplicate values arrive.
+    assert db.insert_raw_listings([enriched]) == 0
+    # A later source observation refreshes non-empty values and the last-seen timestamp.
     later = RawListing(
         source_name="directory",
         raw_company_name="Alpha GmbH",
@@ -30,14 +38,37 @@ def test_raw_listing_empty_duplicate_and_enrichment_update(tmp_path):
         raw_email="other@alpha.de",
         raw_website="https://other.de",
     )
-    assert db.insert_raw_listings([later]) == 0
+    result = db.upsert_raw_listings([later])
+    assert result == {"inserted": 0, "refreshed": 1}
     with db.connect() as conn:
         rows = conn.execute(
-            "SELECT raw_email, raw_website FROM raw_listings"
+            "SELECT raw_email, raw_website, scraped_at FROM raw_listings"
         ).fetchall()
     assert len(rows) == 1
-    assert rows[0]["raw_email"] == "contact@alpha.de"
-    assert rows[0]["raw_website"] == "https://alpha.de"
+    assert rows[0]["raw_email"] == "other@alpha.de"
+    assert rows[0]["raw_website"] == "https://other.de"
+    assert rows[0]["scraped_at"] != base.scraped_at.isoformat()
+
+
+def test_init_schema_clears_uncalibrated_legacy_confidence(tmp_path):
+    db = Database(tmp_path / "confidence-migration.db")
+    with db.connect() as conn:
+        company_id = conn.execute(
+            "INSERT INTO companies_golden (canonical_name,display_name,sources_csv,updated_at) VALUES ('alpha','Alpha GmbH','directory','now')"
+        ).lastrowid
+        conn.execute(
+            "INSERT INTO kpi_extractions (company_id,extraction_confidence,extracted_at) VALUES (?,0.92,'old')",
+            (company_id,),
+        )
+
+    db.init_schema()
+
+    with db.connect() as conn:
+        confidence = conn.execute(
+            "SELECT extraction_confidence FROM kpi_extractions WHERE company_id=?",
+            (company_id,),
+        ).fetchone()[0]
+    assert confidence is None
 
 
 def test_vdiv_migration_tolerates_malformed_payload_and_updates_claims(tmp_path):

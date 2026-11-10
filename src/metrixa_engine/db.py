@@ -119,7 +119,7 @@ CREATE TABLE IF NOT EXISTS kpi_extractions (
     qualification_reasoning TEXT,
     llm_provider_used TEXT,
     llm_model_used TEXT,
-    extraction_confidence REAL DEFAULT 0.8,
+    extraction_confidence REAL,
     extracted_at TEXT NOT NULL,
     FOREIGN KEY (company_id) REFERENCES companies_golden(company_id) ON DELETE CASCADE
 );
@@ -236,7 +236,6 @@ class Database:
     def connect(self) -> Generator[sqlite3.Connection, None, None]:
         conn = sqlite3.connect(str(self.db_path), timeout=30.0)
         conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA journal_mode = WAL;")
         conn.execute("PRAGMA synchronous = NORMAL;")
         conn.execute("PRAGMA foreign_keys = ON;")
         conn.execute("PRAGMA cache_size = -64000;")
@@ -254,6 +253,16 @@ class Database:
     def init_schema(self) -> None:
         with self.connect() as conn:
             conn.executescript(SCHEMA_DDL)
+
+            # Older builds stored hard-coded confidence values without a
+            # calibrated confidence model. Clear those unsupported scores.
+            conn.execute(
+                """
+                UPDATE kpi_extractions
+                SET extraction_confidence = NULL
+                WHERE extraction_confidence IS NOT NULL
+                """
+            )
 
             # Older builds inserted a hand-curated VDIV list and marked every
             # entry as verified. Preserve those source records, but remove the
@@ -331,10 +340,15 @@ class Database:
             )
 
     def insert_raw_listings(self, listings: List[RawListing]) -> int:
-        """Insert a batch of raw scraped listings, skipping exact duplicate (source_name, raw_company_name, raw_postal_code)."""
+        """Insert listings and refresh exact matches; return only new rows inserted."""
+        return self.upsert_raw_listings(listings)["inserted"]
+
+    def upsert_raw_listings(self, listings: List[RawListing]) -> Dict[str, int]:
+        """Refresh matching source observations and report inserted/refreshed counts."""
         if not listings:
-            return 0
+            return {"inserted": 0, "refreshed": 0}
         inserted = 0
+        refreshed = 0
         now_iso = datetime.now(timezone.utc).isoformat()
         with self.connect() as conn:
             for item in listings:
@@ -347,19 +361,40 @@ class Database:
                     (item.source_name, item.raw_company_name, item.raw_postal_code),
                 ).fetchone()
                 if exists:
-                    if (not exists["raw_email"] and item.raw_email) or (
-                        not exists["raw_website"] and item.raw_website
-                    ):
-                        conn.execute(
-                            """
-                            UPDATE raw_listings
-                            SET raw_email = COALESCE(raw_email, ?),
-                                raw_website = COALESCE(raw_website, ?)
-                            WHERE id = ?
-                            """,
-                            (item.raw_email, item.raw_website, exists["id"]),
-                        )
-                        inserted += 1
+                    payload = json.dumps(item.raw_payload, ensure_ascii=False)
+                    conn.execute(
+                        """
+                        UPDATE raw_listings
+                        SET external_id = COALESCE(?, external_id),
+                            raw_street = COALESCE(?, raw_street),
+                            raw_city = COALESCE(?, raw_city),
+                            raw_district = COALESCE(?, raw_district),
+                            raw_phone = COALESCE(?, raw_phone),
+                            raw_email = COALESCE(?, raw_email),
+                            raw_website = COALESCE(?, raw_website),
+                            source_url = COALESCE(?, source_url),
+                            is_vdiv_member = ?,
+                            raw_json_payload = CASE WHEN ? != '{}' THEN ? ELSE raw_json_payload END,
+                            scraped_at = ?
+                        WHERE id = ?
+                        """,
+                        (
+                            item.external_id,
+                            item.raw_street,
+                            item.raw_city,
+                            item.raw_district,
+                            item.raw_phone,
+                            item.raw_email,
+                            item.raw_website,
+                            item.source_url,
+                            1 if item.is_vdiv_member else 0,
+                            payload,
+                            payload,
+                            now_iso,
+                            exists["id"],
+                        ),
+                    )
+                    refreshed += 1
                     continue
                 conn.execute(
                     """
@@ -388,7 +423,7 @@ class Database:
                     ),
                 )
                 inserted += 1
-        return inserted
+        return {"inserted": inserted, "refreshed": refreshed}
 
     def get_all_raw_listings(self) -> List[Dict[str, Any]]:
         with self.connect() as conn:

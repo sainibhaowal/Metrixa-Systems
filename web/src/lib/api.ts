@@ -59,6 +59,7 @@ export async function triggerPipelineStage(
   stage: string,
   provider?: string,
   city?: string,
+  reprocessAll = false,
 ) {
   // Clear metrics cache on pipeline mutation
   metricsCache = null;
@@ -69,6 +70,7 @@ export async function triggerPipelineStage(
       stage,
       provider: provider || "auto_fallback",
       city: city || "Berlin",
+      reprocess_all: reprocessAll,
     }),
   });
   if (!res.ok) throw new Error("Failed to trigger pipeline");
@@ -222,6 +224,21 @@ export async function fetchDeliverablesStatus() {
     cache: "no-store",
   });
   if (!res.ok) throw new Error("Failed to fetch deliverables status");
+  return res.json();
+}
+
+export async function generateCurrentCaseStudy(provider?: string) {
+  const res = await fetch(`${API_BASE}/api/case-study/generate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(provider ? { provider } : {}),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(
+      errorData.detail || "Failed to generate current case study",
+    );
+  }
   return res.json();
 }
 

@@ -79,7 +79,7 @@ class GoogleSheetsSync:
                 "Canonical Domain",
                 "General Email",
                 "Company LinkedIn",
-                "VDIV Member",
+                "VDIV Membership Signal",
                 "Source Count",
                 "Ingestion Sources",
                 "Metrixa Lead Score (0-100)",
@@ -87,14 +87,14 @@ class GoogleSheetsSync:
                 "Founding Year",
                 "Exact Units Managed",
                 "Units Evidence Quote",
-                "Estimated Units Tier",
+                "Estimated Units Tier (if available)",
                 "Employee Count Est",
                 "Reference Buildings",
-                "WEG Management",
-                "Rental Management",
-                "Commercial Management",
-                "SEV Management",
-                "Customer Portal",
+                "WEG Focus Signal Found in Saved Pages",
+                "Rental Focus Signal Found in Saved Pages",
+                "Commercial Focus Signal Found in Saved Pages",
+                "SEV Signal Found in Saved Pages",
+                "Customer Portal Signal Found in Saved Pages",
                 "Detected PropTech ERP",
                 "Incumbent Metering",
                 "Digital Maturity (1-5)",
@@ -104,6 +104,33 @@ class GoogleSheetsSync:
             d1: List[List[Any]] = []
             for r in master_rows:
                 row_vals = [_sheet_cell_value(val) for val in r]
+                row_vals[h1.index("VDIV Membership Signal")] = (
+                    "Found" if r["is_vdiv_member"] else "Not confirmed"
+                )
+                for column, field in (
+                    ("WEG Focus Signal Found in Saved Pages", "manages_weg"),
+                    ("Rental Focus Signal Found in Saved Pages", "manages_miet"),
+                    ("Commercial Focus Signal Found in Saved Pages", "manages_gewerbe"),
+                    ("SEV Signal Found in Saved Pages", "manages_sev"),
+                    (
+                        "Customer Portal Signal Found in Saved Pages",
+                        "has_customer_portal",
+                    ),
+                ):
+                    value = r[field]
+                    row_vals[h1.index(column)] = (
+                        "Not assessed"
+                        if value is None
+                        else "Found" if value else "Not found"
+                    )
+                row_vals[h1.index("Estimated Units Tier (if available)")] = (
+                    r["estimated_units_tier"] or "Not estimated"
+                )
+                row_vals[h1.index("Digital Maturity (1-5)")] = (
+                    r["digital_maturity_score"]
+                    if r["digital_maturity_score"] is not None
+                    else "Not assessed"
+                )
                 d1.append(row_vals)
 
             # Tab 2: Decision Makers
@@ -127,7 +154,7 @@ class GoogleSheetsSync:
                 "Role / Title",
                 "Email Address / Candidate",
                 "Email Evidence Status",
-                "DNS MX Valid",
+                "Company-domain MX status (mailbox untested)",
                 "DNS MX Server Host",
                 "Direct Phone",
                 "LinkedIn URL",
@@ -145,7 +172,7 @@ class GoogleSheetsSync:
                         r["role"] or "",
                         r["personal_email"] or "",
                         email_status_label(r["email_status"]),
-                        "Yes" if r["mx_valid"] else "No",
+                        "MX host confirmed" if r["mx_valid"] else "Not confirmed",
                         r["mx_host"] or "",
                         r["direct_phone"] or "",
                         r["linkedin_url"] or "",
@@ -238,7 +265,7 @@ class GoogleSheetsSync:
                 "HTTP Status",
                 "DOM Detected ERP / PropTech",
                 "DOM Detected Metering Incumbent",
-                "Customer Portal Detected",
+                "Customer Portal Signal Found",
                 "Verbatim Units Evidence Quote",
                 "Extraction Engine Used",
             ]
@@ -254,7 +281,7 @@ class GoogleSheetsSync:
                         r["http_status"] or 200,
                         r["detected_erp_csv"] or "",
                         r["detected_metering_csv"] or "",
-                        "Yes" if r["has_portal_link"] else "No",
+                        "Found" if r["has_portal_link"] else "Not found",
                         r["units_evidence_quote"] or "",
                         r["llm_provider_used"] or "deterministic_german_nlp",
                     ]

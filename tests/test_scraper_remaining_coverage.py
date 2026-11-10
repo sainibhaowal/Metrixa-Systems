@@ -186,19 +186,34 @@ def test_module_cli_invokes_configured_uvicorn(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_vdiv_live_scrape_deduplicates_between_directory_pages(monkeypatch):
+async def test_vdiv_live_scrape_deduplicates_member_cards(monkeypatch):
     import metrixa_engine.scrapers.vdiv as module
 
     scraper = VDIVScraper()
     monkeypatch.setattr(module.httpx, "AsyncClient", _HttpContext)
-    first = "<article><h2>Alpha Verwaltung GmbH</h2><p>10115 Berlin</p></article>"
-    second = "<article><h2>Alpha Verwaltung GmbH</h2><p>10115 Berlin</p></article><article><h2>Beta Verwaltung GmbH</h2><p>10719 Berlin</p></article>"
+    html = """
+    <div class="contact-list-contact-container">
+      <span class="contact-list-contact-name">Alpha Verwaltung GmbH</span>
+      <div class="contact-list-address"><span>10115 Berlin</span></div>
+    </div>
+    <div class="contact-list-contact-container">
+      <span class="contact-list-contact-name">Alpha Verwaltung GmbH</span>
+      <div class="contact-list-address"><span>10115 Berlin</span></div>
+    </div>
+    <div class="contact-list-contact-container">
+      <span class="contact-list-contact-name">Beta Verwaltung GmbH</span>
+      <div class="contact-list-address"><span>10719 Berlin</span></div>
+    </div>
+    """
+    requested = []
 
     async def fetch(client, url):
-        return first if "vdiv-bb" in url else second
+        requested.append(url)
+        return html
 
     monkeypatch.setattr(scraper, "fetch_text", fetch)
     rows = await scraper.scrape_berlin()
+    assert requested == ["https://vdiv-bb.de/mitglieder/"]
     assert [row.raw_company_name for row in rows] == [
         "Alpha Verwaltung GmbH",
         "Beta Verwaltung GmbH",
@@ -227,4 +242,38 @@ async def test_overpass_skips_non_success_http_responses(monkeypatch):
             return Response()
 
     monkeypatch.setattr(module.httpx, "AsyncClient", ClientContext)
-    assert await OSMOverpassScraper().scrape_berlin() == []
+    scraper = OSMOverpassScraper()
+    assert await scraper.scrape_berlin() == []
+    assert "returned HTTP 503" in scraper.last_diagnostic
+
+
+@pytest.mark.asyncio
+async def test_overpass_reports_successful_empty_query_results(monkeypatch):
+    import metrixa_engine.scrapers.osm_overpass as module
+    from metrixa_engine.scrapers.osm_overpass import OSMOverpassScraper
+
+    class Response:
+        status_code = 200
+
+        @staticmethod
+        def json():
+            return {"elements": []}
+
+    class ClientContext:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return None
+
+        async def post(self, *args, **kwargs):
+            return Response()
+
+    monkeypatch.setattr(module.httpx, "AsyncClient", ClientContext)
+    scraper = OSMOverpassScraper()
+
+    assert await scraper.scrape_berlin() == []
+    assert "responded, but no matching named company records" in scraper.last_diagnostic

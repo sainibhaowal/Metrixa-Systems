@@ -70,7 +70,7 @@ def test_scorecard_scale_and_contact_variants(isolated_api):
         (2500, None, 35),
         (1000, None, 28),
         (300, None, 20),
-        (None, None, 16),
+        (None, None, 12),
         (None, None, 6),
     ]
     ids = []
@@ -117,7 +117,7 @@ def test_scorecard_scale_and_contact_variants(isolated_api):
     )
     assert (
         client.get(f"/api/leads/{ids[2]}/evidence").json()["scorecard"]["focus_pts"]
-        == 15
+        == 0
     )
 
 

@@ -54,17 +54,27 @@ class SearchDiscoveryScraper(BaseAsyncScraper):
     async def scrape_berlin(self, max_pages: int = 1) -> List[RawListing]:
         listings: List[RawListing] = []
         seen_domains: Set[str] = set()
+        search_results_count = 0
+        rejected_candidates = 0
 
         for query in BERLIN_SEARCH_DORKS:
             results = await search_router.search(
-                query, max_results=10, allow_tavily_fallback=False
+                query, max_results=10, allow_tavily_fallback=True
             )
+            search_results_count += len(results)
             for item in results:
                 parsed = urllib.parse.urlparse(item.url)
-                host = parsed.netloc.lower().lstrip("www.")
-                if not host or any(excl in host for excl in EXCLUDED_SEARCH_DOMAINS):
+                host = (parsed.hostname or "").lower()
+                if host.startswith("www."):
+                    host = host[4:]
+                if not host or any(
+                    host == excluded or host.endswith(f".{excluded}")
+                    for excluded in EXCLUDED_SEARCH_DOMAINS
+                ):
+                    rejected_candidates += 1
                     continue
                 if host in seen_domains:
+                    rejected_candidates += 1
                     continue
                 seen_domains.add(host)
 
@@ -93,4 +103,16 @@ class SearchDiscoveryScraper(BaseAsyncScraper):
                     )
                 )
 
+        if listings:
+            self.last_diagnostic = (
+                f"Accepted {len(listings)} unique company candidates from "
+                f"{search_results_count} search results."
+            )
+        elif search_results_count:
+            self.last_diagnostic = (
+                f"Received {search_results_count} search results; "
+                f"{rejected_candidates} were excluded or duplicated, and no candidates remained."
+            )
+        else:
+            self.last_diagnostic = "The configured search provider chain returned no results for the targeted queries."
         return listings

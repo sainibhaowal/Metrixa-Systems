@@ -51,6 +51,7 @@ import {
   pingProvider,
   fetchMetrics,
   apiUrl,
+  generateCurrentCaseStudy,
 } from "@/lib/api";
 import { RoundedSelect, SelectOption } from "@/components/ui/RoundedSelect";
 
@@ -117,17 +118,17 @@ const STAGES: PipelineStageDef[] = [
   },
   {
     id: "extract",
-    name: "Hybrid Multi-LLM KPI Extraction",
-    shortName: "AI Extract",
+    name: "Source-Evidence KPI Extraction",
+    shortName: "Evidence Extract",
     stepNum: "04",
     category: "extract",
     desc: "Extracts managed units, WEG/Miet focus & Geschäftsführer.",
     details:
-      "Layer 1: Deterministic German § 5 DDG legal parser ($0 cost baseline). Layer 2: LLM extraction (OpenAI, Gemini, DeepSeek, local Ollama) with anti-hallucination quote verification gates.",
+      "Deterministic extraction from retrieved Stage 3 pages with source-quote checks. The separate case-study writer uses the configured LLM only for cited narrative; measured figures remain database-derived.",
     tools: [
       "GermanImpressumParser",
-      "LLMRouter",
-      "AntiHallucinationGate",
+      "SourceEvidenceGate",
+      "QuoteVerifier",
       "PydanticSchemaValidator",
     ],
   },
@@ -317,6 +318,7 @@ export default function MissionControlPage() {
   const [progress, setProgress] = useState<number>(0);
   const [viewMode, setViewMode] = useState<"concise" | "deep">("concise");
   const [selectedCity, setSelectedCity] = useState<string>("Berlin");
+  const [reprocessAll, setReprocessAll] = useState<boolean>(false);
 
   // Real-Time Live Stage Timing State
   const [stageDurations, setStageDurations] = useState<Record<string, number>>(
@@ -370,6 +372,9 @@ export default function MissionControlPage() {
   const [toolResult, setToolResult] = useState<any>(null);
   const [testingTool, setTestingTool] = useState<boolean>(false);
   const [liveMetrics, setLiveMetrics] = useState<any>(null);
+  const [generatingCaseStudy, setGeneratingCaseStudy] = useState(false);
+  const [caseStudyMessage, setCaseStudyMessage] = useState("");
+  const [caseStudyReady, setCaseStudyReady] = useState(false);
 
   const logEndRef = useRef<HTMLDivElement>(null);
 
@@ -805,7 +810,7 @@ export default function MissionControlPage() {
           msg: `Dispatched pipeline controller: [${stage.toUpperCase()}] for region [${selectedCity}].`,
         },
       ]);
-      await triggerPipelineStage(stage, undefined, selectedCity);
+      await triggerPipelineStage(stage, undefined, selectedCity, reprocessAll);
     } catch (err: any) {
       recordActiveStageDuration();
       currentStageRef.current = null;
@@ -822,6 +827,23 @@ export default function MissionControlPage() {
           msg: `Failed to trigger stage: ${err.message}`,
         },
       ]);
+    }
+  };
+
+  const handleGenerateCaseStudy = async () => {
+    try {
+      setGeneratingCaseStudy(true);
+      setCaseStudyMessage("");
+      setCaseStudyReady(false);
+      await generateCurrentCaseStudy();
+      setCaseStudyMessage(
+        "Current case study generated from retrieved Stage 3 evidence.",
+      );
+      setCaseStudyReady(true);
+    } catch (err: any) {
+      setCaseStudyMessage(err.message || "Case-study generation failed.");
+    } finally {
+      setGeneratingCaseStudy(false);
     }
   };
 
@@ -1063,6 +1085,19 @@ export default function MissionControlPage() {
 
         {/* Right Master Execution Button & Emergency Interrupt */}
         <div className="flex items-center gap-2">
+          <label
+            className="flex items-center gap-1.5 text-[10px] text-zinc-400 cursor-pointer"
+            title="Visit every saved company website and re-extract only pages with source evidence. This takes longer and makes more external requests."
+          >
+            <input
+              type="checkbox"
+              checked={reprocessAll}
+              disabled={running}
+              onChange={(event) => setReprocessAll(event.target.checked)}
+              className="accent-emerald-400"
+            />
+            <span>Re-crawl all saved websites</span>
+          </label>
           {running && (
             <button
               onClick={handleCancel}
@@ -1073,6 +1108,25 @@ export default function MissionControlPage() {
               <X className="w-3.5 h-3.5 text-rose-400" />
               <span>{cancelling ? "Stopping..." : "Interrupt / Stop"}</span>
             </button>
+          )}
+          <button
+            onClick={handleGenerateCaseStudy}
+            disabled={running || generatingCaseStudy}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-violet-500/15 hover:bg-violet-500/25 text-violet-200 border border-violet-500/35 text-xs font-semibold transition-all disabled:opacity-50 shrink-0"
+            title="Uses the configured LLM for cited narrative from retrieved Stage 3 signals; figures are read from SQLite."
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>
+              {generatingCaseStudy ? "Writing..." : "Generate Case Study"}
+            </span>
+          </button>
+          {caseStudyReady && (
+            <a
+              href={apiUrl("/api/artifacts/download/current-case-study")}
+              className="text-xs text-emerald-300 underline underline-offset-2 whitespace-nowrap"
+            >
+              Download Case Study
+            </a>
           )}
           <button
             onClick={() => handleRun("full")}
@@ -1088,6 +1142,14 @@ export default function MissionControlPage() {
           </button>
         </div>
       </div>
+      {caseStudyMessage && (
+        <div
+          className={`px-4 py-2 text-xs border-b ${caseStudyReady ? "text-emerald-300 bg-emerald-950/25 border-emerald-900/50" : "text-amber-200 bg-amber-950/25 border-amber-900/50"}`}
+          role="status"
+        >
+          {caseStudyMessage}
+        </div>
+      )}
 
       {/* ========================================================================= */}
       {/* 2. THE 3-PANEL WIDESCREEN WORKSPACE (100% DISPLAY UTILIZATION)            */}
@@ -1395,6 +1457,8 @@ export default function MissionControlPage() {
                             const isSelected = selectedRun?.run_id === r.run_id;
                             const isChecked = selectedRunIds.includes(r.run_id);
                             const isSuccess = r.status === "COMPLETED";
+                            const hasWarnings =
+                              r.status === "COMPLETED_WITH_WARNINGS";
 
                             return (
                               <div
@@ -1447,7 +1511,9 @@ export default function MissionControlPage() {
                                         className={`w-1.5 h-1.5 rounded-full shrink-0 ${
                                           isSuccess
                                             ? "bg-emerald-400"
-                                            : "bg-rose-400"
+                                            : hasWarnings
+                                              ? "bg-amber-400"
+                                              : "bg-rose-400"
                                         }`}
                                       />
                                       Run #{r.run_number}
@@ -1467,7 +1533,9 @@ export default function MissionControlPage() {
                                       className={`text-[9px] font-mono px-1.5 py-0.2 rounded border ${
                                         isSuccess
                                           ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                                          : "bg-rose-500/10 text-rose-400 border-rose-500/20"
+                                          : hasWarnings
+                                            ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                                            : "bg-rose-500/10 text-rose-400 border-rose-500/20"
                                       }`}
                                     >
                                       {r.status}
@@ -1637,7 +1705,7 @@ export default function MissionControlPage() {
                     }`}
                   >
                     <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                    <span>LLM & KPIs</span>
+                    <span>Evidence & KPIs</span>
                   </button>
 
                   <button
