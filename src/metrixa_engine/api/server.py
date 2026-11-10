@@ -122,12 +122,14 @@ async def get_metrics():
 
     tel = db.get_pipeline_telemetry()
     with db.connect() as conn:
-        erp_rows = conn.execute("""
+        erp_rows = conn.execute(
+            """
             SELECT detected_erp_proptech FROM kpi_extractions k
             JOIN companies_golden c ON c.company_id = k.company_id
             WHERE c.pipeline_stage != 'DISQUALIFIED'
               AND detected_erp_proptech IS NOT NULL AND detected_erp_proptech != ''
-            """).fetchall()
+            """
+        ).fetchall()
 
         erp_counts: dict[str, int] = {}
         for r in erp_rows:
@@ -136,13 +138,15 @@ async def get_metrics():
                 if clean:
                     erp_counts[clean] = erp_counts.get(clean, 0) + 1
 
-        dist_rows = conn.execute("""
+        dist_rows = conn.execute(
+            """
             SELECT district, COUNT(*) as cnt
             FROM companies_golden
             WHERE pipeline_stage != 'DISQUALIFIED'
             GROUP BY district
             ORDER BY cnt DESC
-            """).fetchall()
+            """
+        ).fetchall()
         district_breakdown = [
             {"district": r["district"] or "Berlin", "count": r["cnt"]}
             for r in dist_rows
@@ -211,7 +215,8 @@ async def get_leads(
 
     if q:
         like_q = f"%{q.strip()}%"
-        where_clauses.append("""(
+        where_clauses.append(
+            """(
                 c.display_name LIKE ?
                 OR c.street_address LIKE ?
                 OR c.canonical_domain LIKE ?
@@ -219,7 +224,8 @@ async def get_leads(
                     SELECT 1 FROM decision_makers d
                     WHERE d.company_id = c.company_id AND (d.full_name LIKE ? OR d.personal_email LIKE ?)
                 )
-            )""")
+            )"""
+        )
         params.extend([like_q, like_q, like_q, like_q, like_q])
 
     if tier:
@@ -2070,6 +2076,145 @@ async def clear_pipeline_runs(filter: str = "all"):
     return {"status": "success", "deleted_count": count, "filter": filter}
 
 
+class FactoryResetRequest(BaseModel):
+    confirmation_word: str = Field(
+        ..., description="Confirmation word must match DELETE"
+    )
+
+
+@app.get("/api/system/stats")
+async def get_system_stats():
+    """Retrieve comprehensive inventory of database records, runs, and export files."""
+    with db.connect() as conn:
+
+        def _get_cnt(table: str) -> int:
+            try:
+                return conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+            except Exception:
+                return 0
+
+        golden_cnt = _get_cnt("companies_golden")
+        raw_cnt = _get_cnt("raw_listings")
+        pages_cnt = _get_cnt("crawled_pages")
+        kpi_cnt = _get_cnt("kpi_extractions")
+        dm_cnt = _get_cnt("decision_makers")
+        runs_cnt = _get_cnt("pipeline_runs")
+        events_cnt = _get_cnt("pipeline_run_events")
+        next_run_num = (
+            conn.execute(
+                "SELECT COALESCE(MAX(run_number), 0) + 1 FROM pipeline_runs"
+            ).fetchone()[0]
+            if runs_cnt > 0
+            else 1
+        )
+
+    export_files = []
+    total_export_bytes = 0
+    if settings.export_dir.exists():
+        for f in settings.export_dir.iterdir():
+            if f.is_file():
+                sz = f.stat().st_size
+                total_export_bytes += sz
+                export_files.append({"name": f.name, "size_bytes": sz})
+
+    db_size = (
+        settings.database_path.stat().st_size if settings.database_path.exists() else 0
+    )
+    wal_path = Path(f"{settings.database_path}-wal")
+    if wal_path.exists():
+        db_size += wal_path.stat().st_size
+
+    db_formatted = (
+        f"{round(db_size / 1024, 1)} KB"
+        if db_size < 1048576
+        else f"{round(db_size / 1048576, 2)} MB"
+    )
+
+    return {
+        "status": "online",
+        "counts": {
+            "companies_golden": golden_cnt,
+            "raw_listings": raw_cnt,
+            "crawled_pages": pages_cnt,
+            "kpi_extractions": kpi_cnt,
+            "decision_makers": dm_cnt,
+            "pipeline_runs": runs_cnt,
+            "pipeline_run_events": events_cnt,
+            "next_run_number": next_run_num,
+        },
+        "storage": {
+            "database_size_bytes": db_size,
+            "database_size_formatted": db_formatted,
+            "export_files_count": len(export_files),
+            "export_files": export_files,
+            "export_total_bytes": total_export_bytes,
+        },
+    }
+
+
+@app.post("/api/system/factory-reset")
+async def execute_system_factory_reset(req: FactoryResetRequest):
+    """Execute complete application factory reset. Purges all tables, files, and caches."""
+    word = req.confirmation_word.strip().upper()
+    if word not in ("DELETE", "DELEET"):
+        raise HTTPException(
+            status_code=400,
+            detail='Confirmation word must match "DELETE" to authorize factory reset.',
+        )
+
+    tables = [
+        "raw_listings",
+        "companies_golden",
+        "company_sources_map",
+        "crawled_pages",
+        "kpi_extractions",
+        "decision_makers",
+        "llm_audit_logs",
+        "pipeline_runs",
+        "deliverables_sync_log",
+        "pipeline_run_events",
+    ]
+    with db.connect() as conn:
+        for t in tables:
+            try:
+                conn.execute(f"DELETE FROM {t}")
+            except Exception:
+                pass
+        conn.commit()
+        try:
+            conn.execute("VACUUM")
+            conn.commit()
+        except Exception:
+            pass
+
+    if settings.export_dir.exists():
+        for f in settings.export_dir.iterdir():
+            if f.is_file() and not f.name.startswith("."):
+                try:
+                    f.unlink()
+                except Exception:
+                    pass
+
+    for item in _artifact_store.values():
+        item["status"] = "active"
+        item["trashed_at"] = None
+        item["archived_at"] = None
+
+    _metrics_cache.clear()
+    _preview_cache.clear()
+    _sha256_cache.clear()
+    event_bus.is_running = False
+    event_bus.current_run_id = None
+    event_bus.stage_durations.clear()
+
+    return {
+        "status": "success",
+        "message": "Application factory reset complete. All data purged and reset to pristine state.",
+        "purged_tables": tables,
+        "next_run_number": 1,
+    }
+
+
 @app.get("/api/pipeline/runs/{run_id}/events")
 async def get_pipeline_run_events(run_id: str):
     """Retrieve full chronological telemetry events and step timelines for a specific run."""
@@ -2655,7 +2800,8 @@ async def get_artifact_preview(artifact_id: str):
                     {"name": tname, "count": cnt, "columns": [c["name"] for c in cols]}
                 )
 
-            recent_rows = conn.execute("""
+            recent_rows = conn.execute(
+                """
                 SELECT company_id as canonical_id,
                        display_name as company_name, postal_code, district,
                        metrixa_lead_score as lead_score, lead_tier, updated_at
@@ -2663,7 +2809,8 @@ async def get_artifact_preview(artifact_id: str):
                 WHERE pipeline_stage != 'DISQUALIFIED'
                 ORDER BY updated_at DESC, metrixa_lead_score DESC
                 LIMIT 8
-                """).fetchall()
+                """
+            ).fetchall()
             recent_records = [dict(r) for r in recent_rows]
             latest_write = conn.execute(
                 "SELECT MAX(updated_at) FROM companies_golden"
@@ -2695,7 +2842,11 @@ async def get_artifact_preview(artifact_id: str):
             if md_path.exists()
             else "# Metrixa Systems Case Study\n\nAutonomous B2B Lead Intelligence Enterprise Whitepaper."
         )
-        stat = pdf_path.stat() if pdf_path.exists() else (md_path.stat() if md_path.exists() else None)
+        stat = (
+            pdf_path.stat()
+            if pdf_path.exists()
+            else (md_path.stat() if md_path.exists() else None)
+        )
         mtime = stat.st_mtime if stat else time.time()
         size = stat.st_size if stat else len(text.encode("utf-8"))
         res = {
@@ -2707,7 +2858,13 @@ async def get_artifact_preview(artifact_id: str):
             "lines_count": len(text.splitlines()),
             "updated_at": datetime.fromtimestamp(mtime, tz=UTC).isoformat(),
             "size_bytes": size,
-            "sha256_short": _compute_sha256_short(pdf_path if pdf_path.exists() else md_path, mtime, size) if stat else "pending",
+            "sha256_short": (
+                _compute_sha256_short(
+                    pdf_path if pdf_path.exists() else md_path, mtime, size
+                )
+                if stat
+                else "pending"
+            ),
         }
         _preview_cache[artifact_id] = (mtime, res)
         return res
@@ -3844,7 +4001,9 @@ async def discover_provider_models(req: ProviderPingRequest):
                 ctx_val = item.get("context_window") or item.get("max_model_len")
                 if isinstance(ctx_val, int) and ctx_val > 0:
                     ctx_str = f"{ctx_val:,} tokens"
-                elif ctx_val and not any(k in str(ctx_val).lower() for k in ("live", "api", "model")):
+                elif ctx_val and not any(
+                    k in str(ctx_val).lower() for k in ("live", "api", "model")
+                ):
                     ctx_str = str(ctx_val).strip()
                 else:
                     ctx_str = ""

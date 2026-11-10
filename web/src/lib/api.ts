@@ -336,3 +336,25 @@ export async function executeTool(data: { tool_id: string; input?: string }) {
   if (!res.ok) throw new Error("Failed to execute tool action");
   return res.json();
 }
+
+export async function fetchSystemStats() {
+  const res = await fetch(`${API_BASE}/api/system/stats`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error("Failed to fetch system stats");
+  return res.json();
+}
+
+export async function executeFactoryReset(confirmationWord: string) {
+  metricsCache = null;
+  const res = await fetch(`${API_BASE}/api/system/factory-reset`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ confirmation_word: confirmationWord }),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || "Failed to execute factory reset");
+  }
+  return res.json();
+}

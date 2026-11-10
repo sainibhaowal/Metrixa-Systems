@@ -10,6 +10,7 @@ import {
   Archive,
   Settings,
   ShieldCheck,
+  ShieldAlert,
   Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -27,16 +28,22 @@ const NAV_ITEMS = [
     href: "/leads",
     label: "Lead Explorer",
     icon: Users2,
-    badge: "1,200 Leads",
+    badge: "Directory",
   },
   { href: "/tools", label: "Agentic Tools", icon: Wrench },
   {
     href: "/artifacts",
     label: "Artifacts Vault",
     icon: Archive,
-    badge: "Excel / CSV",
+    badge: "Vault",
   },
   { href: "/settings", label: "Provider Hub", icon: Settings },
+  {
+    href: "/data-control",
+    label: "Data Control",
+    icon: ShieldAlert,
+    badge: "Reset",
+  },
 ];
 
 export function SidebarNav() {

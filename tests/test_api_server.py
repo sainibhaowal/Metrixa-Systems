@@ -333,3 +333,39 @@ def test_api_deliverables_and_google_sheets_sync(client: TestClient) -> None:
     sync_all = client.post("/api/deliverables/sync-all")
     assert sync_all.status_code == 200
     assert sync_all.json()["success"] is True
+
+
+def test_api_system_stats_and_factory_reset(client: TestClient) -> None:
+    # 1. Test system stats endpoint
+    stats_resp = client.get("/api/system/stats")
+    assert stats_resp.status_code == 200
+    stats_data = stats_resp.json()
+    assert stats_data["status"] == "online"
+    assert "counts" in stats_data
+    assert "storage" in stats_data
+    assert stats_data["counts"]["next_run_number"] >= 1
+
+    # 2. Test factory reset with invalid word (must return 400)
+    bad_reset = client.post(
+        "/api/system/factory-reset",
+        json={"confirmation_word": "WRONG_WORD"},
+    )
+    assert bad_reset.status_code == 400
+
+    # 3. Test factory reset with correct word "DELETE"
+    ok_reset = client.post(
+        "/api/system/factory-reset",
+        json={"confirmation_word": "DELETE"},
+    )
+    assert ok_reset.status_code == 200
+    reset_data = ok_reset.json()
+    assert reset_data["status"] == "success"
+    assert reset_data["next_run_number"] == 1
+
+    # 4. Verify system stats reflect clean state
+    post_stats = client.get("/api/system/stats")
+    assert post_stats.status_code == 200
+    p_data = post_stats.json()
+    assert p_data["counts"]["companies_golden"] == 0
+    assert p_data["counts"]["pipeline_runs"] == 0
+    assert p_data["counts"]["next_run_number"] == 1

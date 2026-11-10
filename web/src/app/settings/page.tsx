@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo, useRef } from "react";
+import Link from "next/link";
 import {
   Cpu,
   Globe,
@@ -15,6 +16,8 @@ import {
   Wifi,
   Search,
   ShieldCheck,
+  ShieldAlert,
+  ArrowRight,
   RefreshCw,
   ChevronDown,
   X,
@@ -616,6 +619,33 @@ export default function SettingsHubPage() {
             </span>
           </div>
         </div>
+      </div>
+
+      {/* Quick Navigation to Data Control & Factory Reset */}
+      <div className="p-4 rounded-2xl bg-gradient-to-r from-rose-950/20 via-zinc-950 to-zinc-900 border border-rose-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-matte">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400 shrink-0">
+            <ShieldAlert className="w-4 h-4" />
+          </div>
+          <div>
+            <h2 className="text-xs font-bold text-zinc-200 font-mono flex items-center gap-2">
+              <span>Database Lifecycle & Factory Reset</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/30">
+                Governance
+              </span>
+            </h2>
+            <p className="text-[11px] text-zinc-400 mt-0.5">
+              Need to clear all runs, purge leads, or reset the app to a clean slate?
+            </p>
+          </div>
+        </div>
+        <Link
+          href="/data-control"
+          className="px-3.5 py-1.5 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/40 text-xs font-semibold flex items-center gap-1.5 transition-all self-start sm:self-auto shrink-0"
+        >
+          <span>Open Data Control</span>
+          <ArrowRight className="w-3.5 h-3.5" />
+        </Link>
       </div>
 
       {/* ======================================================== */}
