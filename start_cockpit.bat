@@ -14,7 +14,7 @@ if not exist "web\node_modules\next\dist\bin\next" (
     exit /b 1
 )
 
-for /f "usebackq delims=" %%p in (`".venv\Scripts\python.exe" -c "from metrixa_engine.config import settings; print(settings.api_port)"`) do set "API_PORT=%%p"
+for /f "usebackq delims=" %%p in (`.venv\Scripts\python.exe -c "from metrixa_engine.config import settings; print(settings.api_port)"`) do set "API_PORT=%%p"
 if not defined API_PORT (
     echo Could not read API_PORT from the local settings.
     pause
@@ -53,7 +53,7 @@ goto wait_api
 
 :api_ready
 echo Starting the production frontend...
-start "Metrixa Web" /D "%ROOT%web" cmd /k "npm run start"
+start "Metrixa Web" /D "%ROOT%web" cmd /k "npm run start -- --hostname 127.0.0.1"
 set /a ATTEMPTS=0
 :wait_web
 set /a ATTEMPTS+=1
