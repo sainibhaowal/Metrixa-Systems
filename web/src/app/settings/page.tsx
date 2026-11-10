@@ -635,7 +635,8 @@ export default function SettingsHubPage() {
               </span>
             </h2>
             <p className="text-[11px] text-zinc-400 mt-0.5">
-              Need to clear all runs, purge leads, or reset the app to a clean slate?
+              Need to clear all runs, purge leads, or reset the app to a clean
+              slate?
             </p>
           </div>
         </div>

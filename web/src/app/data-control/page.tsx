@@ -62,7 +62,8 @@ export default function DataControlPage() {
       setErrorMessage(null);
     } catch (err: any) {
       console.error("Failed to fetch system stats:", err);
-      if (!silent) setErrorMessage(err.message || "Failed to load database stats");
+      if (!silent)
+        setErrorMessage(err.message || "Failed to load database stats");
     } finally {
       if (!silent) setLoading(false);
     }
@@ -122,7 +123,10 @@ export default function DataControlPage() {
         <div className="h-20 bg-zinc-900/50 rounded-2xl animate-pulse" />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-28 bg-zinc-900/40 rounded-2xl animate-pulse" />
+            <div
+              key={i}
+              className="h-28 bg-zinc-900/40 rounded-2xl animate-pulse"
+            />
           ))}
         </div>
       </div>
@@ -154,7 +158,10 @@ export default function DataControlPage() {
     counts.pipeline_runs === 0;
 
   return (
-    <div className="p-6 md:p-8 max-w-6xl mx-auto space-y-8 select-none" suppressHydrationWarning>
+    <div
+      className="p-6 md:p-8 max-w-6xl mx-auto space-y-8 select-none"
+      suppressHydrationWarning
+    >
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-zinc-800/80">
         <div className="space-y-1.5">
@@ -170,8 +177,9 @@ export default function DataControlPage() {
             </span>
           </div>
           <p className="text-xs text-zinc-400 max-w-2xl leading-relaxed">
-            Direct operational control over the Metrixa lead database, pipeline execution ledger,
-            telemetry stream events, and deliverable export workbooks.
+            Direct operational control over the Metrixa lead database, pipeline
+            execution ledger, telemetry stream events, and deliverable export
+            workbooks.
           </p>
         </div>
 
@@ -183,7 +191,9 @@ export default function DataControlPage() {
               }`}
             />
             <span>
-              {isCleanSlate ? "Pristine Zero-State (Standby)" : "Active Production Dataset"}
+              {isCleanSlate
+                ? "Pristine Zero-State (Standby)"
+                : "Active Production Dataset"}
             </span>
           </div>
 
@@ -216,7 +226,9 @@ export default function DataControlPage() {
             <div className="text-2xl font-bold font-mono text-zinc-100">
               {counts.companies_golden.toLocaleString()}
             </div>
-            <div className="text-[10px] text-zinc-400 font-mono">companies_golden table</div>
+            <div className="text-[10px] text-zinc-400 font-mono">
+              companies_golden table
+            </div>
           </div>
 
           <div className="p-4 rounded-2xl bg-[#141418] border border-zinc-800/80 space-y-2">
@@ -227,7 +239,9 @@ export default function DataControlPage() {
             <div className="text-2xl font-bold font-mono text-zinc-100">
               {counts.raw_listings.toLocaleString()}
             </div>
-            <div className="text-[10px] text-zinc-400 font-mono">raw_listings table</div>
+            <div className="text-[10px] text-zinc-400 font-mono">
+              raw_listings table
+            </div>
           </div>
 
           <div className="p-4 rounded-2xl bg-[#141418] border border-zinc-800/80 space-y-2">
@@ -238,7 +252,9 @@ export default function DataControlPage() {
             <div className="text-2xl font-bold font-mono text-zinc-100">
               {counts.crawled_pages.toLocaleString()}
             </div>
-            <div className="text-[10px] text-zinc-400 font-mono">crawled_pages table</div>
+            <div className="text-[10px] text-zinc-400 font-mono">
+              crawled_pages table
+            </div>
           </div>
 
           <div className="p-4 rounded-2xl bg-[#141418] border border-zinc-800/80 space-y-2">
@@ -249,7 +265,9 @@ export default function DataControlPage() {
             <div className="text-2xl font-bold font-mono text-zinc-100">
               {counts.kpi_extractions.toLocaleString()}
             </div>
-            <div className="text-[10px] text-zinc-400 font-mono">kpi_extractions table</div>
+            <div className="text-[10px] text-zinc-400 font-mono">
+              kpi_extractions table
+            </div>
           </div>
 
           <div className="p-4 rounded-2xl bg-[#141418] border border-zinc-800/80 space-y-2">
@@ -260,7 +278,9 @@ export default function DataControlPage() {
             <div className="text-2xl font-bold font-mono text-zinc-100">
               {counts.decision_makers.toLocaleString()}
             </div>
-            <div className="text-[10px] text-zinc-400 font-mono">decision_makers table</div>
+            <div className="text-[10px] text-zinc-400 font-mono">
+              decision_makers table
+            </div>
           </div>
 
           <div className="p-4 rounded-2xl bg-[#141418] border border-zinc-800/80 space-y-2">
@@ -271,7 +291,9 @@ export default function DataControlPage() {
             <div className="text-2xl font-bold font-mono text-zinc-100">
               {counts.pipeline_runs.toLocaleString()}
             </div>
-            <div className="text-[10px] text-zinc-400 font-mono">pipeline_runs ledger</div>
+            <div className="text-[10px] text-zinc-400 font-mono">
+              pipeline_runs ledger
+            </div>
           </div>
 
           <div className="p-4 rounded-2xl bg-[#141418] border border-zinc-800/80 space-y-2">
@@ -282,7 +304,9 @@ export default function DataControlPage() {
             <div className="text-2xl font-bold font-mono text-zinc-100">
               {counts.pipeline_run_events.toLocaleString()}
             </div>
-            <div className="text-[10px] text-zinc-400 font-mono">stream events recorded</div>
+            <div className="text-[10px] text-zinc-400 font-mono">
+              stream events recorded
+            </div>
           </div>
 
           <div className="p-4 rounded-2xl bg-[#141418] border border-zinc-800/80 space-y-2">
@@ -316,9 +340,10 @@ export default function DataControlPage() {
               Full Application Factory Reset (Start Fresh Like New App)
             </h2>
             <p className="text-xs text-zinc-300 leading-relaxed">
-              Completely clears and factory-resets the entire application. Purges all 6 normalized
-              SQLite relational tables, wipes the execution run history so your next run is Run #1,
-              clears generated Excel workbook deliverables, and resets all in-memory telemetry
+              Completely clears and factory-resets the entire application.
+              Purges all 6 normalized SQLite relational tables, wipes the
+              execution run history so your next run is Run #1, clears generated
+              Excel workbook deliverables, and resets all in-memory telemetry
               buffers.
             </p>
           </div>
@@ -340,7 +365,8 @@ export default function DataControlPage() {
               <span>Full Data Wipe</span>
             </span>
             <p className="text-[11px] text-zinc-400 leading-normal">
-              Drops all leads, raw listings, and crawled company pages from SQLite.
+              Drops all leads, raw listings, and crawled company pages from
+              SQLite.
             </p>
           </div>
 
@@ -350,7 +376,8 @@ export default function DataControlPage() {
               <span>Run Sequence Reset</span>
             </span>
             <p className="text-[11px] text-zinc-400 leading-normal">
-              Clears pipeline history. The very next execution runs cleanly as Run #1.
+              Clears pipeline history. The very next execution runs cleanly as
+              Run #1.
             </p>
           </div>
 
@@ -360,7 +387,8 @@ export default function DataControlPage() {
               <span>Deliverables Clean</span>
             </span>
             <p className="text-[11px] text-zinc-400 leading-normal">
-              Removes previous export workbooks so the Artifacts Vault starts fresh.
+              Removes previous export workbooks so the Artifacts Vault starts
+              fresh.
             </p>
           </div>
         </div>
@@ -412,7 +440,8 @@ export default function DataControlPage() {
                   APPLICATION FACTORY RESET COMPLETE
                 </h4>
                 <p className="text-xs text-zinc-300">
-                  All databases, runs, and artifacts have been purged. Reloading workspace...
+                  All databases, runs, and artifacts have been purged. Reloading
+                  workspace...
                 </p>
                 <div className="flex items-center justify-center gap-2 text-xs text-emerald-400 font-mono">
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -429,31 +458,50 @@ export default function DataControlPage() {
                   <ul className="space-y-1.5 text-zinc-400 text-[11px] font-mono pl-1">
                     <li className="flex items-center gap-2">
                       <span className="text-rose-400">✗</span>
-                      <span>All {counts.companies_golden} golden company lead records & scoring tiers</span>
+                      <span>
+                        All {counts.companies_golden} golden company lead
+                        records & scoring tiers
+                      </span>
                     </li>
                     <li className="flex items-center gap-2">
                       <span className="text-rose-400">✗</span>
-                      <span>All {counts.raw_listings} raw scraper listings & directory snapshots</span>
+                      <span>
+                        All {counts.raw_listings} raw scraper listings &
+                        directory snapshots
+                      </span>
                     </li>
                     <li className="flex items-center gap-2">
                       <span className="text-rose-400">✗</span>
-                      <span>All {counts.crawled_pages} crawled domain HTML pages & Impressum dossiers</span>
+                      <span>
+                        All {counts.crawled_pages} crawled domain HTML pages &
+                        Impressum dossiers
+                      </span>
                     </li>
                     <li className="flex items-center gap-2">
                       <span className="text-rose-400">✗</span>
-                      <span>All {counts.decision_makers} executive contact profiles & email records</span>
+                      <span>
+                        All {counts.decision_makers} executive contact profiles
+                        & email records
+                      </span>
                     </li>
                     <li className="flex items-center gap-2">
                       <span className="text-rose-400">✗</span>
-                      <span>All {counts.pipeline_runs} historical pipeline execution runs</span>
+                      <span>
+                        All {counts.pipeline_runs} historical pipeline execution
+                        runs
+                      </span>
                     </li>
                     <li className="flex items-center gap-2">
                       <span className="text-rose-400">✗</span>
-                      <span>All generated Excel workbooks and master CSV exports</span>
+                      <span>
+                        All generated Excel workbooks and master CSV exports
+                      </span>
                     </li>
                     <li className="flex items-center gap-2 text-emerald-400 font-semibold pt-1 border-t border-zinc-800/60">
                       <span>✓</span>
-                      <span>Next pipeline execution will start clean from Run #1</span>
+                      <span>
+                        Next pipeline execution will start clean from Run #1
+                      </span>
                     </li>
                   </ul>
                 </div>
@@ -469,8 +517,8 @@ export default function DataControlPage() {
                     className="mt-0.5 rounded border-zinc-700 text-rose-600 focus:ring-rose-500 focus:ring-offset-0 bg-zinc-950 cursor-pointer"
                   />
                   <span className="text-xs text-zinc-300 leading-snug">
-                    I understand that this action will permanently purge all application data and
-                    cannot be undone.
+                    I understand that this action will permanently purge all
+                    application data and cannot be undone.
                   </span>
                 </label>
 
@@ -480,7 +528,8 @@ export default function DataControlPage() {
                     htmlFor="delete-input"
                     className="block text-xs font-semibold text-zinc-300 font-mono"
                   >
-                    To confirm, please type <span className="text-rose-400 font-bold">DELETE</span>{" "}
+                    To confirm, please type{" "}
+                    <span className="text-rose-400 font-bold">DELETE</span>{" "}
                     below:
                   </label>
                   <input
