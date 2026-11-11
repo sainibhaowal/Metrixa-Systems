@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="330" viewBox="0 0 1100 330">
+  <rect width="1100" height="330" rx="18" fill="#f4faf9"/>
+  <text x="38" y="42" font-family="Segoe UI,Arial" font-size="23" font-weight="700" fill="#183349">Berlin market snapshot</text>
+  <text x="38" y="68" font-family="Segoe UI,Arial" font-size="14" fill="#596d78">Measured local dataset compared with the official WZ 68.32 benchmark</text>
+  <line x1="38" y1="96" x2="1062" y2="96" stroke="#d9e4e8"/>
+  <g font-family="Segoe UI,Arial">
+    <text x="58" y="135" font-size="15" fill="#263d4d">Official Berlin WZ 68.32 legal units (2023)</text>
+    <rect x="58" y="148" width="650" height="26" rx="13" fill="#d9e4e8"/>
+    <rect x="58" y="148" width="650" height="26" rx="13" fill="#183349"/>
+    <text x="728" y="168" font-size="16" font-weight="700" fill="#183349">3,970</text>
+    <text x="58" y="205" font-size="15" fill="#263d4d">Metrixa active canonical companies</text>
+    <rect x="58" y="218" width="650" height="26" rx="13" fill="#d9e4e8"/>
+    <rect x="58" y="218" width="224" height="26" rx="13" fill="#087f79"/>
+    <text x="300" y="238" font-size="16" font-weight="700" fill="#087f79">1,369 (34.5% directional coverage)</text>
+    <text x="58" y="275" font-size="15" fill="#263d4d">Tier A + Tier B first sales queue</text>
+    <rect x="58" y="288" width="650" height="18" rx="9" fill="#d9e4e8"/>
+    <rect x="58" y="288" width="36" height="18" rx="9" fill="#e09f3e"/>
+    <text x="110" y="303" font-size="15" font-weight="700" fill="#e09f3e">222 accounts</text>
+    <g transform="translate(790,118)">
+      <rect width="238" height="64" rx="12" fill="#183349"/>
+      <text x="18" y="28" font-size="25" font-weight="700" fill="#ffffff">455</text>
+      <text x="18" y="48" font-size="13" fill="#d6e9e8">websites discovered</text>
+    </g>
+    <g transform="translate(790,198)">
+      <rect width="238" height="64" rx="12" fill="#087f79"/>
+      <text x="18" y="28" font-size="25" font-weight="700" fill="#ffffff">339</text>
+      <text x="18" y="48" font-size="13" fill="#d6e9e8">companies with crawl evidence</text>
+    </g>
+  </g>
+</svg>

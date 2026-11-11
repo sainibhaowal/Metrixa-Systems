@@ -159,17 +159,17 @@ export default function DataControlPage() {
 
   return (
     <div
-      className="p-6 md:p-8 max-w-6xl mx-auto space-y-8 select-none"
+      className="w-full max-w-7xl mx-auto space-y-8 select-none"
       suppressHydrationWarning
     >
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-zinc-800/80">
+      <div className="p-5 rounded-2xl bg-[#111114] border border-zinc-800/90 shadow-matte flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1.5">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400">
               <ShieldAlert className="w-4 h-4" />
             </div>
-            <h1 className="text-xl font-bold text-zinc-100 tracking-tight font-mono">
+            <h1 className="text-2xl font-bold text-zinc-100 tracking-tight font-mono">
               DATA CONTROL & GOVERNANCE
             </h1>
             <span className="text-[10px] font-semibold px-2 py-0.5 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/30">
@@ -217,7 +217,7 @@ export default function DataControlPage() {
           </span>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="p-4 rounded-2xl bg-[#141418] border border-zinc-800/80 space-y-2">
             <div className="flex items-center justify-between text-zinc-500 text-xs">
               <span>Golden Leads</span>
@@ -325,7 +325,7 @@ export default function DataControlPage() {
       </div>
 
       {/* Dangerous Operations / Factory Reset Card */}
-      <div className="p-6 md:p-8 rounded-3xl bg-gradient-to-br from-rose-950/20 via-[#161214] to-[#121215] border border-rose-500/30 space-y-6 shadow-2xl relative overflow-hidden">
+      <div className="data-control-danger-card p-6 md:p-8 rounded-2xl bg-gradient-to-br from-rose-950/20 via-[#161214] to-[#121215] border border-rose-500/30 space-y-6 shadow-2xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-rose-500/5 rounded-full blur-3xl pointer-events-none" />
 
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">

@@ -7,6 +7,8 @@ name = "metrixa-engine"
 version = "1.0.0"
 description = "Automated B2B Lead Intelligence, Website/Impressum Crawler, Multi-LLM KPI Extractor & Qualification Engine for Metrixa Systems (Berlin Hausverwaltungen)"
 readme = "README.md"
+license = { file = "LICENSE" }
+classifiers = ["License :: OSI Approved :: Apache Software License"]
 requires-python = ">=3.11"
 authors = [
     { name = "Saini Bhaowal", email = "sainibhaowal@users.noreply.github.com" }

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="300" viewBox="0 0 1100 300">
+  <rect width="1100" height="300" rx="18" fill="#f7fafb"/>
+  <text x="38" y="42" font-family="Segoe UI,Arial" font-size="23" font-weight="700" fill="#183349">Metrixa value chain</text>
+  <text x="38" y="68" font-family="Segoe UI,Arial" font-size="14" fill="#596d78">Public signals become a reviewable sales decision</text>
+  <g font-family="Segoe UI,Arial" text-anchor="middle">
+    <g transform="translate(38,104)"><rect width="170" height="92" rx="14" fill="#e7f2f1" stroke="#087f79"/><text x="85" y="34" font-size="15" font-weight="700" fill="#183349">Sources</text><text x="85" y="57" font-size="12" fill="#596d78">directories, VDIV,</text><text x="85" y="74" font-size="12" fill="#596d78">OSM, websites</text></g>
+    <g transform="translate(238,104)"><rect width="170" height="92" rx="14" fill="#e7f2f1" stroke="#087f79"/><text x="85" y="34" font-size="15" font-weight="700" fill="#183349">Metrixa</text><text x="85" y="57" font-size="12" fill="#596d78">normalize, dedup,</text><text x="85" y="74" font-size="12" fill="#596d78">crawl, extract, score</text></g>
+    <g transform="translate(438,104)"><rect width="170" height="92" rx="14" fill="#183349"/><text x="85" y="34" font-size="15" font-weight="700" fill="#ffffff">Evidence pack</text><text x="85" y="57" font-size="12" fill="#d6e9e8">KPIs, quotes,</text><text x="85" y="74" font-size="12" fill="#d6e9e8">contact statuses</text></g>
+    <g transform="translate(638,104)"><rect width="170" height="92" rx="14" fill="#e7f2f1" stroke="#087f79"/><text x="85" y="34" font-size="15" font-weight="700" fill="#183349">Sales action</text><text x="85" y="57" font-size="12" fill="#596d78">prioritize accounts,</text><text x="85" y="74" font-size="12" fill="#596d78">review before outreach</text></g>
+    <g transform="translate(838,104)"><rect width="224" height="92" rx="14" fill="#e09f3e"/><text x="112" y="34" font-size="15" font-weight="700" fill="#183349">Customer outcome</text><text x="112" y="57" font-size="12" fill="#263d4d">less research time,</text><text x="112" y="74" font-size="12" fill="#263d4d">better meetings</text></g>
+  </g>
+  <g stroke="#087f79" stroke-width="3" fill="none"><path d="M208 150 H230"/><path d="M408 150 H430"/><path d="M608 150 H630"/><path d="M808 150 H830"/></g>
+  <g fill="#087f79"><path d="M230 150 l-10 -7 v14 z"/><path d="M430 150 l-10 -7 v14 z"/><path d="M630 150 l-10 -7 v14 z"/><path d="M830 150 l-10 -7 v14 z"/></g>
+  <text x="38" y="252" font-family="Segoe UI,Arial" font-size="13" fill="#596d78">Revenue: paid proof-of-value → monthly refresh → managed intelligence → workspace/SaaS</text>
+</svg>

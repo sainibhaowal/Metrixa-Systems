@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="300" viewBox="0 0 1100 300">
+  <rect width="1100" height="300" rx="18" fill="#f4faf9"/>
+  <text x="38" y="42" font-family="Segoe UI,Arial" font-size="23" font-weight="700" fill="#183349">90-day go-to-market</text>
+  <text x="38" y="68" font-family="Segoe UI,Arial" font-size="14" fill="#596d78">Validate willingness to pay before building a broad SaaS</text>
+  <g font-family="Segoe UI,Arial">
+    <g transform="translate(38,104)"><rect width="305" height="128" rx="14" fill="#183349"/><text x="20" y="32" font-size="17" font-weight="700" fill="#ffffff">Days 0–30 · learn</text><text x="20" y="62" font-size="13" fill="#d6e9e8">10 vendor interviews</text><text x="20" y="83" font-size="13" fill="#d6e9e8">3 paid design-partner offers</text><text x="20" y="104" font-size="13" fill="#d6e9e8">Review 50 priority rows</text></g>
+    <g transform="translate(398,104)"><rect width="305" height="128" rx="14" fill="#087f79"/><text x="20" y="32" font-size="17" font-weight="700" fill="#ffffff">Days 31–60 · prove</text><text x="20" y="62" font-size="13" fill="#d6e9e8">Deliver pilots</text><text x="20" y="83" font-size="13" fill="#d6e9e8">Log hours, corrections, replies</text><text x="20" y="104" font-size="13" fill="#d6e9e8">Tighten score and evidence rules</text></g>
+    <g transform="translate(758,104)"><rect width="305" height="128" rx="14" fill="#e09f3e"/><text x="20" y="32" font-size="17" font-weight="700" fill="#183349">Days 61–90 · repeat</text><text x="20" y="62" font-size="13" fill="#263d4d">Sell monthly refreshes</text><text x="20" y="83" font-size="13" fill="#263d4d">Add CRM/CSV delivery</text><text x="20" y="104" font-size="13" fill="#263d4d">Decide service vs workspace</text></g>
+  </g>
+  <line x1="343" y1="168" x2="388" y2="168" stroke="#087f79" stroke-width="3"/><line x1="703" y1="168" x2="748" y2="168" stroke="#087f79" stroke-width="3"/>
+  <text x="38" y="270" font-family="Segoe UI,Arial" font-size="13" fill="#596d78">Exit condition: three paying pilots or a documented reason to change the niche and offer.</text>
+</svg>

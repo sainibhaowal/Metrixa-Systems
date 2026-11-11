@@ -54,7 +54,22 @@ module.exports = {
         glowEmerald: "0 0 20px -3px rgba(16, 185, 129, 0.25)",
       },
       fontFamily: {
-        mono: ["JetBrains Mono", "Menlo", "Courier New", "monospace"],
+        sans: [
+          "Calibri",
+          "Segoe UI",
+          "Segoe UI Variable",
+          "system-ui",
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "sans-serif",
+        ],
+        mono: [
+          "Consolas",
+          "Cascadia Mono",
+          "Cascadia Code",
+          "SFMono-Regular",
+          "monospace",
+        ],
       },
     },
   },

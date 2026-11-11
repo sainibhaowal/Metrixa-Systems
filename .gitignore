@@ -28,6 +28,25 @@ data/*.db-shm
 data/*.db-wal
 data/backups/
 
+# Public-repository data safeguards
+# Local databases and generated exports can contain company, contact, and crawl evidence data.
+data/*.db
+data/*.sqlite
+data/*.sqlite3
+data/exports/
+data/pdf_first_page_review.png
+output/
+tmp/
+*.xlsx
+*.xls
+*.csv
+
+# Environment files (keep only safe templates)
+.env.*
+!.env.example
+web/.env.*
+!web/.env.example
+
 # IDE / OS
 .vscode/
 .idea/

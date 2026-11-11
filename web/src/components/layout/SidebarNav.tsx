@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
@@ -10,11 +11,11 @@ import {
   Archive,
   Settings,
   ShieldCheck,
-  ShieldAlert,
   Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "./SidebarContext";
+import { SettingsOverlay } from "./SettingsOverlay";
 
 const NAV_ITEMS = [
   { href: "/", label: "Executive Cockpit", icon: BarChart3, badge: "Overview" },
@@ -37,18 +38,12 @@ const NAV_ITEMS = [
     icon: Archive,
     badge: "Vault",
   },
-  { href: "/settings", label: "Provider Hub", icon: Settings },
-  {
-    href: "/data-control",
-    label: "Data Control",
-    icon: ShieldAlert,
-    badge: "Reset",
-  },
 ];
 
 export function SidebarNav() {
   const pathname = usePathname();
   const { isCollapsed } = useSidebar();
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
     <aside
@@ -152,6 +147,42 @@ export function SidebarNav() {
         })}
       </nav>
 
+      {/* Settings lives in the bottom navigation so provider and data controls
+          stay grouped inside one focused workspace. */}
+      <div className="px-3 pb-3">
+        <button
+          type="button"
+          onClick={() => setSettingsOpen(true)}
+          title={isCollapsed ? "Settings" : undefined}
+          className={cn(
+            "w-full flex items-center rounded-xl text-xs font-medium transition-all duration-200 group relative",
+            isCollapsed
+              ? "justify-center p-3"
+              : "justify-between px-3.5 py-2.5",
+            settingsOpen ||
+              pathname === "/settings" ||
+              pathname === "/data-control"
+              ? "bg-zinc-900 text-emerald-400 border border-emerald-500/30 shadow-[0_0_12px_-2px_rgba(16,185,129,0.25)] font-semibold"
+              : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900/80 border border-transparent hover:border-zinc-800",
+          )}
+        >
+          <span
+            className={cn(
+              "flex items-center gap-3",
+              isCollapsed && "justify-center",
+            )}
+          >
+            <Settings className="w-4 h-4 shrink-0 transition-transform group-hover:rotate-45" />
+            {!isCollapsed && <span>Settings</span>}
+          </span>
+          {!isCollapsed && (
+            <span className="text-[10px] px-2 py-0.5 rounded-lg font-mono bg-zinc-900 text-zinc-400 border border-zinc-800 group-hover:text-zinc-300">
+              Workspace
+            </span>
+          )}
+        </button>
+      </div>
+
       {/* Footer Info / Grounding Metric */}
       <div
         className={cn(
@@ -178,6 +209,10 @@ export function SidebarNav() {
           )}
         </div>
       </div>
+
+      {settingsOpen && (
+        <SettingsOverlay onClose={() => setSettingsOpen(false)} />
+      )}
     </aside>
   );
 }

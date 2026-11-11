@@ -3,6 +3,7 @@ import "./globals.css";
 import { SidebarNav } from "@/components/layout/SidebarNav";
 import { StickyTopbar } from "@/components/layout/StickyTopbar";
 import { SidebarProvider } from "@/components/layout/SidebarContext";
+import { ThemeProvider } from "@/components/layout/ThemeContext";
 
 export const metadata: Metadata = {
   title: "Metrixa Cockpit :  Autonomous LeadOps & Metering Intelligence",
@@ -17,19 +18,29 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "try { if (localStorage.getItem('metrixa_theme') === 'light') { document.documentElement.classList.remove('dark'); document.documentElement.classList.add('light'); document.documentElement.style.colorScheme = 'light'; } } catch (e) {}",
+          }}
+        />
+      </head>
       <body
         suppressHydrationWarning
         className="bg-background text-zinc-100 flex h-screen overflow-hidden antialiased"
       >
-        <SidebarProvider>
-          <SidebarNav />
-          <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden transition-all duration-300 ease-in-out">
-            <StickyTopbar />
-            <main className="flex-1 flex flex-col min-h-0 px-3 pb-3 overflow-y-auto">
-              {children}
-            </main>
-          </div>
-        </SidebarProvider>
+        <ThemeProvider>
+          <SidebarProvider>
+            <SidebarNav />
+            <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden transition-all duration-300 ease-in-out">
+              <StickyTopbar />
+              <main className="flex-1 flex flex-col min-h-0 px-3 pb-3 overflow-y-auto">
+                {children}
+              </main>
+            </div>
+          </SidebarProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -1,0 +1,15 @@
+Metrixa Engine
+Copyright 2026 Ravinder Singh.
+
+This repository contains original source code and documentation for the Metrixa
+Engine pilot. The original source code and documentation are distributed under
+the Apache License, Version 2.0; see LICENSE for the complete license text.
+
+Runtime databases, exports, crawl evidence, generated reports, credentials,
+and personal contact data are not part of the public source distribution. Their
+use and redistribution may be restricted by privacy law, source-site terms,
+contract, or another applicable license.
+
+Third-party packages, fonts, icons, and other bundled assets keep their own
+licenses and attribution requirements. See THIRD_PARTY_NOTICES.md and the
+respective package or asset metadata before redistributing a build.

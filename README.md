@@ -6,7 +6,7 @@
 
 # METRIXA ENGINE
 
-### Automated B2B Lead Intelligence, Â§ 5 DDG Impressum Extraction & PropTech Qualification Suite
+### Automated B2B Lead Intelligence, Section 5 DDG Impressum Extraction & PropTech Qualification Suite
 
 **Designed for Submetering & Energy Efficiency Directive (EED) Sales Operations at Metrixa Systems GmbH**
 
@@ -23,7 +23,7 @@
 
 <br />
 
-[Live Web Cockpit](http://localhost:3000) â€¢ [OpenAPI Docs](http://127.0.0.1:8000/docs) â€¢ [Master Excel Deliverable](./data/exports/metrixa_berlin_hausverwaltungen.xlsx) | [Current Verification Report](./output/pdf/Metrixa_Current_End_to_End_Quality_Report.pdf) â€¢ [Historical Case Study PDF (review required)](./docs/Case%20Study/Case_Study_Metrixa_Systems.pdf) â€¢ [Documentation Index](#-master-engineering-documentation-index)
+[Local Web Cockpit](http://localhost:3000) | [OpenAPI Docs](http://127.0.0.1:8000/docs) | [Business Model](./docs/Business%20Model/Business.md) | [Case Study](./docs/Case%20Study/Case_Study_Metrixa_Systems.pdf) | [Documentation Index](#master-engineering-documentation-index)
 
 </div>
 
@@ -31,7 +31,7 @@
 
 ---
 
-## ðŸŽ¯ Executive Overview & Mission Statement
+## Executive Overview & Mission Statement
 
 Metrixa Systems operates as a next-generation submetering technology provider (_Messdienstleister_), delivering digital IoT submetering solutions to property managers across Germany. Under the European Energy Efficiency Directive (EED) and the German Heating Costs Ordinance (_Heizkostenverordnung_), residential properties require monthly remote consumption readouts, creating an institutional transition away from legacy incumbents (Techem, Ista, Brunata) toward automated cloud platforms.
 
@@ -39,11 +39,13 @@ Metrixa Systems operates as a next-generation submetering technology provider (_
 
 > **Readiness and data note (2026-11-10):** This is a working pilot, not a production-certified service. Numeric results below are a historical snapshot and may differ from the current database. Use the live API and generated deliverables for current counts. Accuracy rates require an independently labeled review set and are not currently measured. Google Sheets synchronization is optional and is reported as complete only after a successful configured sync.
 
+> **Public repository boundary:** The source code and documentation are public under Apache License 2.0. Local databases, exports, crawl evidence, generated reports, credentials, and personal contact data are runtime or private artifacts and must not be committed. See [DATA_HANDLING.md](DATA_HANDLING.md) and [SECURITY.md](SECURITY.md) before running a crawl or publishing a release.
+
 <br />
 
 ---
 
-## ðŸ›ï¸ High-Level System Architecture
+## High-Level System Architecture
 
 The local pilot runs six stages: source ingestion, entity resolution, website crawling, deterministic evidence extraction, scoring/enrichment, and export. DNS MX checks are domain-level signals and do not verify mailboxes.
 
@@ -99,7 +101,7 @@ flowchart TD
 
 ---
 
-## âš¡ Core Capability Matrix
+## Core Capability Matrix
 
 <table>
   <tr>
@@ -198,21 +200,27 @@ The current scorer is deterministic and explainable. It uses source-backed field
 
 The implemented tiers are Tier A at 70-100, Tier B at 45-69, and Tier C below 45. These are prioritization rules, not calibrated probabilities or proven conversion predictions. The latest snapshot contains 76 Tier A, 202 Tier B, and 1,101 Tier C companies.
 
-## ðŸ“¦ Deliverables Vault (Multi-Channel Export Suite)
+## Deliverables Vault (Multi-Channel Export Suite)
 
-The engine writes local deliverables when its export stage is run. Google Sheets is optional and remains disconnected until valid credentials and a successful sync are recorded.
+The engine writes deliverables to local runtime directories when its export stage
+is run. These files may contain live lead, contact, or crawl evidence data and
+are intentionally ignored by Git. Google Sheets is optional and remains
+disconnected until valid credentials and a successful sync are recorded.
 
-```
+```text
 data/exports/
-â”œâ”€â”€ metrixa_berlin_hausverwaltungen.xlsx  # Master 4-Tab Excel Deliverable (Corporate Styled)
-â”œâ”€â”€ metrixa_berlin_leads_master.csv        # Master RFC-4180 CSV (UTF-8 BOM, 31 Columns)
-â”œâ”€â”€ metrixa_evaluation_ablation_report.md  # Live coverage and evidence checks with limitations
-Case_Study_Metrixa_Systems.pdf         # Case study PDF export; verify its contents before external submission
+  metrixa_berlin_hausverwaltungen.xlsx
+  metrixa_berlin_leads_master.csv
+  metrixa_evaluation_ablation_report.md
+  Case_Study_Metrixa_Systems.pdf
 
-Live Cloud Integrations:
-â”œâ”€â”€ data/metrixa_leads.db                  # ACID SQLite Relational Ledger (WAL Enabled)
-â””â”€â”€ Optional Google Sheets API v4 Cloud Mirror  # Credentials and successful sync required
+Local runtime state:
+  data/metrixa_leads.db
+  Optional Google Sheets API v4 cloud mirror
 ```
+
+The filenames above describe local outputs; they are not public sample data.
+Use synthetic or redacted fixtures when sharing an example.
 
 ### The 4 Canonical Workbook Tabs
 
@@ -229,7 +237,7 @@ Live Cloud Integrations:
 
 ---
 
-## ðŸ–¥ï¸ Web Cockpit & Mission Control Interface
+## Web Cockpit & Mission Control Interface
 
 The user interface is built with Next.js 14, Tailwind CSS, Lucide Icons, and Recharts, designed as an enterprise operations command center:
 
@@ -252,7 +260,7 @@ The cockpit reads metrics, lead rows, contact evidence, and recorded run events 
 ## REST API Gateway
 
 FastAPI exposes the current local API contract and interactive request examples at `http://127.0.0.1:8000/docs` after the app starts. The generated OpenAPI document is the authoritative endpoint list.
-## ðŸš€ Quickstart & Installation Guide
+## Quickstart & Installation Guide
 
 ### Prerequisites
 
@@ -335,7 +343,7 @@ The test suite runs against a temporary database and export directory. It does n
 ```
 
 Latest local verification: 170 tests passed with 100% measured Python statement coverage. The optimized Next.js production build passed. One Starlette/httpx deprecation warning remains. Test coverage does not measure real-world data accuracy or external-source availability.
-## ðŸ“š Master Engineering Documentation Index
+## Master Engineering Documentation Index
 
 The documentation directory contains implementation plans and case study materials. Planning documents may describe intended features; use the current code and measured data for implementation status.
 
@@ -374,7 +382,19 @@ The documentation directory contains implementation plans and case study materia
 2. The app does not send outreach. DNS MX checks indicate domain mail routing only; they do not verify an individual mailbox, identity, consent, or deliverability.
 3. Provider credentials are stored in the local ignored `.env` file and are omitted from the settings response. Keep the laptop account and filesystem protected.
 4. The API, UI, SQLite storage, deterministic parser, and exports run locally. Crawling, search, DNS checks, configured cloud providers, and optional Google Sheets use external network services.
-## ðŸ“„ License & Attribution
+5. Use synthetic fixtures or redacted samples in issues, pull requests, screenshots, and tests. Never commit real lead exports or personal contact data.
 
-Developed as an engineering submission for **Metrixa Systems GmbH**. Released under the [MIT License](LICENSE).
-Copyright (c) 2026 Metrixa Systems Engineering Team. All rights reserved.
+
+## License & Attribution
+
+Developed as an engineering submission for **Metrixa Systems**. Released under the [Apache License 2.0](LICENSE). See [NOTICE](NOTICE) for attribution and repository-boundary notes.
+
+The license applies to original source code and documentation in this repository. Third-party packages, icons, fonts, and external data sources keep their own licenses and terms. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+## Maintainer Documents
+
+- [Security policy](SECURITY.md)
+- [Data handling and publication policy](DATA_HANDLING.md)
+- [Contributing guide](CONTRIBUTING.md)
+- [Code of conduct](CODE_OF_CONDUCT.md)
+- [Support guide](SUPPORT.md)

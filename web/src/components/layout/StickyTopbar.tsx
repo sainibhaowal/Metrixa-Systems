@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { apiUrl, fetchMetrics } from "@/lib/api";
 import { useSidebar } from "./SidebarContext";
+import { ThemeToggle } from "./ThemeToggle";
 
 export function StickyTopbar() {
   const [metrics, setMetrics] = useState<any>(null);
@@ -80,6 +81,7 @@ export function StickyTopbar() {
 
       {/* Right: Quick Action Buttons */}
       <div className="flex items-center gap-2.5">
+        <ThemeToggle compact />
         <button
           onClick={() => loadData(true)}
           disabled={loading}

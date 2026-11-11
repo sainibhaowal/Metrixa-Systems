@@ -642,7 +642,7 @@ export default function SettingsHubPage() {
       </div>
 
       {/* Quick Navigation to Data Control & Factory Reset */}
-      <div className="p-4 rounded-2xl bg-gradient-to-r from-rose-950/20 via-zinc-950 to-zinc-900 border border-rose-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-matte">
+      <div className="settings-quick-nav p-4 rounded-2xl bg-gradient-to-r from-rose-950/20 via-zinc-950 to-zinc-900 border border-rose-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-matte">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400 shrink-0">
             <ShieldAlert className="w-4 h-4" />
